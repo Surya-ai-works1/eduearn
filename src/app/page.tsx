@@ -166,15 +166,6 @@ export default function RootLandingPage() {
               Explore Skills
             </Button>
             <Button
-              onClick={() => {
-                router.push("/become-tutor");
-              }}
-              variant="outline"
-              size="md"
-            >
-              Become a Tutor
-            </Button>
-            <Button
               onClick={() => setIsDemoOpen(true)}
               variant="ghost"
               size="md"

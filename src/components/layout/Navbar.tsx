@@ -246,7 +246,6 @@ export function Navbar() {
       { title: "Tutors", href: "/tutors" },
       { title: "Live Classes", href: "/live-classes" },
       { title: "AI Features", href: "/ai-assistant" },
-      { title: "Become a Tutor", href: "/become-tutor" },
     ];
   }
 
@@ -960,6 +959,12 @@ export function Navbar() {
                 Log in
               </Link>
               <Link
+                href="/become-tutor"
+                className="text-sm font-semibold bg-btn-gradient hover:opacity-95 text-white shadow-soft rounded-button px-4 py-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                Become a Tutor
+              </Link>
+              <Link
                 href="/register"
                 className="text-sm font-semibold bg-btn-gradient hover:opacity-95 text-white shadow-soft rounded-button px-4 py-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
@@ -1113,6 +1118,12 @@ export function Navbar() {
                       className="w-full text-center py-2 rounded-button border border-border text-xs font-bold text-foreground hover:bg-muted/50 transition-colors"
                     >
                       Log in
+                    </Link>
+                    <Link
+                      href="/become-tutor"
+                      className="w-full text-center py-2 rounded-button bg-btn-gradient text-xs font-bold text-white shadow-soft transition-all"
+                    >
+                      Become a Tutor
                     </Link>
                     <Link
                       href="/register"
