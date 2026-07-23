@@ -1,0 +1,21 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#0F172A"/>
+  
+  <!-- Glowing vector overlays -->
+  <circle cx="200" cy="150" r="300" fill="#2563EB" fill-opacity="0.1"/>
+  <circle cx="1000" cy="500" r="250" fill="#10B981" fill-opacity="0.1"/>
+  
+  <!-- Logo Icon -->
+  <g transform="translate(100, 180) scale(2.5)">
+    <rect width="40" height="40" rx="9" fill="#2563EB"/>
+    <path d="M20 10L31 15.5L20 21L9 15.5L20 10Z" fill="white" />
+    <path d="M13 18.25V24C13 26.5 16 28 20 28C24 28 27 26.5 27 24V18.25" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M20 21V26" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Brand Text -->
+  <text x="240" y="240" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-size="64" font-weight="900" fill="#FFFFFF">EduEarn</text>
+  <text x="240" y="300" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-size="28" font-weight="700" fill="#10B981">Learn. Teach. Earn.</text>
+  <text x="100" y="420" font-family="Inter, system-ui, sans-serif" font-size="24" fill="#94A3B8">India's Premium AI-Powered Peer Learning &amp; Skill Sharing Marketplace</text>
+  <text x="100" y="470" font-family="Inter, system-ui, sans-serif" font-size="20" fill="#64748B"> Tutors age 16-24 • AI-Verified Assessments • Dynamic Classes</text>
+</svg>

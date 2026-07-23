@@ -1,0 +1,95 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    },
+    {
+      "src": "backend/package.json",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/auth/(.*)",
+      "dest": "backend/package.json"
+    },
+    {
+      "src": "/api/user/(.*)",
+      "dest": "backend/package.json"
+    },
+    {
+      "src": "/api/course/(.*)",
+      "dest": "backend/package.json"
+    },
+    {
+      "src": "/api/payment/(.*)",
+      "dest": "backend/package.json"
+    },
+    {
+      "src": "/api/review/(.*)",
+      "dest": "backend/package.json"
+    },
+    {
+      "src": "/api/assignment/(.*)",
+      "dest": "backend/package.json"
+    },
+    {
+      "src": "/api/liveclass/(.*)",
+      "dest": "backend/package.json"
+    },
+    {
+      "src": "/api/withdrawal/(.*)",
+      "dest": "backend/package.json"
+    },
+    {
+      "src": "/api/admin/(.*)",
+      "dest": "backend/package.json"
+    },
+    {
+      "src": "/api/coupon/(.*)",
+      "dest": "backend/package.json"
+    },
+    {
+      "src": "/api/community/(.*)",
+      "dest": "backend/package.json"
+    },
+    {
+      "src": "/api/lms/(.*)",
+      "dest": "backend/package.json"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(self), geolocation=()"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+<svg width="400" height="250" viewBox="0 0 400 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="250" fill="#0F172A"/>
+  <circle cx="200" cy="125" r="80" fill="#2563EB" fill-opacity="0.1"/>
+  <!-- Vector Course Graphics -->
+  <path d="M200 85L260 115L200 145L140 115L200 85Z" stroke="#2563EB" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M160 125V150C160 162 178 170 200 170C222 170 240 162 240 150V125" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+  <path d="M200 145V170" stroke="#10B981" stroke-width="2"/>
+  <!-- Text Label -->
+  <text x="200" y="210" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-size="14" font-weight="bold" fill="#94A3B8" text-anchor="middle">EduEarn Course Placeholder</text>
+</svg>

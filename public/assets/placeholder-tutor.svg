@@ -1,0 +1,10 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="200" rx="100" fill="#0F172A"/>
+  <circle cx="100" cy="100" r="90" fill="#2563EB" fill-opacity="0.1"/>
+  <!-- Tutor Avatar Icon -->
+  <circle cx="100" cy="80" r="30" stroke="#2563EB" stroke-width="3" fill="none"/>
+  <path d="M55 150C55 125 75 115 100 115C125 115 145 125 145 150" stroke="#2563EB" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- Mini AI Badge -->
+  <circle cx="140" cy="140" r="15" fill="#10B981"/>
+  <path d="M135 140L138 143L145 136" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
