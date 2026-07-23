@@ -466,6 +466,7 @@ export function CourseCard({
 }: CourseCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   return (
     <Link href={`/courses/${id}`} className="block h-full">
@@ -479,8 +480,12 @@ export function CourseCard({
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               loading="lazy"
+              onLoad={() => setImageLoaded(true)}
               onError={() => setImageError(true)}
-              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              className={cn(
+                "object-cover group-hover:scale-105 transition-all duration-700 ease-out",
+                imageLoaded ? "opacity-100 blur-0" : "opacity-0 blur-sm"
+              )}
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-hero-gradient opacity-10">

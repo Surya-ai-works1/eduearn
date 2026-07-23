@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { getCategoryBanner } from "../../lib/courseThumbnailRegistry";
 import { Container } from "../../components/layout/Container";
 import { PageWrapper } from "../../components/layout/PageWrapper";
 import { Card } from "../../components/ui/card";
@@ -291,6 +293,12 @@ export default function CategoriesPage() {
   };
 
   const [categories, setCategories] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const [loadedImages, setLoadedImages] = useState<Record<string, boolean>>({});
+
+  const handleImageError = (id: string) => {
+    setFailedImages((prev) => ({ ...prev, [id]: true }));
+  };
   const [activeTutorsCount, setActiveTutorsCount] = useState(600);
   const [studentsLearningCount, setStudentsLearningCount] = useState(5840);
   const [tutorRating, setTutorRating] = useState(4.9);
@@ -578,6 +586,22 @@ export default function CategoriesPage() {
                         
                         {/* Cover Image placeholder pattern */}
                         <div className={`absolute inset-0 bg-gradient-to-br ${cat.featuredCourse.thumbnailColor} opacity-40 z-0`} />
+
+                        {/* Actual Category Banner Image */}
+                        {!failedImages[cat.id] && (
+                          <Image
+                            src={getCategoryBanner(cat.id)}
+                            alt={`${cat.name} learning category banner`}
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            loading="lazy"
+                            onLoad={() => setLoadedImages((prev) => ({ ...prev, [cat.id]: true }))}
+                            onError={() => handleImageError(cat.id)}
+                            className={`object-cover object-center group-hover:scale-105 transition-all duration-700 ease-out ${
+                              loadedImages[cat.id] ? "opacity-100 blur-0" : "opacity-0 blur-sm"
+                            }`}
+                          />
+                        )}
 
                         {/* Top Overlay details */}
                         <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-20">
