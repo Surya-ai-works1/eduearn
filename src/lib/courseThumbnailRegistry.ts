@@ -116,9 +116,9 @@ const CATEGORY_FALLBACKS: Record<string, string> = {
   language: "/images/courses/generic-language.webp",
   languages: "/images/courses/generic-language.webp",
   english: "/images/courses/english.webp",
-  school: "/images/courses/generic-school.webp",
-  academic: "/images/courses/generic-school.webp",
-  academics: "/images/courses/generic-school.webp",
+  school: "/images/courses/academic-education.jpg",
+  academic: "/images/courses/academic-education.jpg",
+  academics: "/images/courses/academic-education.jpg",
   creative: "/images/courses/generic-creative.webp",
   skills: "/images/courses/generic-creative.webp",
   arts: "/images/courses/arts.webp",
@@ -202,16 +202,16 @@ export function getCourseThumbnail(input?: CourseThumbnailInput | string | null)
 // Category Banner Registry
 const CATEGORY_BANNERS: Record<string, string> = {
   // Academic Education
-  "academics": "/images/categories/academic.webp",
-  "academic": "/images/categories/academic.webp",
-  "academic-education": "/images/categories/academic.webp",
-  "school": "/images/categories/academic.webp",
+  "academics": "/images/categories/academic.jpg",
+  "academic": "/images/categories/academic.jpg",
+  "academic-education": "/images/categories/academic.jpg",
+  "school": "/images/categories/academic.jpg",
 
   // Technology & Programming
-  "technology-programming": "/images/categories/technology.webp",
-  "technology": "/images/categories/technology.webp",
-  "programming": "/images/categories/technology.webp",
-  "coding": "/images/categories/technology.webp",
+  "technology-programming": "/images/categories/technology.jpg",
+  "technology": "/images/categories/technology.jpg",
+  "programming": "/images/categories/technology.jpg",
+  "coding": "/images/categories/technology.jpg",
 
   // AI & Data Science
   "ai-data-science": "/images/categories/ai.webp",
@@ -276,7 +276,7 @@ const CATEGORY_BANNERS: Record<string, string> = {
 };
 
 export function getCategoryBanner(categoryIdOrName?: string | null): string {
-  if (!categoryIdOrName) return "/images/categories/academic.webp";
+  if (!categoryIdOrName) return "/images/categories/academic.jpg";
   const key = categoryIdOrName.toLowerCase().replace(/[^a-z0-9]/g, "-").trim();
 
   if (CATEGORY_BANNERS[key]) return CATEGORY_BANNERS[key];
@@ -286,6 +286,6 @@ export function getCategoryBanner(categoryIdOrName?: string | null): string {
     if (key.includes(k) || k.includes(key)) return val;
   }
 
-  return "/images/categories/academic.webp";
+  return "/images/categories/academic.jpg";
 }
 

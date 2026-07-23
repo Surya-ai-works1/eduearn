@@ -76,6 +76,7 @@ const getCategorySlug = (id: string) => {
 
 export function ExploreCategories() {
   const [failedImages, setFailedImages] = React.useState<Record<string, boolean>>({});
+  const [loadedImages, setLoadedImages] = React.useState<Record<string, boolean>>({});
   const [categories, setCategories] = React.useState(() => [
     { id: "academics", name: "Academic Education", type: "academic", count: 36 },
     { id: "skills", name: "Skills & Extracurriculars", type: "skills", count: 32 },
@@ -134,8 +135,11 @@ export function ExploreCategories() {
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                             loading="lazy"
+                            onLoad={() => setLoadedImages((prev) => ({ ...prev, [cat.id]: true }))}
                             onError={() => handleImageError(cat.id)}
-                            className="object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
+                            className={`object-cover object-center group-hover:scale-105 transition-all duration-700 ease-out ${
+                              loadedImages[cat.id] ? "opacity-100 blur-0" : "opacity-0 blur-sm"
+                            }`}
                           />
                           {/* Subtle dark bottom scrim overlay for crisp icon contrast and depth */}
                           <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-background/20 to-transparent opacity-70 group-hover:opacity-50 transition-opacity duration-300 pointer-events-none" />

@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
 import { Container } from "./Container";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
@@ -19,7 +18,6 @@ const MARQUEE_SKILLS = [
   { label: "Videography", emoji: "🎥", id: "videography" },
   { label: "Cooking", emoji: "🍳", id: "cooking" },
   { label: "Baking", emoji: "🧁", id: "baking" },
-  { label: "Barista", emoji: "☕", id: "cooking" },
   { label: "Programming", emoji: "💻", id: "programming" },
   { label: "Artificial Intelligence", emoji: "🤖", id: "ai-prompting" },
   { label: "Data Science", emoji: "📊", id: "programming" },
@@ -62,16 +60,8 @@ export function TrustedBy() {
         
         {/* Infinite scroller */}
         <div className="w-full flex overflow-hidden relative mt-2">
-          <motion.div
-            className="flex items-center gap-6 whitespace-nowrap"
-            animate={{ x: ["0%", "-33.33%"] }}
-            transition={{
-              ease: "linear",
-              duration: 35,
-              repeat: Infinity,
-            }}
-            whileHover={{ transition: { duration: 999999 } }}
-
+          <div
+            className="flex items-center gap-6 whitespace-nowrap animate-marquee motion-reduce:animate-none"
           >
             {duplicatedSkills.map((skill, idx) => (
               <Link key={idx} href={`/courses?category=${skill.id}`} className="block shrink-0">
@@ -86,7 +76,7 @@ export function TrustedBy() {
                 </div>
               </Link>
             ))}
-          </motion.div>
+          </div>
         </div>
       </Container>
     </section>

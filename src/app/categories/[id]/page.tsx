@@ -311,10 +311,31 @@ export default function CategoryDetailPage() {
     }));
   }, [categorySubjects]);
 
-  const filteredTutors = useMemo(() => {
-    if (activeSubject === "All") return categoryTutors.slice(0, 4);
-    return categoryTutors.filter(t => t.subjectsTaught.includes(activeSubject)).slice(0, 4);
-  }, [categoryTutors, activeSubject]);
+  const [filteredTutors, setFilteredTutors] = useState<any[]>([]);
+
+  useEffect(() => {
+    let list = [];
+    if (activeSubject === "All") {
+      list = MOCK_TUTORS;
+    } else {
+      list = MOCK_TUTORS.filter(t => t.subjectsTaught.some(s => s.toLowerCase() === activeSubject.toLowerCase()));
+    }
+
+    const mapped = list.map(t => ({
+      id: t.id,
+      name: t.fullName,
+      role: t.bio.substring(0, 50) + "...",
+      rating: t.rating,
+      price: parseInt((t.singleSubjectFee || "").replace(/[^0-9]/g, "")) || 500,
+      languages: t.languages.join(", "),
+      reviewsCount: Math.max(5, t.totalStudents - 10),
+      subjectsTaught: t.subjectsTaught,
+    }));
+
+    // Randomize/rotate tutors on activeSubject change
+    const shuffled = [...mapped].sort(() => 0.5 - Math.random());
+    setFilteredTutors(shuffled.slice(0, Math.max(3, Math.min(shuffled.length, 6))));
+  }, [activeSubject]);
 
   // Combined Courses data search & subject filter
   const filteredCourses = useMemo(() => {
@@ -699,8 +720,19 @@ export default function CategoryDetailPage() {
                 👨‍🏫 Spotlight Tutors
               </h2>
               {filteredTutors.length === 0 ? (
-                <Card variant="glass" className="p-6 text-center">
-                  <span className="text-xs text-muted-foreground">No mentors listed for this subject.</span>
+                <Card variant="glass" className="p-6 text-center flex flex-col items-center justify-center gap-3">
+                  <HelpCircle className="w-10 h-10 text-muted-foreground/60 animate-bounce" />
+                  <span className="text-xs font-bold text-foreground">
+                    No tutors available for this subject yet.
+                  </span>
+                  <div className="flex gap-2 w-full mt-2 justify-center">
+                    <Button size="sm" variant="primary" className="text-[9px] font-bold py-2 rounded-lg">
+                      Become the First Tutor
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-[9px] font-bold py-2 rounded-lg" onClick={() => setActiveSubject("All")}>
+                      Explore Similar Subjects
+                    </Button>
+                  </div>
                 </Card>
               ) : (
                 <div className="flex flex-col gap-3">
@@ -712,7 +744,7 @@ export default function CategoryDetailPage() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-heading font-extrabold text-xs shrink-0">
-                          {tutor.name.split(" ").map(w => w[0]).join("")}
+                          {tutor.name.split(" ").map((w: string) => w[0]).join("")}
                         </div>
                         <div>
                           <h4 className="text-xs font-extrabold text-foreground">

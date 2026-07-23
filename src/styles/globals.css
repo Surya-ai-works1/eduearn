@@ -110,6 +110,18 @@
 
   /* Gradients */
   --color-hero-gradient: linear-gradient(135deg, #0F172A 0%, #1E3A8A 50%, #2563EB 100%);
+
+  /* Marquee animation */
+  --animate-marquee: marquee 45s linear infinite;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-33.3333%);
+    }
+  }
 }
 
 /* Base custom styles */
