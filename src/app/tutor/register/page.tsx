@@ -77,13 +77,9 @@ export default function TutorRegisterPage() {
 
       toast.success(result.message);
 
-      if (result.sessionCreated) {
-        // Automatically choose the tutor role immediately upon login
-        await chooseRole("tutor");
-        router.replace("/tutor/onboarding");
-      } else {
-        router.replace(`/verify-email?email=${encodeURIComponent(values.email)}`);
-      }
+      // After registration, directly proceed to onboarding (development mode bypass)
+      await chooseRole("tutor");
+      router.replace("/tutor/onboarding");
     } catch (err: any) {
       setFormError(normalizeError(err));
     }
@@ -249,19 +245,7 @@ export default function TutorRegisterPage() {
           )}
         </motion.div>
 
-        {/* Email verification notice */}
-        <motion.div
-          custom={6}
-          variants={fieldVariants}
-          initial="hidden"
-          animate="visible"
-          className="rounded-[10px] border border-primary/20 bg-primary/5 px-3 py-2.5"
-        >
-          <p className="text-[11px] leading-5 text-muted-foreground">
-            <span className="font-bold text-primary">📧 Email verification required — </span>
-            We will send a confirmation link to your inbox. Please verify before logging in.
-          </p>
-        </motion.div>
+
 
         {/* Submit */}
         <motion.div custom={7} variants={fieldVariants} initial="hidden" animate="visible">

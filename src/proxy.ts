@@ -115,7 +115,8 @@ export async function proxy(request: NextRequest) {
 
   // ── Email Verification Guard ─────────────────────────────────────────────
   if (user) {
-    const isEmailConfirmed = !!user.email_confirmed_at;
+    // Development mode: disable email verification if env var is set
+    const devDisableEmailVerification = process.env.DEV_DISABLE_EMAIL_VERIFICATION === 'true';
     const isVerificationBypassPath =
       url.pathname.startsWith("/verify-email") ||
       url.pathname.startsWith("/login") ||
@@ -124,9 +125,9 @@ export async function proxy(request: NextRequest) {
       url.pathname.startsWith("/reset-password") ||
       url.pathname.startsWith("/auth/callback") ||
       url.pathname.startsWith("/api/");
-
+    const isEmailConfirmed = devDisableEmailVerification ? true : !!user.email_confirmed_at;
+    // If email is not confirmed, redirect any non-bypass page request to /verify-email
     if (!isEmailConfirmed) {
-      // If email is not confirmed, redirect any non-bypass page request to /verify-email
       if (!isVerificationBypassPath) {
         url.pathname = "/verify-email";
         url.searchParams.set("email", user.email || "");
@@ -275,7 +276,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Pass through — return the mutated response so Supabase can set refreshed cookies.
+  // Pass through - return the mutated response so Supabase can set refreshed cookies.
   return response;
 }
 
