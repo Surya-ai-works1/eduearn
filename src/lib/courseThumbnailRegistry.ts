@@ -228,10 +228,10 @@ const CATEGORY_BANNERS: Record<string, string> = {
   "arts": "/images/courses/arts.jpg",
 
   // Video Editing & Animation
-  "video-editing-animation": "/images/courses/photography.webp",
-  "video-editing": "/images/courses/photography.webp",
-  "video": "/images/courses/photography.webp",
-  "animation": "/images/courses/photography.webp",
+  "video-editing-animation": "/images/courses/video-editing.webp",
+  "video-editing": "/images/courses/video-editing.webp",
+  "video": "/images/courses/video-editing.webp",
+  "animation": "/images/courses/video-editing.webp",
 
   // Photography & Media
   "photography-media": "/images/courses/photography.webp",
@@ -264,8 +264,8 @@ const CATEGORY_BANNERS: Record<string, string> = {
   "digital-marketing": "/images/courses/marketing.webp",
 
   // Communication
-  "communication": "/images/courses/languages.webp",
-  "public-speaking": "/images/courses/languages.webp",
+  "communication": "/images/courses/communication.webp",
+  "public-speaking": "/images/courses/communication.webp",
 
   // Languages
   "languages": "/images/courses/languages.webp",
