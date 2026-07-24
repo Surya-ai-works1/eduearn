@@ -153,9 +153,7 @@ const defaultState: OnboardingState = {
   verification: { profileVerified: false, documents: [] },
   review: {},
   submission: {},
-};
-
-interface OnboardingContextProps {
+};interface OnboardingContextProps {
   state: OnboardingState;
   setState: React.Dispatch<React.SetStateAction<OnboardingState>>;
   goNext: () => void;
@@ -164,12 +162,14 @@ interface OnboardingContextProps {
   saveDraft: () => void;
   loadDraft: () => void;
   resetOnboarding: () => void;
+  isHydrated: boolean;
 }
 
 const OnboardingContext = createContext<OnboardingContextProps | undefined>(undefined);
 
 export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<OnboardingState>(defaultState);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   // Load persisted state on mount
   useEffect(() => {
@@ -182,13 +182,14 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
         console.error('Failed to parse onboarding state', e);
       }
     }
+    setIsHydrated(true);
   }, []);
 
-  // Auto‑save on any state change
+  // Auto‑save on any state change ONLY AFTER hydration is complete
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !isHydrated) return;
     localStorage.setItem('tutor_onboarding_state', JSON.stringify(state));
-  }, [state]);
+  }, [state, isHydrated]);
 
   const goNext = () => setState((prev: OnboardingState) => ({ ...prev, currentStep: prev.currentStep + 1 }));
   const goBack = () => setState((prev: OnboardingState) => ({ ...prev, currentStep: Math.max(1, prev.currentStep - 1) }));
@@ -204,10 +205,9 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
     if (saved) setState(JSON.parse(saved));
   };
   const resetOnboarding = () => setState(defaultState);
-
   return (
     <OnboardingContext.Provider
-      value={{ state, setState, goNext, goBack, goToStep, saveDraft, loadDraft, resetOnboarding }}
+      value={{ state, setState, goNext, goBack, goToStep, saveDraft, loadDraft, resetOnboarding, isHydrated }}
     >
       {children}
     </OnboardingContext.Provider>

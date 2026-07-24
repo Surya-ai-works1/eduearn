@@ -22,12 +22,22 @@ export default function ProfessionalDetailsStep() {
   const { professionalDetails } = state;
 
   // Local UI state mirrors context state for edits
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(professionalDetails.selectedCategories);
-  const [skillProficiencies, setSkillProficiencies] = useState<SkillItem[]>(professionalDetails.skillProficiencies);
-  const [languages, setLanguages] = useState<string[]>(professionalDetails.languages);
-  const [educationList, setEducationList] = useState<EducationItem[]>(professionalDetails.educationList);
-  const [teachingExpYears, setTeachingExpYears] = useState(professionalDetails.teachingExpYears);
-  const [achievements, setAchievements] = useState(professionalDetails.achievements);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(professionalDetails.selectedCategories || []);
+  const [skillProficiencies, setSkillProficiencies] = useState<SkillItem[]>(professionalDetails.skillProficiencies || []);
+  const [languages, setLanguages] = useState<string[]>(professionalDetails.languages || []);
+  const [educationList, setEducationList] = useState<EducationItem[]>(professionalDetails.educationList || []);
+  const [teachingExpYears, setTeachingExpYears] = useState(professionalDetails.teachingExpYears || '');
+  const [achievements, setAchievements] = useState(professionalDetails.achievements || '');
+
+  // Synchronise local state with context when context loads/hydrates
+  React.useEffect(() => {
+    setSelectedCategories(professionalDetails.selectedCategories || []);
+    setSkillProficiencies(professionalDetails.skillProficiencies || []);
+    setLanguages(professionalDetails.languages || []);
+    setEducationList(professionalDetails.educationList || []);
+    setTeachingExpYears(professionalDetails.teachingExpYears || '');
+    setAchievements(professionalDetails.achievements || '');
+  }, [professionalDetails]);
 
   // Handlers
   const toggleCategory = (cat: string) => {

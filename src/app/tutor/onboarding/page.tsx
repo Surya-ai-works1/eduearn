@@ -10,9 +10,7 @@ import VerificationStep from '@/app/tutor/onboarding/components/VerificationStep
 import AIInterviewStep from '@/app/tutor/onboarding/components/AIInterviewStep';
 import ReviewSubmitStep from '@/app/tutor/onboarding/components/ReviewSubmitStep';
 import CompletionStep from '@/app/tutor/onboarding/components/CompletionStep';
-import ProgressStepper from '@/app/tutor/onboarding/components/ProgressStepper';
-
-export default function TutorOnboardingPage() {
+import ProgressStepper from '@/app/tutor/onboarding/components/ProgressStepper';export default function TutorOnboardingPage() {
   return (
     <OnboardingProvider>
       <OnboardingContent />
@@ -22,11 +20,8 @@ export default function TutorOnboardingPage() {
 
 function OnboardingContent() {
   const router = useRouter();
-  const { state, goToStep } = useOnboarding();
-  // Using supabase instance from '@/lib/supabaseClient'
+  const { state, goToStep, isHydrated } = useOnboarding();
   const [isLoading, setIsLoading] = React.useState(true);
-
-  // Authentication & role check (preserve existing logic)
   React.useEffect(() => {
     const checkAuth = async () => {
       setIsLoading(true);
@@ -39,8 +34,7 @@ function OnboardingContent() {
     checkAuth();
   }, [supabaseClient, router]);
 
-  if (isLoading) return null; // or a loading spinner
-
+  if (isLoading || !isHydrated) return null;
   const renderStep = () => {
     switch (state.currentStep) {
       case 1:

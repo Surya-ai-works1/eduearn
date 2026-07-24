@@ -35,6 +35,19 @@ export default function TeachingSetupStep() {
   const [preferredBatchSize, setPreferredBatchSize] = useState(teachingSetup.liveClassSetup.preferredBatchSize);
   const [slots, setSlots] = useState<Record<string, string[]>>(teachingSetup.availability.slots || {});
 
+  // Synchronise local state with context when context loads/hydrates
+  React.useEffect(() => {
+    setTeachingMode(teachingSetup.teachingMode);
+    setTimezone(teachingSetup.availability.timezone);
+    setMaxHoursPerDay(teachingSetup.availability.maxHoursPerDay);
+    setHourlyRate(teachingSetup.hourlyRate);
+    setSessionDuration(teachingSetup.sessionDuration);
+    setFreeDemo(teachingSetup.freeDemo);
+    setPreferredLanguage(teachingSetup.preferredLanguage);
+    setPreferredBatchSize(teachingSetup.liveClassSetup.preferredBatchSize);
+    setSlots(teachingSetup.availability.slots || {});
+  }, [teachingSetup]);
+
   const toggleSlot = (day: string, slot: string) => {
     setSlots(prev => {
       const daySlots = prev[day] || [];
@@ -72,9 +85,8 @@ export default function TeachingSetupStep() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">Teaching Setup</h2>
+      <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Teaching Setup</h2>
       <form onSubmit={handleSaveAndProceed} className="space-y-6">
-        
         {/* Row 1: Mode, Language, Batch Size */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
