@@ -3,10 +3,7 @@ import type { NextRequest } from "next/server";
 import { createMiddlewareClient } from "./lib/supabase/server";
 
 /**
- * EduEarn Proxy (formerly middleware)
- *
- * Renamed from middleware.ts → proxy.ts per Next.js v16 convention.
- * The function name changes from `middleware` to `proxy`.
+ * EduEarn Proxy
  *
  * Responsibilities:
  * 1. Refresh the Supabase session on every request (keeps tokens from expiring).

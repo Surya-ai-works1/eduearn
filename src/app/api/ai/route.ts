@@ -275,16 +275,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
     }
 
-    let activeUserId = userId;
-    if (!activeUserId) {
-      try {
-        const { createClient } = await import("@/lib/supabase");
-        const supabase = createClient();
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (authUser) activeUserId = authUser.id;
-      } catch (authErr) {
-        console.warn("Could not retrieve user session for RAG context:", authErr);
+    let activeUserId = "";
+    try {
+      const { createClient } = await import("@/lib/supabase");
+      const supabase = createClient();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        activeUserId = authUser.id;
       }
+    } catch (authErr) {
+      console.warn("Could not retrieve user session for RAG context:", authErr);
+    }
+
+    if (!activeUserId && process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Unauthorized. Authentication required." }, { status: 401 });
     }
 
     let ragContext = "";

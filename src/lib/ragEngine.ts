@@ -117,7 +117,7 @@ export const RAGEngine = {
       const role = profile.role;
       let filterCourseIds: string[] | null = null;
 
-      if (role === "learner") {
+      if (role === "learner" || role === "student") {
         // Retrieve only enrolled courses
         const { data: enrollments, error: enrollErr } = await supabase
           .from("enrollments")

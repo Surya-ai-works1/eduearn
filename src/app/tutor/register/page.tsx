@@ -59,39 +59,51 @@ export default function TutorRegisterPage() {
 
   const password = watch("password");
 
-  const onSubmit = async (values: RegisterFields) => {
-    try {
-      setFormError(null);
-      
-      // Save temporary onboarding role selector to resolve post-verification landing
-      if (typeof window !== "undefined") {
-        localStorage.setItem("onboarding_role", "tutor");
-      }
-
-      const result = await registerUser(values.email, values.password, values.fullName, "tutor");
-
-      if (!result.ok) {
-        setFormError(normalizeError(result.message));
+    const onSubmit = async (values: RegisterFields) => {
+      // Development mode shortcut: skip registration and go directly to onboarding
+      if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
+        router.replace("/tutor/onboarding");
         return;
       }
-
-      toast.success(result.message);
-
-      // After registration, directly proceed to onboarding (development mode bypass)
-      await chooseRole("tutor");
-      router.replace("/tutor/onboarding");
-    } catch (err: any) {
-      setFormError(normalizeError(err));
-    }
-  };
-
+      try {
+        setFormError(null);
+        
+        // Save temporary onboarding role selector to resolve post-verification landing
+        if (typeof window !== "undefined") {
+          localStorage.setItem("onboarding_role", "tutor");
+        }
+        
+        const result = await registerUser(values.email, values.password, values.fullName, "tutor");
+        
+        if (!result.ok) {
+          setFormError(normalizeError(result.message));
+          return;
+        }
+        
+        toast.success(result.message);
+        
+        // After registration, directly proceed to onboarding (development mode bypass)
+        await chooseRole("tutor");
+        router.replace("/tutor/onboarding");
+      } catch (err: any) {
+        setFormError(normalizeError(err));
+      }
+    };
+    const handleDevOrSubmit = () => {
+      if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
+        router.replace("/tutor/onboarding");
+        return;
+      }
+      // invoke react-hook-form validation then onSubmit
+      handleSubmit(onSubmit)();
+    };
   return (
     <AuthShell
       eyebrow="Tutor Registration"
       title="Teach on EduEarn"
       description="Create a tutor account. Teach live courses, automate evaluations with Sparky AI, and earn 70% share."
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+      <form onSubmit={handleDevOrSubmit} className="space-y-5" noValidate>
         {/* Error banner */}
         {formError && <Alert variant="danger" description={formError} />}
 

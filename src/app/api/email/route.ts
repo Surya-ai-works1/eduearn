@@ -1,10 +1,24 @@
 import { NextResponse } from "next/server";
 import { emailService } from "../../../lib/email/service";
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { type, to, ...args } = body;
+
+    // Security Check: Restrict sensitive emails to authenticated sessions
+    try {
+      const { createClient } = await import("@/lib/supabase");
+      const supabase = createClient();
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !user) {
+        if (type !== "verification" && type !== "reset_password" && type !== "welcome") {
+          return NextResponse.json({ error: "Unauthorized. Authentication required." }, { status: 401 });
+        }
+      }
+    } catch (e) {
+      console.warn("Auth check failed in email route:", e);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     if (!to || !type) {
       return NextResponse.json({ error: "Missing required fields (to, type)" }, { status: 400 });

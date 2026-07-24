@@ -1,10 +1,12 @@
 import { genToken } from "../configs/token.js"
 import validator from "validator"
+import jwt from "jsonwebtoken"
 
 import bcrypt from "bcryptjs"
 import User from "../models/userModel.js"
 
 import sendMail from "../configs/Mail.js"
+
 
 
 export const signUp=async (req,res)=>{
@@ -176,13 +178,56 @@ export const resetPassword = async (req,res) => {
         return res.status(500).json({message:`Reset Password error ${error}`})
     }
 }
-
 export const bridgeSession = async (req, res) => {
     try {
-        const { email, name, role, photoUrl } = req.body;
+        let email, role, name, photoUrl;
 
-        if (!email || !role) {
-            return res.status(400).json({ message: "Email and role are required." });
+        // Skip validation ONLY if explicit dev flag is enabled and we are not in production
+        if (process.env.NODE_ENV !== "production" && process.env.DEV_DISABLE_JWT_VALIDATION === "true") {
+            console.warn("LMS Auth Bridge: DEV_DISABLE_JWT_VALIDATION active, skipping JWT checks");
+            email = req.body.email;
+            role = req.body.role || "student";
+            name = req.body.name || email?.split("@")[0] || "Test User";
+            photoUrl = req.body.photoUrl || "";
+            if (!email) {
+                return res.status(400).json({ message: "Email is required in bypass mode" });
+            }
+        } else {
+            // AUTHORITATIVE JWT CHECK
+            const authHeader = req.headers.authorization;
+            const tokenFromPayload = req.body.token;
+            const supabaseToken = authHeader && authHeader.startsWith("Bearer ") 
+                ? authHeader.substring(7) 
+                : tokenFromPayload;
+
+            if (!supabaseToken) {
+                console.warn("LMS Auth Bridge: Missing authorization token");
+                return res.status(401).json({ message: "Authorization token is required." });
+            }
+
+            const jwtSecret = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET;
+            if (!jwtSecret) {
+                console.error("SUPABASE_JWT_SECRET is not configured on the server.");
+                return res.status(500).json({ message: "Server configuration error." });
+            }
+
+            let decoded;
+            try {
+                decoded = jwt.verify(supabaseToken, jwtSecret);
+            } catch (jwtErr) {
+                console.warn("LMS Auth Bridge: JWT validation failed:", jwtErr.message);
+                return res.status(401).json({ message: `Invalid or expired Supabase token: ${jwtErr.message}` });
+            }
+
+            email = decoded.email;
+            const metadata = decoded.user_metadata || {};
+            role = metadata.role || "student";
+            name = metadata.fullName || metadata.full_name || email.split("@")[0];
+            photoUrl = metadata.avatarUrl || metadata.avatar_url || "";
+
+            if (!email) {
+                return res.status(400).json({ message: "Email not found in token payload." });
+            }
         }
 
         // Role mapping:
