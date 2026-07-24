@@ -84,7 +84,7 @@ interface EducationRecord {
 }
 
 export default function BecomeTutorPage() {
-  const { user, completeProfile } = useAuth();
+  const { user, isAuthenticated, isLoading, completeProfile } = useAuth();
   const router = useRouter();
   const platformConfig = PaymentService.getPlatformConfig();
 
@@ -92,6 +92,13 @@ export default function BecomeTutorPage() {
   const [appCode, setAppCode] = useState("");
   const [tutorStatus, setTutorStatus] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      router.replace(`/login?redirect=${encodeURIComponent("/become-tutor")}`);
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -125,6 +132,17 @@ export default function BecomeTutorPage() {
     language: "English, Hindi",
     bio: "",
   });
+
+  // Sync user info when available
+  useEffect(() => {
+    if (user) {
+      setPersonalInfo((prev) => ({
+        ...prev,
+        fullName: prev.fullName || user.fullName || "",
+        email: prev.email || user.email || "",
+      }));
+    }
+  }, [user]);
 
   // STEP 2: Categories & Dynamic Skill Levels
   const [selectedCategories, setSelectedCategories] = useState<string[]>(["programming"]);
@@ -343,9 +361,24 @@ export default function BecomeTutorPage() {
     }
   };
 
-  const handleFinalSubmit = () => {
+  const handleFinalSubmit = async () => {
     setIsProcessingPayment(true);
     toast.info("Submitting application to EduEarn Admin Verification Desk...");
+
+    try {
+      await completeProfile({
+        role: "tutor",
+        complete: true,
+        fullName: personalInfo.fullName,
+        country: personalInfo.country,
+        state: personalInfo.state,
+        city: personalInfo.city,
+        language: personalInfo.language,
+        bio: personalInfo.bio,
+      });
+    } catch (err) {
+      console.warn("Failed to complete profile during tutor onboarding:", err);
+    }
 
     setTimeout(() => {
       if (typeof window !== "undefined") {
@@ -379,6 +412,16 @@ export default function BecomeTutorPage() {
     "Sparky Interview",
     "Final Review"
   ];
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <PageWrapper>
+        <div className="flex min-h-[70vh] w-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper>
