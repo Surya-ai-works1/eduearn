@@ -490,7 +490,7 @@ export const MOCK_BLOGS = Array.from({ length: 20 }).map((_, idx) => {
     author: TUTOR_NAMES[idx % TUTOR_NAMES.length],
     authorRole: "Student Tutor",
     publishedAt: new Date(Date.now() - 3600000 * 24 * idx).toISOString(),
-    thumbnail: idx % 2 === 0 ? "/images/categories/academic.jpg" : "/images/categories/technology.jpg",
+    thumbnail: idx % 2 === 0 ? "/images/courses/academic-education.webp" : "/images/courses/technology-programming.webp",
   };
 });
 

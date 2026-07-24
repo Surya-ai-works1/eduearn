@@ -2444,7 +2444,7 @@ function StudentDashboardContent() {
                       <div className="relative w-24 h-16 rounded bg-muted overflow-hidden border border-border/40 shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic certificate course image */}
                         <img
-                          src={cert.courseImage || "/images/courses/fallback.png"}
+                          src={cert.courseImage || "/images/courses/academic-education.webp"}
                           alt={cert.courseTitle}
                           className="w-full h-full object-cover"
                         />
@@ -2570,7 +2570,7 @@ function StudentDashboardContent() {
                                 alt={course.title}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = "/images/courses/fallback.png";
+                                  (e.target as HTMLImageElement).src = "/images/courses/academic-education.webp";
                                 }}
                               />
                             ) : (

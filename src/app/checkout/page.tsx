@@ -407,7 +407,7 @@ function CheckoutContent() {
               <div className="w-14 h-10 rounded bg-muted overflow-hidden border border-border shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element -- Course thumbnails are loaded dynamically from external storage */}
                 <img 
-                  src={course?.thumbnail || "/images/courses/fallback.png"} 
+                  src={course?.thumbnail || "/images/courses/academic-education.webp"} 
                   alt={course?.title}
                   className="w-full h-full object-cover" 
                 />

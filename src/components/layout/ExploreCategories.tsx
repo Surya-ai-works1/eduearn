@@ -126,7 +126,7 @@ export function ExploreCategories() {
                     className="flex flex-col p-0 h-full group cursor-pointer border-border hover:border-primary/30 overflow-hidden"
                   >
                     {/* Category Image Cover */}
-                    <div className="relative w-full h-28 sm:h-32 bg-muted overflow-hidden">
+                    <div className="relative w-full h-36 sm:h-42 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 overflow-hidden">
                       {!failedImages[cat.id] ? (
                         <>
                           <Image
@@ -135,6 +135,7 @@ export function ExploreCategories() {
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                             loading="lazy"
+                            decoding="async"
                             onLoad={() => setLoadedImages((prev) => ({ ...prev, [cat.id]: true }))}
                             onError={() => handleImageError(cat.id)}
                             className={`object-cover object-center group-hover:scale-105 transition-all duration-700 ease-out ${

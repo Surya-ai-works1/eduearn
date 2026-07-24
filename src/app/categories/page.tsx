@@ -579,7 +579,7 @@ export default function CategoriesPage() {
                       className="p-0 border border-border/80 hover:border-primary/20 bg-card rounded-2xl h-full flex flex-col justify-between group transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden relative"
                     >
                       {/* Cover Image Wrapper with Gradient Overlay */}
-                      <div className="w-full h-28 bg-muted relative overflow-hidden shrink-0 border-b border-border/40">
+                      <div className="w-full h-36 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 relative overflow-hidden shrink-0 border-b border-border/40">
                         {/* Placeholder Banner Image */}
                         <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/40 via-background/20 to-card/40 z-0" />
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10" />
@@ -595,6 +595,7 @@ export default function CategoriesPage() {
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                             loading="lazy"
+                            decoding="async"
                             onLoad={() => setLoadedImages((prev) => ({ ...prev, [cat.id]: true }))}
                             onError={() => handleImageError(cat.id)}
                             className={`object-cover object-center group-hover:scale-105 transition-all duration-700 ease-out ${

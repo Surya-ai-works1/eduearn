@@ -12,7 +12,6 @@ export interface CourseThumbnailInput {
   imageSrc?: string;
 }
 
-// Subject-to-thumbnail mapping table
 const SUBJECT_THUMBNAILS: Record<string, string> = {
   // Programming & Technology
   "python": "/images/courses/python.webp",
@@ -23,19 +22,19 @@ const SUBJECT_THUMBNAILS: Record<string, string> = {
   "next-js": "/images/courses/web-dev.webp",
   "node-js": "/images/courses/web-dev.webp",
   "html-css": "/images/courses/web-dev.webp",
-  "java": "/images/courses/generic-programming.webp",
-  "c-plus-plus": "/images/courses/generic-programming.webp",
-  "cpp": "/images/courses/generic-programming.webp",
-  "ai-ml": "/images/courses/ai.webp",
-  "ai": "/images/courses/ai.webp",
-  "chatgpt": "/images/courses/ai.webp",
-  "gemini": "/images/courses/ai.webp",
-  "claude": "/images/courses/ai.webp",
-  "deep-learning": "/images/courses/ai.webp",
-  "computer-vision": "/images/courses/ai.webp",
-  "nlp": "/images/courses/ai.webp",
-  "cyber-security": "/images/courses/generic-programming.webp",
-  "data-science": "/images/courses/generic-programming.webp",
+  "java": "/images/courses/technology-programming.webp",
+  "c-plus-plus": "/images/courses/technology-programming.webp",
+  "cpp": "/images/courses/technology-programming.webp",
+  "ai-ml": "/images/courses/ai-data-science.webp",
+  "ai": "/images/courses/ai-data-science.webp",
+  "chatgpt": "/images/courses/ai-data-science.webp",
+  "gemini": "/images/courses/ai-data-science.webp",
+  "claude": "/images/courses/ai-data-science.webp",
+  "deep-learning": "/images/courses/ai-data-science.webp",
+  "computer-vision": "/images/courses/ai-data-science.webp",
+  "nlp": "/images/courses/ai-data-science.webp",
+  "cyber-security": "/images/courses/technology-programming.webp",
+  "data-science": "/images/courses/technology-programming.webp",
   "computer-science": "/images/courses/computer-science.webp",
 
   // Academics & School
@@ -49,16 +48,16 @@ const SUBJECT_THUMBNAILS: Record<string, string> = {
   "physics": "/images/courses/physics.webp",
   "chemistry": "/images/courses/chemistry.webp",
   "english": "/images/courses/english.webp",
-  "hindi": "/images/courses/generic-language.webp",
-  "telugu": "/images/courses/generic-language.webp",
-  "tamil": "/images/courses/generic-language.webp",
-  "kannada": "/images/courses/generic-language.webp",
-  "french": "/images/courses/generic-language.webp",
-  "german": "/images/courses/generic-language.webp",
-  "japanese": "/images/courses/generic-language.webp",
-  "social-studies": "/images/courses/generic-school.webp",
-  "geography": "/images/courses/generic-school.webp",
-  "history": "/images/courses/generic-school.webp",
+  "hindi": "/images/courses/languages.webp",
+  "telugu": "/images/courses/languages.webp",
+  "tamil": "/images/courses/languages.webp",
+  "kannada": "/images/courses/languages.webp",
+  "french": "/images/courses/languages.webp",
+  "german": "/images/courses/languages.webp",
+  "japanese": "/images/courses/languages.webp",
+  "social-studies": "/images/courses/academics.webp",
+  "geography": "/images/courses/academics.webp",
+  "history": "/images/courses/academics.webp",
 
   // Business & Commerce
   "economics": "/images/courses/economics.webp",
@@ -67,65 +66,66 @@ const SUBJECT_THUMBNAILS: Record<string, string> = {
   "class-12-commerce": "/images/courses/commerce.webp",
   "accountancy": "/images/courses/accountancy.webp",
   "accounting": "/images/courses/accountancy.webp",
-  "finance": "/images/courses/generic-business.webp",
-  "stock-market": "/images/courses/generic-business.webp",
-  "entrepreneurship": "/images/courses/generic-business.webp",
+  "finance": "/images/courses/business.webp",
+  "stock-market": "/images/courses/business.webp",
+  "entrepreneurship": "/images/courses/business.webp",
 
   // Extracurriculars & Skills
   "photography": "/images/courses/photography.webp",
   "videography": "/images/courses/photography.webp",
-  "guitar": "/images/courses/music.webp",
-  "piano": "/images/courses/music.webp",
-  "keyboard": "/images/courses/music.webp",
-  "violin": "/images/courses/music.webp",
-  "flute": "/images/courses/music.webp",
-  "singing": "/images/courses/music.webp",
-  "music": "/images/courses/music.webp",
+  "guitar": "/images/courses/music.jpg",
+  "piano": "/images/courses/music.jpg",
+  "keyboard": "/images/courses/music.jpg",
+  "violin": "/images/courses/music.jpg",
+  "flute": "/images/courses/music.jpg",
+  "singing": "/images/courses/music.jpg",
+  "music": "/images/courses/music.jpg",
   "cooking": "/images/courses/cooking.webp",
   "baking": "/images/courses/cooking.webp",
-  "dance": "/images/courses/dance.webp",
-  "kuchipudi": "/images/courses/dance.webp",
-  "bharatanatyam": "/images/courses/dance.webp",
-  "hip-hop": "/images/courses/dance.webp",
-  "western": "/images/courses/dance.webp",
-  "classical": "/images/courses/dance.webp",
-  "drawing": "/images/courses/arts.webp",
-  "painting": "/images/courses/arts.webp",
-  "sketching": "/images/courses/arts.webp",
-  "crafts": "/images/courses/arts.webp",
-  "arts": "/images/courses/arts.webp",
-  "yoga": "/images/courses/generic-creative.webp",
-  "fitness": "/images/courses/generic-creative.webp",
+  "dance": "/images/courses/dance.jpg",
+  "kuchipudi": "/images/courses/dance.jpg",
+  "bharatanatyam": "/images/courses/dance.jpg",
+  "hip-hop": "/images/courses/dance.jpg",
+  "western": "/images/courses/dance.jpg",
+  "classical": "/images/courses/dance.jpg",
+  "drawing": "/images/courses/arts.jpg",
+  "painting": "/images/courses/arts.jpg",
+  "sketching": "/images/courses/arts.jpg",
+  "crafts": "/images/courses/arts.jpg",
+  "arts": "/images/courses/arts.jpg",
+  "yoga": "/images/courses/arts.jpg",
+  "fitness": "/images/courses/sports.webp",
   "public-speaking": "/images/courses/english.webp",
-  "chess": "/images/courses/generic-creative.webp",
-  "digital-marketing": "/images/courses/generic-business.webp",
-  "ui-ux": "/images/courses/arts.webp",
-  "graphic-design": "/images/courses/arts.webp",
+  "chess": "/images/courses/arts.jpg",
+  "digital-marketing": "/images/courses/marketing.webp",
+  "ui-ux": "/images/courses/arts.jpg",
+  "graphic-design": "/images/courses/arts.jpg",
   "video-editing": "/images/courses/photography.webp",
 };
 
 // Category fallbacks
 const CATEGORY_FALLBACKS: Record<string, string> = {
-  programming: "/images/courses/generic-programming.webp",
-  coding: "/images/courses/generic-programming.webp",
-  tech: "/images/courses/generic-programming.webp",
-  ai: "/images/courses/ai.webp",
-  business: "/images/courses/generic-business.webp",
+  programming: "/images/courses/technology-programming.webp",
+  coding: "/images/courses/technology-programming.webp",
+  tech: "/images/courses/technology-programming.webp",
+  ai: "/images/courses/ai-data-science.webp",
+  business: "/images/courses/business.webp",
   commerce: "/images/courses/commerce.webp",
-  finance: "/images/courses/generic-business.webp",
-  language: "/images/courses/generic-language.webp",
-  languages: "/images/courses/generic-language.webp",
+  finance: "/images/courses/business.webp",
+  language: "/images/courses/languages.webp",
+  languages: "/images/courses/languages.webp",
   english: "/images/courses/english.webp",
-  school: "/images/courses/academic-education.jpg",
-  academic: "/images/courses/academic-education.jpg",
-  academics: "/images/courses/academic-education.jpg",
-  creative: "/images/courses/generic-creative.webp",
-  skills: "/images/courses/generic-creative.webp",
-  arts: "/images/courses/arts.webp",
-  music: "/images/courses/music.webp",
+  school: "/images/courses/academics.webp",
+  academic: "/images/courses/academics.webp",
+  academics: "/images/courses/academics.webp",
+  creative: "/images/courses/arts.jpg",
+  skills: "/images/courses/arts.jpg",
+  arts: "/images/courses/arts.jpg",
+  music: "/images/courses/music.jpg",
+  dance: "/images/courses/dance.jpg",
 };
 
-const DEFAULT_FALLBACK = "/images/courses/generic-education.webp";
+const DEFAULT_FALLBACK = "/images/courses/academic-education.webp";
 
 export function getCourseThumbnail(input?: CourseThumbnailInput | string | null): string {
   if (!input) return DEFAULT_FALLBACK;
@@ -182,10 +182,10 @@ export function getCourseThumbnail(input?: CourseThumbnailInput | string | null)
     if (t.includes("physics")) return "/images/courses/physics.webp";
     if (t.includes("chemistry")) return "/images/courses/chemistry.webp";
     if (t.includes("photography")) return "/images/courses/photography.webp";
-    if (t.includes("music") || t.includes("piano") || t.includes("guitar")) return "/images/courses/music.webp";
-    if (t.includes("dance") || t.includes("kuchipudi") || t.includes("bharatanatyam")) return "/images/courses/dance.webp";
+    if (t.includes("music") || t.includes("piano") || t.includes("guitar")) return "/images/courses/music.jpg";
+    if (t.includes("dance") || t.includes("kuchipudi") || t.includes("bharatanatyam")) return "/images/courses/dance.jpg";
     if (t.includes("cooking") || t.includes("baking")) return "/images/courses/cooking.webp";
-    if (t.includes("sketching") || t.includes("drawing") || t.includes("paint")) return "/images/courses/arts.webp";
+    if (t.includes("sketching") || t.includes("drawing") || t.includes("paint")) return "/images/courses/arts.jpg";
   }
 
   // 5. Check by category / categoryId / subcategory
@@ -202,81 +202,81 @@ export function getCourseThumbnail(input?: CourseThumbnailInput | string | null)
 // Category Banner Registry
 const CATEGORY_BANNERS: Record<string, string> = {
   // Academic Education
-  "academics": "/images/categories/academic.jpg",
-  "academic": "/images/categories/academic.jpg",
-  "academic-education": "/images/categories/academic.jpg",
-  "school": "/images/categories/academic.jpg",
+  "academics": "/images/courses/academic-education.webp",
+  "academic": "/images/courses/academic-education.webp",
+  "academic-education": "/images/courses/academic-education.webp",
+  "school": "/images/courses/academic-education.webp",
 
   // Technology & Programming
-  "technology-programming": "/images/categories/technology.jpg",
-  "technology": "/images/categories/technology.jpg",
-  "programming": "/images/categories/technology.jpg",
-  "coding": "/images/categories/technology.jpg",
+  "technology-programming": "/images/courses/technology-programming.webp",
+  "technology": "/images/courses/technology-programming.webp",
+  "programming": "/images/courses/technology-programming.webp",
+  "coding": "/images/courses/technology-programming.webp",
 
   // AI & Data Science
-  "ai-data-science": "/images/categories/ai.webp",
-  "ai": "/images/categories/ai.webp",
-  "ai-prompting": "/images/categories/ai.webp",
-  "ai-innovation": "/images/categories/ai.webp",
-  "data-science": "/images/categories/ai.webp",
+  "ai-data-science": "/images/courses/ai-data-science.webp",
+  "ai": "/images/courses/ai-data-science.webp",
+  "ai-prompting": "/images/courses/ai-data-science.webp",
+  "ai-innovation": "/images/courses/ai-data-science.webp",
+  "data-science": "/images/courses/ai-data-science.webp",
 
   // Creative Arts & Design
-  "creative-arts-design": "/images/categories/creative.webp",
-  "creative-arts": "/images/categories/creative.webp",
-  "creative": "/images/categories/creative.webp",
-  "design": "/images/categories/creative.webp",
-  "arts": "/images/categories/creative.webp",
+  "creative-arts-design": "/images/courses/arts.jpg",
+  "creative-arts": "/images/courses/arts.jpg",
+  "creative": "/images/courses/arts.jpg",
+  "design": "/images/courses/arts.jpg",
+  "arts": "/images/courses/arts.jpg",
 
   // Video Editing & Animation
-  "video-editing-animation": "/images/categories/video.webp",
-  "video-editing": "/images/categories/video.webp",
-  "video": "/images/categories/video.webp",
-  "animation": "/images/categories/video.webp",
+  "video-editing-animation": "/images/courses/photography.webp",
+  "video-editing": "/images/courses/photography.webp",
+  "video": "/images/courses/photography.webp",
+  "animation": "/images/courses/photography.webp",
 
   // Photography & Media
-  "photography-media": "/images/categories/photography.webp",
-  "photography": "/images/categories/photography.webp",
-  "media": "/images/categories/photography.webp",
+  "photography-media": "/images/courses/photography.webp",
+  "photography": "/images/courses/photography.webp",
+  "media": "/images/courses/photography.webp",
 
   // Music
-  "music": "/images/categories/music.webp",
+  "music": "/images/courses/music.jpg",
 
   // Dance
-  "dance": "/images/categories/dance.webp",
+  "dance": "/images/courses/dance.jpg",
 
   // Sports & Fitness
-  "sports-fitness": "/images/categories/fitness.webp",
-  "fitness": "/images/categories/fitness.webp",
-  "sports": "/images/categories/fitness.webp",
+  "sports-fitness": "/images/courses/sports.webp",
+  "fitness": "/images/courses/sports.webp",
+  "sports": "/images/courses/sports.webp",
 
   // Cooking & Lifestyle
-  "cooking-lifestyle": "/images/categories/cooking.webp",
-  "cooking": "/images/categories/cooking.webp",
-  "lifestyle": "/images/categories/cooking.webp",
+  "cooking-lifestyle": "/images/courses/cooking.webp",
+  "cooking": "/images/courses/cooking.webp",
+  "lifestyle": "/images/courses/cooking.webp",
 
   // Business & Entrepreneurship
-  "business-entrepreneurship": "/images/categories/business.webp",
-  "business": "/images/categories/business.webp",
-  "entrepreneurship": "/images/categories/business.webp",
+  "business-entrepreneurship": "/images/courses/business.webp",
+  "business": "/images/courses/business.webp",
+  "entrepreneurship": "/images/courses/business.webp",
 
   // Marketing
-  "marketing": "/images/categories/marketing.webp",
-  "digital-marketing": "/images/categories/marketing.webp",
+  "marketing": "/images/courses/marketing.webp",
+  "digital-marketing": "/images/courses/marketing.webp",
 
   // Communication
-  "communication": "/images/categories/communication.webp",
-  "public-speaking": "/images/categories/communication.webp",
+  "communication": "/images/courses/languages.webp",
+  "public-speaking": "/images/courses/languages.webp",
 
   // Languages
-  "languages": "/images/categories/languages.webp",
-  "language": "/images/categories/languages.webp",
+  "languages": "/images/courses/languages.webp",
+  "language": "/images/courses/languages.webp",
 
   // Catch-all skills
-  "skills": "/images/categories/creative.webp",
+  "skills": "/images/courses/creative-arts.webp",
 };
 
 export function getCategoryBanner(categoryIdOrName?: string | null): string {
-  if (!categoryIdOrName) return "/images/categories/academic.jpg";
+  if (!categoryIdOrName) return "/images/courses/academic-education.webp";
   const key = categoryIdOrName.toLowerCase().replace(/[^a-z0-9]/g, "-").trim();
 
   if (CATEGORY_BANNERS[key]) return CATEGORY_BANNERS[key];
@@ -286,6 +286,6 @@ export function getCategoryBanner(categoryIdOrName?: string | null): string {
     if (key.includes(k) || k.includes(key)) return val;
   }
 
-  return "/images/categories/academic.jpg";
+  return "/images/courses/academic-education.webp";
 }
 
