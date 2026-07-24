@@ -35,6 +35,17 @@ export default function VerifyEmailPage() {
   // Bypass this page automatically if email is already verified
   useEffect(() => {
     if (user?.emailVerified) {
+      if (user?.role === "tutor") {
+        router.push("/tutor/onboarding");
+        return;
+      }
+      if (typeof window !== "undefined") {
+        const pendingRole = localStorage.getItem("onboarding_role");
+        if (pendingRole === "tutor") {
+          router.push("/tutor/onboarding");
+          return;
+        }
+      }
       if (!user.role) {
         router.push("/choose-role");
       } else if (!user.complete) {
@@ -77,8 +88,10 @@ export default function VerifyEmailPage() {
       if (sessionErr || !session) {
         const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession();
         if (refreshErr || !refreshData.session) {
-          toast.error("Your session has expired. Please log in again.");
-          router.push("/login");
+          const isTutor = typeof window !== "undefined" && localStorage.getItem("onboarding_role") === "tutor";
+          const loginPath = isTutor ? "/tutor/login" : "/login";
+          toast.error("No active session found. If you have already verified your email, please log in.");
+          router.push(loginPath);
           setIsChecking(false);
           return;
         }
@@ -105,8 +118,14 @@ export default function VerifyEmailPage() {
         toast.success("Email verified successfully!");
         await initialize(); // Refresh auth store session state
         
-        // Onward flow: complete-profile
-        router.push("/complete-profile");
+        // Onward flow: route tutor directly, fallback to complete-profile for students
+        const isTutor = (updatedUser.user_metadata?.role === "tutor") || 
+                        (typeof window !== "undefined" && localStorage.getItem("onboarding_role") === "tutor");
+        if (isTutor) {
+          router.push("/tutor/onboarding");
+        } else {
+          router.push("/complete-profile");
+        }
       } else {
         toast.error("Verification pending. Please check your inbox and verify.");
       }

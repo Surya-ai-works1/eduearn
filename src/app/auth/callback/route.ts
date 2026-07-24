@@ -62,19 +62,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 2. Authoritatively verify session is successfully written
-  const { data: { session }, error: verifyError } = await supabase.auth.getSession();
-  if (verifyError || !session) {
-    console.error("[DIAGNOSTIC CALLBACK] Session verification failed after code exchange:", verifyError);
-    const loginUrl = new URL("/login", origin);
-    loginUrl.searchParams.set("error", "session_verification_failed");
-    return NextResponse.redirect(loginUrl);
-  }
-
-  console.log("[DIAGNOSTIC CALLBACK] Code exchange & session verification succeeded:", {
-    sessionExists: !!session,
-    userId: session.user.id,
-    email: session.user.email,
+  console.log("[DIAGNOSTIC CALLBACK] Code exchange succeeded:", {
+    sessionExists: !!data.session,
+    userId: data.session.user.id,
+    email: data.session.user.email,
     exchangeSuccess: true
   });
 
