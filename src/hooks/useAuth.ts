@@ -28,7 +28,7 @@ export interface UserSession {
 }
 
 type AuthResult =
-  | { ok: true; message: string; sessionCreated?: boolean; role?: string }
+  | { ok: true; message: string; sessionCreated?: boolean; role?: string; complete?: boolean }
   | { ok: false; message: string };
 
 interface AuthStore {
@@ -246,20 +246,20 @@ export const useAuth = create<AuthStore>((set, get) => ({
         };
       }
 
-      // Set authenticated state immediately — onAuthStateChange will also fire
-      // and is a no-op since we've already set the state here.
-      set({ user: toUserSession(data.user), isAuthenticated: true, isLoading: false });
+      // Synchronous wait for profile sync to ensure authoritative role and completion status are available
+      const profile = await syncProfile(supabase, data.user);
+      const userRole = profile?.role || data.user.user_metadata?.role || "student";
+      const isComplete = (data.user.user_metadata?.complete === true);
 
-      // Background DB sync for role — non-blocking.
-      syncProfile(supabase, data.user).then((profile) => {
-        if (profile?.role) {
-          set((s) => ({
-            user: s.user ? { ...s.user, role: toUserSession(data.user, profile.role).role } : s.user,
-          }));
-        }
-      }).catch(() => { /* sync failure is non-fatal */ });
+      // Set authenticated state immediately
+      set({ user: toUserSession(data.user, userRole), isAuthenticated: true, isLoading: false });
 
-      return { ok: true, message: "Welcome back to EduEarn." };
+      return { 
+        ok: true, 
+        message: "Welcome back to EduEarn.", 
+        role: userRole, 
+        complete: isComplete 
+      };
     } catch (err) {
       set({ isLoading: false });
       return { ok: false, message: normalizeError(err) };

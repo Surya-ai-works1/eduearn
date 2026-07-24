@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -41,8 +41,25 @@ const CALLBACK_ERRORS: Record<string, string> = {
 export default function TutorLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isLoading } = useAuth();
+  const { login, user, isAuthenticated, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+
+  // Auto-redirect already authenticated users to their correct journeys
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role === "tutor") {
+        if (user.complete) {
+          router.replace("/tutor/dashboard");
+        } else {
+          router.replace("/tutor/onboarding");
+        }
+      } else if (user.role === "admin") {
+        router.replace("/admin/dashboard");
+      } else {
+        router.replace("/student/dashboard");
+      }
+    }
+  }, [user, isAuthenticated, router]);
 
   // Read callback errors at render time
   const callbackErrorKey = searchParams.get("error");
@@ -78,9 +95,22 @@ export default function TutorLoginPage() {
       }
 
       toast.success(result.message);
-      // Default to /tutor/onboarding for tutors in progress (middleware handles dashboard redirect if complete)
-      const redirect = searchParams.get("redirect") ?? "/tutor/onboarding";
-      router.replace(redirect);
+
+      // Immediately determine correct redirect route based on returned profile details
+      const role = result.role;
+      const complete = result.complete;
+
+      if (role === "tutor") {
+        if (complete) {
+          router.replace("/tutor/dashboard");
+        } else {
+          router.replace("/tutor/onboarding");
+        }
+      } else if (role === "admin") {
+        router.replace("/admin/dashboard");
+      } else {
+        router.replace("/student/dashboard");
+      }
     } catch (err) {
       setFormError(normalizeError(err));
     }
