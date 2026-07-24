@@ -51,7 +51,7 @@ export function BecomeTutor() {
           <div className="flex flex-wrap items-center gap-3.5 mt-4">
             <Button
               onClick={() => {
-                router.push("/become-tutor");
+                router.push("/tutor/onboarding");
               }}
               size="md"
             >

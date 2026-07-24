@@ -112,6 +112,19 @@ export default function CompleteProfilePage() {
   const { user, completeProfile, isLoading: isAuthStoreLoading } = useAuth();
   const router = useRouter();
 
+  useEffect(() => {
+    if (user?.role === "tutor") {
+      router.replace("/tutor/onboarding");
+      return;
+    }
+    if (typeof window !== "undefined") {
+      const pendingRole = localStorage.getItem("onboarding_role");
+      if (pendingRole === "tutor") {
+        router.replace("/tutor/onboarding");
+      }
+    }
+  }, [user, router]);
+
   const [currentStep, setCurrentStep] = useState(1);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);

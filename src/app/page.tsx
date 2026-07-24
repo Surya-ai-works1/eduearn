@@ -323,7 +323,7 @@ export default function RootLandingPage() {
                 size="sm"
                 onClick={() => {
                   setIsDemoOpen(false);
-                  router.push("/become-tutor");
+                  router.push("/tutor/onboarding");
                 }}
               >
                 Become a Tutor

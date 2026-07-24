@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, type Variants } from "framer-motion";
 import { Container } from "../../components/layout/Container";
@@ -29,6 +29,25 @@ export default function ChooseRolePage() {
       : null
   );
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (user?.role === "tutor") {
+      router.replace("/tutor/onboarding");
+      return;
+    }
+    if (typeof window !== "undefined") {
+      const pendingRole = localStorage.getItem("onboarding_role");
+      if (pendingRole === "tutor") {
+        setIsLoading(true);
+        chooseRole("tutor").then((success) => {
+          setIsLoading(false);
+          if (success) {
+            router.replace("/tutor/onboarding");
+          }
+        });
+      }
+    }
+  }, [user, chooseRole, router]);
 
   const handleSelectRole = async () => {
     if (!selectedRole) {

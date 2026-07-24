@@ -82,13 +82,18 @@ export async function proxy(request: NextRequest) {
 
   // ── Route categorisation ─────────────────────────────────────────────────
   const isAuthPage =
-    url.pathname.startsWith("/login") || url.pathname.startsWith("/register");
+    url.pathname.startsWith("/login") ||
+    url.pathname.startsWith("/register") ||
+    url.pathname.startsWith("/tutor/login") ||
+    url.pathname.startsWith("/tutor/register");
 
   const isProtectedPage =
     url.pathname.startsWith("/complete-profile") ||
     url.pathname.startsWith("/choose-role") ||
     url.pathname.startsWith("/welcome") ||
-    url.pathname.startsWith("/tutor") ||
+    (url.pathname.startsWith("/tutor") &&
+      !url.pathname.startsWith("/tutor/login") &&
+      !url.pathname.startsWith("/tutor/register")) ||
     url.pathname.startsWith("/student") ||
     url.pathname.startsWith("/admin") ||
     url.pathname.startsWith("/profile") ||
@@ -159,7 +164,11 @@ export async function proxy(request: NextRequest) {
 
   // ── 1. Unauthenticated → protected page ──────────────────────────────────
   if (!user && isProtectedPage) {
-    url.pathname = "/login";
+    if (url.pathname.startsWith("/tutor")) {
+      url.pathname = "/tutor/login";
+    } else {
+      url.pathname = "/login";
+    }
     url.searchParams.set("redirect", request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
@@ -178,7 +187,11 @@ export async function proxy(request: NextRequest) {
     if (!hasRole) {
       url.pathname = "/choose-role";
     } else if (!isComplete) {
-      url.pathname = "/complete-profile";
+      if (role === "tutor") {
+        url.pathname = "/tutor/onboarding";
+      } else {
+        url.pathname = "/complete-profile";
+      }
     } else {
       // Send to role-specific dashboard, not always /welcome
       if (role === "admin") {
@@ -208,13 +221,23 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (hasRole && !isComplete && url.pathname !== "/complete-profile") {
-      url.pathname = "/complete-profile";
-      return NextResponse.redirect(url);
+    // Tutors go to /tutor/onboarding, Students go to /complete-profile
+    if (hasRole && !isComplete) {
+      if (metadata.role === "tutor") {
+        if (url.pathname !== "/tutor/onboarding") {
+          url.pathname = "/tutor/onboarding";
+          return NextResponse.redirect(url);
+        }
+      } else {
+        if (url.pathname !== "/complete-profile") {
+          url.pathname = "/complete-profile";
+          return NextResponse.redirect(url);
+        }
+      }
     }
 
     // Redirect already completed users away from onboarding pages
-    if (hasRole && isComplete && (url.pathname === "/choose-role" || url.pathname === "/complete-profile")) {
+    if (hasRole && isComplete && (url.pathname === "/choose-role" || url.pathname === "/complete-profile" || url.pathname === "/tutor/onboarding")) {
       const role = metadata.role;
       if (role === "admin") {
         url.pathname = "/admin/dashboard";
@@ -232,10 +255,10 @@ export async function proxy(request: NextRequest) {
     const metadata = user.user_metadata ?? {};
     const role = metadata.role;
 
-    // Learner/Student cannot access tutor/admin paths
+    // Learner/Student cannot access tutor/admin paths (except tutor onboarding)
     if (role === "learner" || role === "student") {
       if (
-        url.pathname.startsWith("/tutor") ||
+        (url.pathname.startsWith("/tutor") && !url.pathname.startsWith("/tutor/onboarding")) ||
         url.pathname.startsWith("/admin")
       ) {
         url.pathname = "/forbidden";

@@ -959,7 +959,7 @@ export function Navbar() {
                 Log in
               </Link>
               <Link
-                href="/become-tutor"
+                href="/tutor/onboarding"
                 className="text-sm font-semibold bg-btn-gradient hover:opacity-95 text-white shadow-soft rounded-button px-4 py-1.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 Become a Tutor
@@ -1120,7 +1120,7 @@ export function Navbar() {
                       Log in
                     </Link>
                     <Link
-                      href="/become-tutor"
+                      href="/tutor/onboarding"
                       className="w-full text-center py-2 rounded-button bg-btn-gradient text-xs font-bold text-white shadow-soft transition-all"
                     >
                       Become a Tutor

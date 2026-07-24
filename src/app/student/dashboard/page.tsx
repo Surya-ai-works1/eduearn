@@ -1571,7 +1571,7 @@ function StudentDashboardContent() {
                         <Button onClick={() => setActiveTab("quizzes")} size="sm" variant="outline" className="w-full justify-between font-bold text-xs h-9">
                           Attempt Weekly Quiz <ArrowUpRight size={14} />
                         </Button>
-                        <Button onClick={() => router.push("/become-tutor")} size="sm" variant="outline" className="w-full justify-between font-bold text-xs h-9">
+                        <Button onClick={() => router.push("/tutor/onboarding")} size="sm" variant="outline" className="w-full justify-between font-bold text-xs h-9">
                           Become Tutor <ArrowUpRight size={14} />
                         </Button>
                         <Button onClick={() => setActiveTab("certificates")} size="sm" variant="outline" className="w-full justify-between font-bold text-xs h-9">
@@ -3153,7 +3153,7 @@ function StudentDashboardContent() {
                       Build your resume, secure student internships, and apply to become an AI-verified tutor to teach junior students.
                     </p>
                   </div>
-                  <Link href="/become-tutor" className="relative z-10 shrink-0">
+                  <Link href="/tutor/onboarding" className="relative z-10 shrink-0">
                     <Button size="sm" className="font-bold text-[10px] uppercase tracking-wider py-3.5 px-5 bg-primary hover:bg-primary/95 text-primary-foreground shadow-soft flex items-center gap-1">
                       Apply to Teach <ArrowUpRight size={13} />
                     </Button>

@@ -30,7 +30,7 @@ export const navigationConfig = {
     { title: "Tutors", href: "/tutors" },
     { title: "Live Classes", href: "/live-classes" },
     { title: "AI Features", href: "/ai-assistant" },
-    { title: "Become a Tutor", href: "/become-tutor" },
+    { title: "Become a Tutor", href: "/tutor/onboarding" },
   ] as NavItem[],
   
   categoriesMenu: [

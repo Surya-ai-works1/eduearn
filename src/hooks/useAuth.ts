@@ -38,7 +38,7 @@ interface AuthStore {
   initialize: () => Promise<void>;
   login: (email: string, password: string, remember: boolean) => Promise<AuthResult>;
   loginWithGoogle: () => Promise<AuthResult>;
-  register: (email: string, password: string, fullName: string) => Promise<AuthResult>;
+  register: (email: string, password: string, fullName: string, role?: string) => Promise<AuthResult>;
   resendVerificationEmail: (email: string) => Promise<AuthResult>;
   sendResetLink: (email: string) => Promise<AuthResult>;
   resetPassword: (password: string) => Promise<AuthResult>;
@@ -293,7 +293,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
     }
   },
 
-  register: async (email, password, fullName) => {
+  register: async (email, password, fullName, role = "student") => {
     try {
       const supabase = getSafeSupabase();
       if (!supabase) {
@@ -303,21 +303,23 @@ export const useAuth = create<AuthStore>((set, get) => ({
 
       set({ isLoading: true });
 
+      const nextRoute = role === "tutor" ? "/tutor/onboarding" : "/complete-profile";
+
       console.log("[DIAGNOSTIC] Calling supabase.auth.signUp() with:", {
         email,
         fullName,
-        emailRedirectTo: `${getAppOrigin()}/auth/callback?next=/complete-profile`
+        emailRedirectTo: `${getAppOrigin()}/auth/callback?next=${nextRoute}`
       });
 
       const response = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${getAppOrigin()}/auth/callback?next=/complete-profile`,
+          emailRedirectTo: `${getAppOrigin()}/auth/callback?next=${nextRoute}`,
           data: {
             fullName,
             full_name: fullName,
-            role: "student",
+            role: role,
             complete: false,
             accepted_terms: true,
             accepted_privacy: true,
@@ -347,7 +349,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
       if (data.user && data.session) {
         console.log("[DIAGNOSTIC] Active session returned immediately on signUp, logging user in.");
         set({
-          user: toUserSession(data.user, "student"),
+          user: toUserSession(data.user, role),
           isAuthenticated: true,
           isLoading: false,
         });
@@ -358,7 +360,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
         return {
           ok: true,
           sessionCreated: true,
-          role: "student",
+          role: role,
           message: "Account created. Welcome to EduEarn!",
         };
       }
