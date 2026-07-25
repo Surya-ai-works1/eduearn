@@ -122,12 +122,18 @@ function logEmailEvent(event: string, recipient: string, template: string, succe
 // Startup check for Brevo configuration
 if (typeof process !== "undefined" && process.env) {
   const apiKey = process.env.BREVO_API_KEY;
-  if (apiKey) {
-    const maskedKey = apiKey.length > 8 ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : "***";
-    console.log(`[Email Service Startup] BREVO_API_KEY is loaded successfully (Masked: ${maskedKey})`);
-  } else {
-    console.warn("[Email Service Startup] WARNING: BREVO_API_KEY is NOT configured in the environment variables!");
-  }
+  const senderEmail = process.env.BREVO_SENDER_EMAIL;
+  
+  const exists = !!apiKey;
+  const length = apiKey ? apiKey.length : 0;
+  const initialized = exists && !!senderEmail;
+
+  console.log(`[Email Service Startup] Configuration status:`, {
+    brevoApiKeyExists: exists,
+    brevoApiKeyLength: length,
+    senderEmailConfigured: !!senderEmail,
+    emailServiceInitializedSuccessfully: initialized
+  });
 }
 
 export const emailService = {
@@ -137,9 +143,7 @@ export const emailService = {
     const senderName = process.env.BREVO_SENDER_NAME || "EduSpark";
 
     if (!apiKey) {
-      const errorMsg = "Brevo API key (BREVO_API_KEY) is not configured in the environment variables.";
-      console.error(`[Email Service Error] ${errorMsg}`);
-      throw new Error(errorMsg);
+      throw new Error("BREVO_API_KEY is not configured.");
     }
 
     const maxRetries = 2;
@@ -169,6 +173,9 @@ export const emailService = {
         }
 
         const errText = await response.text();
+        if (response.status === 401) {
+          console.error(`[Brevo API 401 Unauthorized Error] Full response body:`, errText);
+        }
         lastErrorMsg = `Brevo HTTP ${response.status}: ${errText}`;
         throw new Error(lastErrorMsg);
       } catch (err: any) {

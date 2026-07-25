@@ -91,20 +91,23 @@ export async function POST(request: Request) {
     console.log(`[Register API] Signup link generated. Dispatching verification email to: ${email}`);
 
     // Send verification email via Brevo SMTP
-    const emailResult = await emailService.sendVerificationEmail(email, verificationLink);
-
-    if (!emailResult.success) {
-      console.error(`[Register API] Failed to send verification email via Brevo to: ${email}. Error:`, emailResult.error);
-      return NextResponse.json({ 
-        error: `User was created but we failed to send the verification email. Error details: ${emailResult.error || "SMTP Delivery Failure"}` 
-      }, { status: 500 });
+    let emailMessage = "Account created. Check your inbox to verify your email.";
+    try {
+      const emailResult = await emailService.sendVerificationEmail(email, verificationLink);
+      if (!emailResult.success) {
+        console.error(`[Register API] Failed to send verification email via Brevo to: ${email}. Error:`, emailResult.error);
+        emailMessage = "Account created. Verification email could not be sent.";
+      }
+    } catch (emailErr: any) {
+      console.error(`[Register API] Exception thrown while sending verification email:`, emailErr);
+      emailMessage = "Account created. Verification email could not be sent.";
     }
 
-    console.log(`[Register API] Verification email sent successfully to ${email}.`);
+    console.log(`[Register API] Registration completed for ${email}. Message: ${emailMessage}`);
     return NextResponse.json({
       success: true,
       sessionCreated: false,
-      message: "Account created. Check your inbox to verify your email."
+      message: emailMessage
     });
 
   } catch (err: any) {
