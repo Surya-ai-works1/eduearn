@@ -343,6 +343,39 @@ export const useAuth = create<AuthStore>((set, get) => ({
 
       set({ isLoading: true });
 
+      // Call our custom server-side register API route
+      try {
+        const registerRes = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, fullName, role }),
+        });
+
+        const registerData = await registerRes.json();
+
+        if (registerRes.ok && registerData.success) {
+          console.log("[useAuth register] Server-side registration succeeded:", registerData);
+          set({ isLoading: false });
+          return {
+            ok: true,
+            sessionCreated: registerData.sessionCreated,
+            role,
+            message: registerData.message,
+          };
+        } else if (registerRes.ok && !registerData.fallback) {
+          console.error("[useAuth register] Server-side registration failed:", registerData.error);
+          set({ isLoading: false });
+          return { ok: false, message: registerData.error || "Registration failed." };
+        } else if (!registerRes.ok) {
+          console.error("[useAuth register] Server error:", registerData);
+          set({ isLoading: false });
+          return { ok: false, message: registerData.error || "Server error during registration." };
+        }
+      } catch (apiErr) {
+        console.warn("[useAuth register] API registration request failed, trying client fallback:", apiErr);
+      }
+
+      // ─── CLIENT FALLBACK ───────────────────────────────────────────────────
       const nextRoute = role === "tutor" ? "/tutor/onboarding" : "/complete-profile";
 
       console.log("[DIAGNOSTIC] Calling supabase.auth.signUp() with:", {
@@ -372,20 +405,13 @@ export const useAuth = create<AuthStore>((set, get) => ({
       const { data, error } = response;
 
       if (error) {
-        console.error("[DIAGNOSTIC] supabase.auth.signUp() returned an AuthError:", {
-          message: error.message,
-          status: error.status,
-          name: error.name,
-          errorObject: error,
-        });
+        console.error("[DIAGNOSTIC] supabase.auth.signUp() returned an AuthError:", error);
         set({ isLoading: false });
         return { ok: false, message: error.message };
       }
 
       console.log("[DIAGNOSTIC] supabase.auth.signUp() succeeded. data:", data);
 
-      // When Supabase returns a session immediately (email confirmation disabled),
-      // log the user in right away — no second manual login required.
       if (data.user && data.session) {
         console.log("[DIAGNOSTIC] Active session returned immediately on signUp, logging user in.");
         set({
@@ -393,7 +419,6 @@ export const useAuth = create<AuthStore>((set, get) => ({
           isAuthenticated: true,
           isLoading: false,
         });
-        // Background DB sync — non-blocking.
         syncProfile(supabase, data.user).catch((syncErr) => {
           console.warn("[DIAGNOSTIC] Non-fatal syncProfile error:", syncErr);
         });

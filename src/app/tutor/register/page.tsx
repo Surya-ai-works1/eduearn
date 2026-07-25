@@ -82,9 +82,14 @@ export default function TutorRegisterPage() {
         
         toast.success(result.message);
         
-        // After registration, directly proceed to onboarding (development mode bypass)
-        await chooseRole("tutor");
-        router.replace("/tutor/onboarding");
+        if (result.sessionCreated) {
+          // If auto-login is active or mock mode is active, proceed to onboarding
+          await chooseRole("tutor");
+          router.replace("/tutor/onboarding");
+        } else {
+          // If email verification is required, redirect to the verify-email page
+          router.push(`/verify-email?email=${encodeURIComponent(values.email)}`);
+        }
       } catch (err: any) {
         setFormError(normalizeError(err));
       }

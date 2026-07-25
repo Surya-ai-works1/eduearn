@@ -186,19 +186,29 @@ export const emailService = {
     return this.sendEmail({ to, subject, htmlContent: html });
   },
 
-  async sendVerificationEmail(to: string, code: string): Promise<boolean> {
+  async sendVerificationEmail(to: string, codeOrLink: string): Promise<boolean> {
+    const isLink = codeOrLink.startsWith("http") || codeOrLink.startsWith("/");
     const subject = "Verify Your Email Address";
-    const html = getBrandedEmailTemplate(
-      subject,
+    const contentHtml = isLink 
+      ? `
+        <h2>Verify Your Email</h2>
+        <p>Thank you for registering with EduSpark. Please click the button below to confirm your account status:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${codeOrLink}" class="btn" style="background-color: #3b82f6; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Verify Email</a>
+        </div>
+        <p>Alternatively, copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; font-size: 11px; color: #64748b;">${codeOrLink}</p>
+        <p>If you did not make this request, please ignore this email.</p>
       `
+      : `
         <h2>Verify Your Email</h2>
         <p>Thank you for registering with EduSpark. Please use the verification code below to confirm your account status:</p>
         <div style="font-size: 24px; font-weight: 800; letter-spacing: 0.1em; text-align: center; margin: 20px 0; color: #3b82f6; background-color: #0f172a; padding: 10px; border-radius: 8px; border: 1px dashed #1e293b;">
-          ${code}
+          ${codeOrLink}
         </div>
         <p>If you did not make this request, please safely ignore this email.</p>
-      `
-    );
+      `;
+    const html = getBrandedEmailTemplate(subject, contentHtml);
     return this.sendEmail({ to, subject, htmlContent: html });
   },
 
