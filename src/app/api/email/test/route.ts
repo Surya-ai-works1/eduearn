@@ -17,7 +17,9 @@ export async function POST(request: Request) {
 
     let success = false;
     const testCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const testResetLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=test_token_123`;
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+      (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : "http://localhost:3000");
+    const testResetLink = `${appBaseUrl}/reset-password?token=test_token_123`;
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://omgdjkzkervioonhcpvh.supabase.co";
     const testCertUrl = `${supabaseUrl}/storage/v1/object/public/certificates/test_cert.png`;
 
