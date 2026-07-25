@@ -120,7 +120,7 @@ function logEmailEvent(event: string, recipient: string, template: string, succe
 }
 
 export const emailService = {
-  async sendEmail(payload: EmailPayload): Promise<boolean> {
+  async sendEmail(payload: EmailPayload): Promise<{ success: boolean; error?: string }> {
     const apiKey = process.env.BREVO_API_KEY;
     const senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@eduearn.com";
     const senderName = process.env.BREVO_SENDER_NAME || "EduSpark";
@@ -128,11 +128,12 @@ export const emailService = {
     if (!apiKey) {
       console.warn("Brevo API key is not configured. Falling back to stdout logs.");
       logEmailEvent("SEND_FALLBACK", payload.to, payload.subject, true);
-      return true;
+      return { success: true };
     }
 
     const maxRetries = 2;
     let attempt = 0;
+    let lastErrorMsg = "";
 
     while (attempt <= maxRetries) {
       try {
@@ -153,26 +154,28 @@ export const emailService = {
 
         if (response.ok) {
           logEmailEvent("SEND_SUCCESS", payload.to, payload.subject, true);
-          return true;
+          return { success: true };
         }
 
         const errText = await response.text();
-        throw new Error(`Brevo HTTP ${response.status}: ${errText}`);
+        lastErrorMsg = `Brevo HTTP ${response.status}: ${errText}`;
+        throw new Error(lastErrorMsg);
       } catch (err: any) {
         attempt++;
+        lastErrorMsg = err.message || "Unknown SMTP Network Error";
         console.error(`Email send attempt ${attempt} failed:`, err);
         if (attempt > maxRetries) {
-          logEmailEvent("SEND_FAILURE", payload.to, payload.subject, false, err.message);
-          return false;
+          logEmailEvent("SEND_FAILURE", payload.to, payload.subject, false, lastErrorMsg);
+          return { success: false, error: lastErrorMsg };
         }
         // Wait 1 second before retry
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
-    return false;
+    return { success: false, error: lastErrorMsg || "Email delivery failed" };
   },
 
-  async sendWelcomeEmail(to: string, name: string): Promise<boolean> {
+  async sendWelcomeEmail(to: string, name: string): Promise<{ success: boolean; error?: string }> {
     const subject = "Welcome to EduSpark! 🎉";
     const html = getBrandedEmailTemplate(
       subject,
@@ -186,7 +189,7 @@ export const emailService = {
     return this.sendEmail({ to, subject, htmlContent: html });
   },
 
-  async sendVerificationEmail(to: string, codeOrLink: string): Promise<boolean> {
+  async sendVerificationEmail(to: string, codeOrLink: string): Promise<{ success: boolean; error?: string }> {
     const isLink = codeOrLink.startsWith("http") || codeOrLink.startsWith("/");
     const subject = "Verify Your Email Address";
     const contentHtml = isLink 
@@ -212,7 +215,7 @@ export const emailService = {
     return this.sendEmail({ to, subject, htmlContent: html });
   },
 
-  async sendPasswordResetEmail(to: string, resetLink: string): Promise<boolean> {
+  async sendPasswordResetEmail(to: string, resetLink: string): Promise<{ success: boolean; error?: string }> {
     const subject = "Reset Your Password";
     const html = getBrandedEmailTemplate(
       subject,
@@ -227,7 +230,7 @@ export const emailService = {
     return this.sendEmail({ to, subject, htmlContent: html });
   },
 
-  async sendEnrollmentConfirmationEmail(to: string, name: string, courseTitle: string): Promise<boolean> {
+  async sendEnrollmentConfirmationEmail(to: string, name: string, courseTitle: string): Promise<{ success: boolean; error?: string }> {
     const subject = "Course Enrollment Confirmed 📚";
     const html = getBrandedEmailTemplate(
       subject,
@@ -241,7 +244,7 @@ export const emailService = {
     return this.sendEmail({ to, subject, htmlContent: html });
   },
 
-  async sendTutorRegistrationConfirmation(to: string, name: string): Promise<boolean> {
+  async sendTutorRegistrationConfirmation(to: string, name: string): Promise<{ success: boolean; error?: string }> {
     const subject = "Tutor Application Received";
     const html = getBrandedEmailTemplate(
       subject,
@@ -254,7 +257,7 @@ export const emailService = {
     return this.sendEmail({ to, subject, htmlContent: html });
   },
 
-  async sendTutorApprovalEmail(to: string, name: string, approved: boolean, reason?: string): Promise<boolean> {
+  async sendTutorApprovalEmail(to: string, name: string, approved: boolean, reason?: string): Promise<{ success: boolean; error?: string }> {
     const subject = approved ? "Tutor Application Approved! 🎉" : "Tutor Application Status Update";
     const html = getBrandedEmailTemplate(
       subject,
@@ -276,7 +279,7 @@ export const emailService = {
     return this.sendEmail({ to, subject, htmlContent: html });
   },
 
-  async sendAssignmentSubmissionEmail(to: string, name: string, assignmentTitle: string): Promise<boolean> {
+  async sendAssignmentSubmissionEmail(to: string, name: string, assignmentTitle: string): Promise<{ success: boolean; error?: string }> {
     const subject = "Assignment Submitted Successfully";
     const html = getBrandedEmailTemplate(
       subject,
@@ -289,7 +292,7 @@ export const emailService = {
     return this.sendEmail({ to, subject, htmlContent: html });
   },
 
-  async sendCertificateEmail(to: string, name: string, courseTitle: string, certificateUrl: string): Promise<boolean> {
+  async sendCertificateEmail(to: string, name: string, courseTitle: string, certificateUrl: string): Promise<{ success: boolean; error?: string }> {
     const subject = "Congratulations on your Certificate! 🎓";
     const html = getBrandedEmailTemplate(
       subject,
@@ -303,7 +306,7 @@ export const emailService = {
     return this.sendEmail({ to, subject, htmlContent: html });
   },
 
-  async sendContactFormEmail(to: string, fromName: string, fromEmail: string, message: string): Promise<boolean> {
+  async sendContactFormEmail(to: string, fromName: string, fromEmail: string, message: string): Promise<{ success: boolean; error?: string }> {
     const subject = "New Contact Form Submission";
     const html = getBrandedEmailTemplate(
       subject,
@@ -321,7 +324,7 @@ export const emailService = {
     return this.sendEmail({ to, subject, htmlContent: html });
   },
 
-  async sendPaymentReceiptEmail(to: string, name: string, amount: string, txId: string): Promise<boolean> {
+  async sendPaymentReceiptEmail(to: string, name: string, amount: string, txId: string): Promise<{ success: boolean; error?: string }> {
     const subject = "Your Payment Receipt 🧾";
     const html = getBrandedEmailTemplate(
       subject,

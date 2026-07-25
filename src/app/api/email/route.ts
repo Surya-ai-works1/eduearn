@@ -24,47 +24,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields (to, type)" }, { status: 400 });
     }
 
-    let success = false;
+    const result = await (async () => {
+      switch (type) {
+        case "welcome":
+          return emailService.sendWelcomeEmail(to, args.name || "User");
+        case "verification":
+          return emailService.sendVerificationEmail(to, args.code || "");
+        case "reset_password":
+          return emailService.sendPasswordResetEmail(to, args.resetLink || "");
+        case "enrollment":
+          return emailService.sendEnrollmentConfirmationEmail(to, args.name || "Student", args.courseTitle || "");
+        case "tutor_registration":
+          return emailService.sendTutorRegistrationConfirmation(to, args.name || "Tutor");
+        case "tutor_approval":
+          return emailService.sendTutorApprovalEmail(to, args.name || "Tutor", !!args.approved, args.reason);
+        case "assignment_submission":
+          return emailService.sendAssignmentSubmissionEmail(to, args.name || "Student", args.assignmentTitle || "");
+        case "certificate":
+          return emailService.sendCertificateEmail(to, args.name || "Student", args.courseTitle || "", args.certificateUrl || "");
+        case "contact_form":
+          return emailService.sendContactFormEmail(to, args.fromName || "", args.fromEmail || "", args.message || "");
+        case "payment_receipt":
+          return emailService.sendPaymentReceiptEmail(to, args.name || "Student", args.amount || "", args.txId || "");
+        default:
+          throw new Error(`Unsupported email type: ${type}`);
+      }
+    })();
 
-    switch (type) {
-      case "welcome":
-        success = await emailService.sendWelcomeEmail(to, args.name || "User");
-        break;
-      case "verification":
-        success = await emailService.sendVerificationEmail(to, args.code || "");
-        break;
-      case "reset_password":
-        success = await emailService.sendPasswordResetEmail(to, args.resetLink || "");
-        break;
-      case "enrollment":
-        success = await emailService.sendEnrollmentConfirmationEmail(to, args.name || "Student", args.courseTitle || "");
-        break;
-      case "tutor_registration":
-        success = await emailService.sendTutorRegistrationConfirmation(to, args.name || "Tutor");
-        break;
-      case "tutor_approval":
-        success = await emailService.sendTutorApprovalEmail(to, args.name || "Tutor", !!args.approved, args.reason);
-        break;
-      case "assignment_submission":
-        success = await emailService.sendAssignmentSubmissionEmail(to, args.name || "Student", args.assignmentTitle || "");
-        break;
-      case "certificate":
-        success = await emailService.sendCertificateEmail(to, args.name || "Student", args.courseTitle || "", args.certificateUrl || "");
-        break;
-      case "contact_form":
-        success = await emailService.sendContactFormEmail(to, args.fromName || "", args.fromEmail || "", args.message || "");
-        break;
-      case "payment_receipt":
-        success = await emailService.sendPaymentReceiptEmail(to, args.name || "Student", args.amount || "", args.txId || "");
-        break;
-      default:
-        return NextResponse.json({ error: `Unsupported email type: ${type}` }, { status: 400 });
-    }
-
-    if (success) {
+    if (result.success) {
       return NextResponse.json({ success: true, message: "Email sent successfully" });
     } else {
-      return NextResponse.json({ error: "Failed to send email via Brevo" }, { status: 500 });
+      return NextResponse.json({ error: result.error || "Failed to send email via Brevo" }, { status: 500 });
     }
   } catch (err: any) {
     console.error("API Email Route Exception:", err);
