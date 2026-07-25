@@ -1,4 +1,5 @@
 "use client";
+import { cn } from "../../utils/cn";
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
@@ -270,6 +271,91 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
     stats: { courses: 16, liveClasses: 5, students: 840, rating: 4.8 },
   },
 ];
+
+
+function getImageFitMode(src?: string): { fitClass: string; bgClass: string; scaleClass: string } {
+  if (!src) return { fitClass: "object-cover", bgClass: "bg-muted", scaleClass: "scale-100 group-hover:scale-105" };
+  const filename = src.split("/").pop()?.toLowerCase() || "";
+  
+  const ignored = ["english", "languages", "classroom", "communication", "fallback", "academic-education", "generic-education", "generic-business"];
+  if (ignored.some(word => filename.includes(word))) {
+    return {
+      fitClass: "object-cover",
+      bgClass: "bg-muted",
+      scaleClass: "scale-100 group-hover:scale-105"
+    };
+  }
+  
+  if (filename.includes("commerce")) {
+    return {
+      fitClass: "object-contain p-3.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.02] group-hover:scale-[1.08]"
+    };
+  }
+  if (filename.includes("accountancy") || filename.includes("accounting")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.06] group-hover:scale-[1.12]"
+    };
+  }
+  if (filename.includes("ai") || filename.includes("ai-data-science") || filename.includes("business")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.10] group-hover:scale-[1.16]"
+    };
+  }
+  if (filename.includes("python") || filename.includes("web-dev")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.10] group-hover:scale-[1.16]"
+    };
+  }
+  if (filename.includes("music") || filename.includes("dance") || filename.includes("photography") || filename.includes("video-editing")) {
+    return {
+      fitClass: "object-contain p-2",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.05] group-hover:scale-[1.11]"
+    };
+  }
+  if (filename.includes("sports") || filename.includes("fitness")) {
+    return {
+      fitClass: "object-contain p-2",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+    };
+  }
+  if (filename.includes("mathematics") || filename.includes("physics") || filename.includes("chemistry") || filename.includes("biology") || filename.includes("academics") || filename.includes("academic")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+    };
+  }
+  if (filename.includes("technology") || filename.includes("coding") || filename.includes("computer-science") || filename.includes("generic-programming")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+    };
+  }
+  if (filename.includes("creative") || filename.includes("arts") || filename.includes("drawing") || filename.includes("painting") || filename.includes("sketching") || filename.includes("cooking")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+    };
+  }
+  
+  return {
+    fitClass: "object-contain p-2.5",
+    bgClass: "bg-slate-50 dark:bg-slate-900/60",
+    scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+  };
+}
 
 export default function CategoriesPage() {
   const getCategorySlug = (id: string) => {
@@ -576,10 +662,10 @@ export default function CategoriesPage() {
                   <Link href={`/categories/${getCategorySlug(cat.id)}`} className="block h-full">
                     <Card
                       variant="glass"
-                      className="p-0 border border-border/80 hover:border-primary/20 bg-card rounded-2xl h-full flex flex-col justify-between group transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden relative"
+                      className="p-3 pb-4 border border-border/80 hover:border-primary/20 bg-card rounded-2xl h-full flex flex-col justify-between group transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden relative"
                     >
-                      {/* Cover Image Wrapper with Gradient Overlay */}
-                      <div className="w-full h-36 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 relative overflow-hidden shrink-0 border-b border-border/40">
+                      {/* Cover Image Wrapper with Gradient Overlay - Redesigned as Premium Inset Banner */}
+                      <div className="w-full aspect-[4/3.5] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950/60 relative overflow-hidden shrink-0 border-b border-border/40 p-3">
                         {/* Placeholder Banner Image */}
                         <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/40 via-background/20 to-card/40 z-0" />
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10" />
@@ -589,23 +675,31 @@ export default function CategoriesPage() {
 
                         {/* Actual Category Banner Image */}
                         {!failedImages[cat.id] && (
-                          <Image
-                            src={getCategoryBanner(cat.id)}
-                            alt={`${cat.name} learning category banner`}
-                            fill
-                            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                            loading="lazy"
-                            decoding="async"
-                            onLoad={() => setLoadedImages((prev) => ({ ...prev, [cat.id]: true }))}
-                            onError={() => handleImageError(cat.id)}
-                            className={`object-cover object-center group-hover:scale-105 transition-all duration-700 ease-out ${
-                              loadedImages[cat.id] ? "opacity-100 blur-0" : "opacity-0 blur-sm"
-                            }`}
-                          />
+                          <div className={cn(
+                            "absolute inset-3 overflow-hidden rounded-xl border border-border/30",
+                            getImageFitMode(getCategoryBanner(cat.id)).bgClass
+                          )}>
+                            <Image
+                              src={getCategoryBanner(cat.id)}
+                              alt={`${cat.name} learning category banner`}
+                              fill
+                              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                              loading="lazy"
+                              decoding="async"
+                              onLoad={() => setLoadedImages((prev) => ({ ...prev, [cat.id]: true }))}
+                              onError={() => handleImageError(cat.id)}
+                              className={cn(
+                                "transition-all duration-700 ease-out",
+                                getImageFitMode(getCategoryBanner(cat.id)).fitClass,
+                                getImageFitMode(getCategoryBanner(cat.id)).scaleClass,
+                                loadedImages[cat.id] ? "opacity-100 blur-0" : "opacity-0 blur-sm"
+                              )}
+                            />
+                          </div>
                         )}
 
                         {/* Top Overlay details */}
-                        <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-20">
+                        <div className="absolute top-5 left-5 right-5 flex items-center justify-between z-20">
                           <div className="w-9 h-9 rounded-lg bg-background/90 border border-border/60 flex items-center justify-center text-primary shadow-sm">
                             <IconComponent name={cat.iconName} className="w-5 h-5" />
                           </div>
@@ -616,7 +710,7 @@ export default function CategoriesPage() {
                       </div>
 
                       {/* Content Section */}
-                      <div className="p-5 flex flex-col gap-4 grow">
+                      <div className="p-4 flex flex-col gap-3 grow">
                         <div>
                           <h4 className="text-xs font-heading font-extrabold text-foreground group-hover:text-primary transition-colors leading-tight flex items-center gap-1.5">
                             <span className="truncate">{cat.name}</span>

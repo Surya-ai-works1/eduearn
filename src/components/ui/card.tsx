@@ -450,6 +450,91 @@ interface CourseCardProps {
   className?: string;
 }
 
+
+function getImageFitMode(src?: string): { fitClass: string; bgClass: string; scaleClass: string } {
+  if (!src) return { fitClass: "object-cover", bgClass: "bg-muted", scaleClass: "scale-100 group-hover:scale-105" };
+  const filename = src.split("/").pop()?.toLowerCase() || "";
+  
+  const ignored = ["english", "languages", "classroom", "communication", "fallback", "academic-education", "generic-education", "generic-business"];
+  if (ignored.some(word => filename.includes(word))) {
+    return {
+      fitClass: "object-cover",
+      bgClass: "bg-muted",
+      scaleClass: "scale-100 group-hover:scale-105"
+    };
+  }
+  
+  if (filename.includes("commerce")) {
+    return {
+      fitClass: "object-contain p-3.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.02] group-hover:scale-[1.08]"
+    };
+  }
+  if (filename.includes("accountancy") || filename.includes("accounting")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.06] group-hover:scale-[1.12]"
+    };
+  }
+  if (filename.includes("ai") || filename.includes("ai-data-science") || filename.includes("business")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.10] group-hover:scale-[1.16]"
+    };
+  }
+  if (filename.includes("python") || filename.includes("web-dev")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.10] group-hover:scale-[1.16]"
+    };
+  }
+  if (filename.includes("music") || filename.includes("dance") || filename.includes("photography") || filename.includes("video-editing")) {
+    return {
+      fitClass: "object-contain p-2",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.05] group-hover:scale-[1.11]"
+    };
+  }
+  if (filename.includes("sports") || filename.includes("fitness")) {
+    return {
+      fitClass: "object-contain p-2",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+    };
+  }
+  if (filename.includes("mathematics") || filename.includes("physics") || filename.includes("chemistry") || filename.includes("biology") || filename.includes("academics") || filename.includes("academic")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+    };
+  }
+  if (filename.includes("technology") || filename.includes("coding") || filename.includes("computer-science") || filename.includes("generic-programming")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+    };
+  }
+  if (filename.includes("creative") || filename.includes("arts") || filename.includes("drawing") || filename.includes("painting") || filename.includes("sketching") || filename.includes("cooking")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+    };
+  }
+  
+  return {
+    fitClass: "object-contain p-2.5",
+    bgClass: "bg-slate-50 dark:bg-slate-900/60",
+    scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+  };
+}
+
 export function CourseCard({
   id,
   title,
@@ -468,11 +553,20 @@ export function CourseCard({
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  const { fitClass, bgClass, scaleClass } = getImageFitMode(imageSrc);
+
   return (
     <Link href={`/courses/${id}`} className="block h-full">
-      <Card variant="default" hoverEffect="lift" className={cn("p-0 flex flex-col h-full group overflow-hidden border-border bg-card", className)}>
-        {/* Thumbnail placeholder */}
-        <div className="relative w-full aspect-video bg-muted border-b border-border overflow-hidden">
+      <Card
+        variant="default"
+        hoverEffect="lift"
+        className={cn(
+          "p-3 pb-4 flex flex-col h-full group overflow-hidden border-border bg-card rounded-2xl",
+          className
+        )}
+      >
+        {/* Thumbnail Placeholder with 4:3 Aspect Ratio (Visual Hero +33% larger) */}
+        <div className={cn("relative w-full aspect-[4/3] rounded-xl overflow-hidden border border-border/30", bgClass)}>
           {imageSrc && !imageError ? (
             <Image
               src={imageSrc}
@@ -483,7 +577,9 @@ export function CourseCard({
               onLoad={() => setImageLoaded(true)}
               onError={() => setImageError(true)}
               className={cn(
-                "object-cover group-hover:scale-105 transition-all duration-700 ease-out",
+                "transition-all duration-700 ease-out",
+                fitClass,
+                scaleClass,
                 imageLoaded ? "opacity-100 blur-0" : "opacity-0 blur-sm"
               )}
             />
@@ -493,19 +589,19 @@ export function CourseCard({
             </div>
           )}
           
-          {/* Category badge overlay */}
-          <span className="absolute top-3 left-3 bg-card border border-border shadow-sm hover:shadow-md transition-shadow duration-200 text-[9px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full shadow-soft text-foreground">
+          {/* Category badge overlay (aligned inside image container) */}
+          <span className="absolute top-3 left-3 bg-card/90 backdrop-blur-sm border border-border shadow-sm text-[9px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full text-foreground z-10">
             {category}
           </span>
 
-          {/* AI Badge Overlay */}
+          {/* AI Badge Overlay (aligned inside image container) */}
           {isAiVerified && (
-            <span className="absolute bottom-3 left-3 bg-ai-gradient text-foreground text-[8px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-full shadow-soft">
+            <span className="absolute bottom-3 left-3 bg-ai-gradient text-foreground text-[8px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full shadow-soft z-10">
               AI Verified
             </span>
           )}
 
-          {/* Wishlist Button Overlay */}
+          {/* Wishlist Button Overlay (aligned inside image container) */}
           <div
             role="button"
             tabIndex={0}
@@ -515,46 +611,47 @@ export function CourseCard({
               setIsWishlisted(!isWishlisted);
               toast.success(isWishlisted ? "Removed from wishlist" : "Added to wishlist");
             }}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-card backdrop-blur-sm border border-border/40 flex items-center justify-center text-muted-foreground hover:text-red-500 cursor-pointer select-none transition-colors shadow-sm z-20"
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-card/90 backdrop-blur-sm border border-border/40 flex items-center justify-center text-muted-foreground hover:text-red-500 cursor-pointer select-none transition-colors shadow-sm z-20"
           >
             <Heart size={14} className={isWishlisted ? "fill-red-500 text-red-500" : ""} />
           </div>
         </div>
 
-        {/* Course metadata */}
-        <div className="p-5 flex flex-col justify-between grow gap-4">
+        {/* Course metadata - Optimized spacious spacing with compact layout */}
+        <div className="p-2 pt-4 flex flex-col justify-between grow gap-4">
           <div className="flex flex-col gap-2">
-            <span className="text-[10px] text-muted-foreground font-semibold">Taught by {tutorName}</span>
-            <h4 className="text-sm font-heading font-extrabold text-foreground group-hover:text-primary transition-colors leading-tight line-clamp-2">
-              {title}
-            </h4>
-            
-            <div className="flex flex-wrap items-center gap-1 mt-1 text-[10px] text-muted-foreground font-semibold">
-              <span className="text-amber-500 font-bold flex items-center gap-0.5 mr-1.5">
+            {/* Header: Taught by & rating row */}
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground font-semibold">
+              <span>Taught by {tutorName}</span>
+              <span className="text-amber-500 font-bold flex items-center gap-0.5">
                 <Star size={10} className="fill-amber-500 text-amber-500" />
                 {rating.toFixed(1)}
+                {studentsCount > 0 && (
+                  <span className="text-[9px] text-muted-foreground font-normal ml-0.5">
+                    ({studentsCount.toLocaleString("en-IN")})
+                  </span>
+                )}
               </span>
-              {studentsCount > 0 && (
-                <>
-                  <span>({studentsCount.toLocaleString("en-IN")})</span>
-                  <span className="mx-1">•</span>
-                </>
-              )}
-              {lessonsCount > 0 && (
-                <>
-                  <span>{lessonsCount} lessons</span>
-                  <span className="mx-1">•</span>
-                </>
-              )}
+            </div>
+
+            <h4 className="text-sm font-heading font-extrabold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2 mt-0.5">
+              {title}
+            </h4>
+
+            {/* Sub-details: Lessons & duration */}
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-semibold mt-1">
+              {lessonsCount > 0 && <span>{lessonsCount} lessons</span>}
+              {lessonsCount > 0 && <span className="text-muted-foreground/60">•</span>}
               <span>{duration}</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-t border-border/40 pt-4 mt-2">
+          {/* Pricing & CTA */}
+          <div className="flex items-center justify-between border-t border-border/40 pt-3 mt-1">
             <span className="text-base font-heading font-extrabold text-foreground tracking-tight">
               {price === 0 ? "Free" : formatCurrency(price)}
             </span>
-            
+
             <span className="w-8 h-8 rounded-button bg-primary/10 hover:bg-primary text-primary hover:text-white flex items-center justify-center transition-colors cursor-pointer select-none">
               <ArrowRight size={14} />
             </span>

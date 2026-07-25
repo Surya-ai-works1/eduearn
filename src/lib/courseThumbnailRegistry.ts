@@ -61,9 +61,9 @@ const SUBJECT_THUMBNAILS: Record<string, string> = {
 
   // Business & Commerce
   "economics": "/images/courses/economics.webp",
-  "commerce": "/images/courses/commerce.webp",
-  "class-11-commerce": "/images/courses/commerce.webp",
-  "class-12-commerce": "/images/courses/commerce.webp",
+  "commerce": "/images/courses/commerce.png",
+  "class-11-commerce": "/images/courses/commerce.png",
+  "class-12-commerce": "/images/courses/commerce.png",
   "accountancy": "/images/courses/accountancy.webp",
   "accounting": "/images/courses/accountancy.webp",
   "finance": "/images/courses/business.webp",
@@ -110,7 +110,7 @@ const CATEGORY_FALLBACKS: Record<string, string> = {
   tech: "/images/courses/technology-programming.webp",
   ai: "/images/courses/ai-data-science.webp",
   business: "/images/courses/business.webp",
-  commerce: "/images/courses/commerce.webp",
+  commerce: "/images/courses/commerce.png",
   finance: "/images/courses/business.webp",
   language: "/images/courses/languages.webp",
   languages: "/images/courses/languages.webp",
@@ -173,7 +173,7 @@ export function getCourseThumbnail(input?: CourseThumbnailInput | string | null)
     if (t.includes("computer science") || t.includes("computer-science")) return "/images/courses/computer-science.webp";
     if (t.includes("english")) return "/images/courses/english.webp";
     if (t.includes("economics")) return "/images/courses/economics.webp";
-    if (t.includes("commerce")) return "/images/courses/commerce.webp";
+    if (t.includes("commerce")) return "/images/courses/commerce.png";
     if (t.includes("accountancy") || t.includes("accounting")) return "/images/courses/accountancy.webp";
     if (t.includes("python")) return "/images/courses/python.webp";
     if (t.includes("web dev") || t.includes("react") || t.includes("javascript")) return "/images/courses/web-dev.webp";

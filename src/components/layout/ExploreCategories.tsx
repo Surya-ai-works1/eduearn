@@ -1,4 +1,5 @@
 "use client";
+import { cn } from "../../utils/cn";
 
 import React from "react";
 import {
@@ -74,6 +75,91 @@ const getCategorySlug = (id: string) => {
   }
 };
 
+
+function getImageFitMode(src?: string): { fitClass: string; bgClass: string; scaleClass: string } {
+  if (!src) return { fitClass: "object-cover", bgClass: "bg-muted", scaleClass: "scale-100 group-hover:scale-105" };
+  const filename = src.split("/").pop()?.toLowerCase() || "";
+  
+  const ignored = ["english", "languages", "classroom", "communication", "fallback", "academic-education", "generic-education", "generic-business"];
+  if (ignored.some(word => filename.includes(word))) {
+    return {
+      fitClass: "object-cover",
+      bgClass: "bg-muted",
+      scaleClass: "scale-100 group-hover:scale-105"
+    };
+  }
+  
+  if (filename.includes("commerce")) {
+    return {
+      fitClass: "object-contain p-3.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.02] group-hover:scale-[1.08]"
+    };
+  }
+  if (filename.includes("accountancy") || filename.includes("accounting")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.06] group-hover:scale-[1.12]"
+    };
+  }
+  if (filename.includes("ai") || filename.includes("ai-data-science") || filename.includes("business")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.10] group-hover:scale-[1.16]"
+    };
+  }
+  if (filename.includes("python") || filename.includes("web-dev")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.10] group-hover:scale-[1.16]"
+    };
+  }
+  if (filename.includes("music") || filename.includes("dance") || filename.includes("photography") || filename.includes("video-editing")) {
+    return {
+      fitClass: "object-contain p-2",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.05] group-hover:scale-[1.11]"
+    };
+  }
+  if (filename.includes("sports") || filename.includes("fitness")) {
+    return {
+      fitClass: "object-contain p-2",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+    };
+  }
+  if (filename.includes("mathematics") || filename.includes("physics") || filename.includes("chemistry") || filename.includes("biology") || filename.includes("academics") || filename.includes("academic")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+    };
+  }
+  if (filename.includes("technology") || filename.includes("coding") || filename.includes("computer-science") || filename.includes("generic-programming")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+    };
+  }
+  if (filename.includes("creative") || filename.includes("arts") || filename.includes("drawing") || filename.includes("painting") || filename.includes("sketching") || filename.includes("cooking")) {
+    return {
+      fitClass: "object-contain p-2.5",
+      bgClass: "bg-slate-50 dark:bg-slate-900/60",
+      scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+    };
+  }
+  
+  return {
+    fitClass: "object-contain p-2.5",
+    bgClass: "bg-slate-50 dark:bg-slate-900/60",
+    scaleClass: "scale-[1.08] group-hover:scale-[1.14]"
+  };
+}
+
 export function ExploreCategories() {
   const [failedImages, setFailedImages] = React.useState<Record<string, boolean>>({});
   const [loadedImages, setLoadedImages] = React.useState<Record<string, boolean>>({});
@@ -123,25 +209,33 @@ export function ExploreCategories() {
                   <Card
                     variant="glass"
                     hoverEffect="lift"
-                    className="flex flex-col p-0 h-full group cursor-pointer border-border hover:border-primary/30 overflow-hidden"
+                    className="flex flex-col p-3 pb-4 h-full group cursor-pointer border-border hover:border-primary/30 rounded-2xl"
                   >
-                    {/* Category Image Cover */}
-                    <div className="relative w-full h-36 sm:h-42 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 overflow-hidden">
+                    {/* Category Image Cover - Redesigned as Premium Inset Banner */}
+                    <div className="relative w-full aspect-[4/3.5] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950/60 overflow-hidden p-3 border-b border-border/30">
                       {!failedImages[cat.id] ? (
                         <>
-                          <Image
-                            src={img}
-                            alt={`${cat.name} learning category banner illustration`}
-                            fill
-                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                            loading="lazy"
-                            decoding="async"
-                            onLoad={() => setLoadedImages((prev) => ({ ...prev, [cat.id]: true }))}
-                            onError={() => handleImageError(cat.id)}
-                            className={`object-cover object-center group-hover:scale-105 transition-all duration-700 ease-out ${
-                              loadedImages[cat.id] ? "opacity-100 blur-0" : "opacity-0 blur-sm"
-                            }`}
-                          />
+                          <div className={cn(
+                            "absolute inset-3 overflow-hidden rounded-xl border border-border/30",
+                            getImageFitMode(img).bgClass
+                          )}>
+                            <Image
+                              src={img}
+                              alt={`${cat.name} learning category banner illustration`}
+                              fill
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                              loading="lazy"
+                              decoding="async"
+                              onLoad={() => setLoadedImages((prev) => ({ ...prev, [cat.id]: true }))}
+                              onError={() => handleImageError(cat.id)}
+                              className={cn(
+                                "transition-all duration-700 ease-out",
+                                getImageFitMode(img).fitClass,
+                                getImageFitMode(img).scaleClass,
+                                loadedImages[cat.id] ? "opacity-100 blur-0" : "opacity-0 blur-sm"
+                              )}
+                            />
+                          </div>
                           {/* Subtle dark bottom scrim overlay for crisp icon contrast and depth */}
                           <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-background/20 to-transparent opacity-70 group-hover:opacity-50 transition-opacity duration-300 pointer-events-none" />
                         </>
@@ -155,7 +249,7 @@ export function ExploreCategories() {
                     </div>
 
                     {/* Content padding */}
-                    <div className="p-4 flex flex-col justify-between grow">
+                    <div className="p-3 pt-4 flex flex-col justify-between grow">
                       <div>
                         <h4 className="text-xs font-heading font-extrabold text-foreground group-hover:text-primary transition-colors leading-tight">
                           {cat.name}
