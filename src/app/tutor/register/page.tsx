@@ -89,13 +89,14 @@ export default function TutorRegisterPage() {
         setFormError(normalizeError(err));
       }
     };
-    const handleDevOrSubmit = () => {
+    const handleDevOrSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
       if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
         router.replace("/tutor/onboarding");
         return;
       }
       // invoke react-hook-form validation then onSubmit
-      handleSubmit(onSubmit)();
+      handleSubmit(onSubmit)(e);
     };
   return (
     <AuthShell

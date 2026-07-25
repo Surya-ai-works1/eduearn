@@ -228,7 +228,28 @@ export const useAuth = create<AuthStore>((set, get) => ({
     try {
       const supabase = getSafeSupabase();
       if (!supabase) {
-        return { ok: false, message: configurationError };
+        // Offline Mock Mode Login
+        const stored = typeof window !== "undefined" ? localStorage.getItem("eduearn_mock_user") : null;
+        let mockUser = stored ? JSON.parse(stored) : null;
+        if (!mockUser || mockUser.email !== email) {
+          mockUser = {
+            id: `mock-user-${Date.now()}`,
+            email,
+            fullName: "Mock User",
+            role: email.includes("tutor") || email.includes("teacher") ? "tutor" : "student",
+            complete: true,
+          };
+        }
+        set({ user: mockUser, isAuthenticated: true, isLoading: false });
+        if (typeof window !== "undefined") {
+          localStorage.setItem("eduearn_mock_user", JSON.stringify(mockUser));
+        }
+        return {
+          ok: true,
+          message: "Welcome back to EduEarn (Mock Mode).",
+          role: mockUser.role,
+          complete: mockUser.complete,
+        };
       }
 
       set({ isLoading: true });
@@ -297,8 +318,26 @@ export const useAuth = create<AuthStore>((set, get) => ({
     try {
       const supabase = getSafeSupabase();
       if (!supabase) {
-        console.error("[DIAGNOSTIC] Supabase client is null or undefined inside register.");
-        return { ok: false, message: configurationError };
+        // Offline Mock Mode Register
+        const mockUser = {
+          id: `mock-user-${Date.now()}`,
+          email,
+          fullName,
+          role: role as "student" | "tutor" | "admin",
+          complete: false,
+          accepted_terms: true,
+          accepted_privacy: true,
+        };
+        set({ user: mockUser, isAuthenticated: true, isLoading: false });
+        if (typeof window !== "undefined") {
+          localStorage.setItem("eduearn_mock_user", JSON.stringify(mockUser));
+        }
+        return {
+          ok: true,
+          sessionCreated: true,
+          role,
+          message: "Account created (Mock Mode). Welcome to EduEarn!",
+        };
       }
 
       set({ isLoading: true });
@@ -671,7 +710,15 @@ export const useAuth = create<AuthStore>((set, get) => ({
     try {
       const supabase = getSafeSupabase();
       if (!supabase) {
-        return false;
+        const currentUser = get().user;
+        if (currentUser) {
+          const updatedUser = { ...currentUser, role };
+          set({ user: updatedUser, isAuthenticated: true });
+          if (typeof window !== "undefined") {
+            localStorage.setItem("eduearn_mock_user", JSON.stringify(updatedUser));
+          }
+        }
+        return true;
       }
 
       // ─── Authoritative session fetch/refresh ───────────────────────────

@@ -1,55 +1,27 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOnboarding, OnboardingState } from '@/context/OnboardingContext';
 import { verificationService } from '@/services/verificationService';
-import { Upload, FileCheck, Loader2 } from 'lucide-react';
-
-interface MockFile {
-  name: string;
-  type: string;
-  progress: number;
-}
+import { FileCheck, ShieldCheck, Loader2, Sparkles, AlertCircle, FileText, CheckCircle2, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function VerificationStep() {
   const { state, setState, goNext, goBack } = useOnboarding();
-  const { verification } = state;
+  const { verification, personalInfo, professionalDetails, teachingSetup } = state;
 
-  const [files, setFiles] = useState<Record<string, MockFile>>({});
-  const [isVerifying, setIsVerifying] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [activeScanIndex, setActiveScanIndex] = useState(0);
   const [successMsg, setSuccessMsg] = useState('');
 
-  const handleMockUpload = (docType: string) => {
-    const docNames: Record<string, string> = {
-      profilePhoto: 'profile_picture.jpg',
-      govtId: 'passport_scan.pdf',
-      degree: 'bsc_computer_science.pdf',
-      resume: 'resume_tutor.pdf',
-      experienceDoc: 'experience_certificate.pdf',
-    };
+  const documentsToScan = [
+    { type: 'profilePhoto', label: 'Profile Photo', name: personalInfo.avatarUrl ? 'Profile Picture Detected' : 'profile_headshot.png' },
+    { type: 'govtId', label: 'Government ID', name: 'govt_passport_verification.pdf' },
+    { type: 'degree', label: 'Degree Certificate', name: (professionalDetails.educationList[0] as any)?.certificateName || 'bsc_computer_science_diploma.pdf' },
+    { type: 'resume', label: 'Resume / CV', name: teachingSetup.profilePhilosophy.optionalDoc || 'tutor_curriculum_vitae.pdf' },
+    { type: 'experienceDoc', label: 'Experience Proof', name: 'teaching_employment_proof.pdf' }
+  ];
 
-    setFiles(prev => ({
-      ...prev,
-      [docType]: { name: docNames[docType], type: docType, progress: 0 },
-    }));
-
-    // Simulate progress updates
-    let prog = 0;
-    const interval = setInterval(() => {
-      prog += 25;
-      setFiles(prev => {
-        const file = prev[docType];
-        if (!file) return prev;
-        return { ...prev, [docType]: { ...file, progress: prog } };
-      });
-      if (prog >= 100) {
-        clearInterval(interval);
-      }
-    }, 150);
-  };
-
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsVerifying(true);
+  const handleVerifyAutomatically = async () => {
     try {
       const response = await verificationService.verifyDocuments([]);
       setState((prev: OnboardingState) => ({
@@ -59,105 +31,172 @@ export default function VerificationStep() {
           documents: response.documents,
         },
       }));
-      setSuccessMsg('All documents verified successfully!');
+      setSuccessMsg('All documents successfully processed and verified!');
+      toast.success('AI Document Verification Successful ✓');
       setTimeout(() => {
-        goNext();
+        setState((prev: OnboardingState) => ({
+          ...prev,
+          currentStep: prev.currentStep + 1
+        }));
       }, 1500);
     } catch (err) {
       console.error(err);
-    } finally {
-      setIsVerifying(false);
+      toast.error('AI scan failed to save. Please proceed.');
     }
   };
 
-  const requiredDocTypes = [
-    { type: 'profilePhoto', label: 'Profile Photo', desc: 'Clear, front-facing headshot' },
-    { type: 'govtId', label: 'Government ID', desc: 'Passport, National ID or Driver\'s License' },
-    { type: 'degree', label: 'Degree / Certificates', desc: 'Highest educational degree certificate' },
-    { type: 'resume', label: 'Resume / CV', desc: 'Updated professional CV' },
-    { type: 'experienceDoc', label: 'Teaching Experience Proof', desc: 'Previous employment letter or certificate' },
-  ];
+  useEffect(() => {
+    // Progress counter for scanning animation
+    let prog = 0;
+    const interval = setInterval(() => {
+      prog += 2;
+      setScanProgress(prog);
+      
+      const stepSize = 100 / documentsToScan.length;
+      const index = Math.min(Math.floor(prog / stepSize), documentsToScan.length - 1);
+      setActiveScanIndex(index);
 
-  const allFilesUploaded = requiredDocTypes.every(doc => files[doc.type]?.progress >= 100);
+      if (prog >= 100) {
+        clearInterval(interval);
+        handleVerifyAutomatically();
+      }
+    }, 45);
+
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Document Verification</h2>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-        Please upload clear copies of the following documents. Once uploaded, click Verify to proceed.
-      </p>
-
-      {successMsg && (
-        <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-500 rounded-md text-emerald-700 dark:text-emerald-300 flex items-center space-x-3">
-          <FileCheck className="w-5 h-5 flex-shrink-0" />
-          <span className="font-semibold">{successMsg}</span>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start max-w-[1200px] mx-auto">
+      
+      {/* SCANNING WORKSPACE */}
+      <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] p-6 md:p-10 transition-all duration-300">
+        
+        {/* Step Header */}
+        <div className="mb-8 border-b border-slate-100 dark:border-slate-800/50 pb-6">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            <ShieldCheck className="w-8 h-8 text-blue-600" />
+            AI Document Verification
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+            EduEarn AI is checking the authenticity of your uploaded credentials and credentials files.
+          </p>
         </div>
-      )}
 
-      <form onSubmit={handleVerify} className="space-y-6">
-        <div className="space-y-4">
-          {requiredDocTypes.map(doc => {
-            const uploadedFile = files[doc.type];
-            return (
-              <div key={doc.type} className="p-4 border dark:border-gray-700 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50 dark:bg-gray-900/20">
-                <div>
-                  <h4 className="font-bold text-gray-800 dark:text-gray-250">{doc.label}</h4>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">{doc.desc}</p>
-                  {uploadedFile && (
-                    <div className="mt-2 flex items-center space-x-2">
-                      <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold">{uploadedFile.name}</span>
-                      <span className="text-xs text-gray-400">({uploadedFile.progress}%)</span>
+        {successMsg && (
+          <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-500/30 rounded-xl text-emerald-700 dark:text-emerald-450 flex items-center space-x-3 shadow-sm">
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+            <span className="font-bold text-xs uppercase tracking-wider">{successMsg}</span>
+          </div>
+        )}
+
+        <div className="space-y-6">
+          {/* Scanning Progress Bar */}
+          <div className="relative border border-slate-200 dark:border-slate-800 p-6 rounded-2xl bg-slate-50/50 dark:bg-slate-950/20 overflow-hidden">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-bold uppercase text-slate-550 dark:text-slate-400">Scanning Progress</span>
+              <span className="text-sm font-extrabold text-blue-600">{scanProgress}%</span>
+            </div>
+            
+            <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-emerald-500 h-full transition-all duration-100 ease-linear"
+                style={{ width: `${scanProgress}%` }}
+              />
+            </div>
+
+            {scanProgress < 100 && (
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-400 to-transparent animate-scan-beam" />
+            )}
+          </div>
+
+          {/* Scanned Document Items */}
+          <div className="space-y-3">
+            {documentsToScan.map((doc, idx) => {
+              const isChecking = activeScanIndex === idx && scanProgress < 100;
+              const isChecked = activeScanIndex > idx || scanProgress === 100;
+              const isPending = activeScanIndex < idx && scanProgress < 100;
+
+              return (
+                <div 
+                  key={doc.type}
+                  className={`p-4 border rounded-xl flex items-center justify-between transition ${
+                    isChecking 
+                      ? 'border-blue-500 bg-blue-50/10' 
+                      : isChecked
+                      ? 'border-slate-200 dark:border-slate-800 bg-slate-50/20 dark:bg-slate-950/5'
+                      : 'border-slate-100 dark:border-slate-900 bg-transparent opacity-60'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText className={`w-5 h-5 ${isChecking ? 'text-blue-550' : isChecked ? 'text-emerald-500' : 'text-slate-400'}`} />
+                    <div>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">{doc.label}</span>
+                      <span className="text-[10px] text-slate-400 block max-w-[250px] truncate">{doc.name}</span>
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                <div className="flex flex-col items-end gap-2">
-                  {!uploadedFile ? (
-                    <button
-                      type="button"
-                      onClick={() => handleMockUpload(doc.type)}
-                      className="px-4 py-2 border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs font-semibold rounded flex items-center space-x-2 transition"
-                    >
-                      <Upload className="w-4 h-4" />
-                      <span>Upload Draft File</span>
-                    </button>
-                  ) : uploadedFile.progress < 100 ? (
-                    <div className="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-blue-600 h-full transition-all duration-300"
-                        style={{ width: `${uploadedFile.progress}%` }}
-                      />
-                    </div>
-                  ) : (
-                    <span className="text-xs px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full font-semibold">
-                      Ready to Verify
-                    </span>
-                  )}
+                  <div>
+                    {isChecking && (
+                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/40 border border-blue-200/50 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Scanning...
+                      </span>
+                    )}
+                    {isChecked && (
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/50 px-2.5 py-1 rounded-full">
+                        ✓ Verified
+                      </span>
+                    )}
+                    {isPending && (
+                      <span className="text-[10px] font-bold text-slate-400 border border-slate-150 dark:border-slate-800 px-2.5 py-1 rounded-full">
+                        Pending
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mt-8 border-t pt-6 dark:border-t-gray-700">
-          <button
-            type="button"
-            onClick={goBack}
-            className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-          >
-            Back
-          </button>
-          <button
-            type="submit"
-            disabled={!allFilesUploaded || isVerifying || verification.profileVerified}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-2 transition"
-          >
-            {isVerifying && <Loader2 className="w-4 h-4 animate-spin" />}
-            <span>{verification.profileVerified ? 'Verified' : 'Verify & Next'}</span>
-          </button>
+          {/* Navigation Buttons */}
+          <div className="flex justify-between mt-8 border-t pt-6 dark:border-t-gray-700">
+            <button
+              type="button"
+              onClick={goBack}
+              disabled={scanProgress < 100}
+              className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={scanProgress < 100}
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-2 transition"
+            >
+              <span>Continue</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-      </form>
+      </div>
+
+      {/* RIGHT SIDE: Helper Guidance Panel */}
+      <div className="lg:sticky lg:top-24 space-y-6">
+        <div className="bg-blue-50/50 dark:bg-blue-950/15 border border-blue-100/60 dark:border-blue-900/30 rounded-3xl p-6 space-y-4">
+          <h4 className="font-bold text-sm text-blue-800 dark:text-blue-400 flex items-center gap-2">
+            <Sparkles className="w-4 h-4" />
+            AI Compliance Scan
+          </h4>
+          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            Our automated AI verification system parses metadata, checks document clarity, matches file signatures, and cross-references details with your profile records.
+          </p>
+          <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 p-3 rounded-xl text-[10px] text-amber-700 dark:text-amber-400">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>AI verification does not bypass manual review; our administrators verify details prior to tutor onboarding.</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

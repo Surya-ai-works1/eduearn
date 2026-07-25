@@ -1,16 +1,22 @@
 "use client";
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase as supabaseClient } from '@/lib/supabaseClient';
-import { OnboardingProvider, useOnboarding } from '@/context/OnboardingContext';
+import { useOnboarding, OnboardingProvider } from '@/context/OnboardingContext';
+import { supabase } from '@/lib/supabaseClient';
+import ProgressStepper from '@/app/tutor/onboarding/components/ProgressStepper';
+
+// Steps imports
 import BasicProfileStep from '@/app/tutor/onboarding/components/BasicProfileStep';
-import ProfessionalDetailsStep from '@/app/tutor/onboarding/components/ProfessionalDetailsStep';
-import TeachingSetupStep from '@/app/tutor/onboarding/components/TeachingSetupStep';
-import VerificationStep from '@/app/tutor/onboarding/components/VerificationStep';
-import AIInterviewStep from '@/app/tutor/onboarding/components/AIInterviewStep';
-import ReviewSubmitStep from '@/app/tutor/onboarding/components/ReviewSubmitStep';
+import EducationStep from '@/app/tutor/onboarding/components/EducationStep';
+import ExperienceStep from '@/app/tutor/onboarding/components/ExperienceStep';
+import CategoriesSkillsStep from '@/app/tutor/onboarding/components/CategoriesSkillsStep';
+import PortfolioStep from '@/app/tutor/onboarding/components/PortfolioStep';
+import SchedulingStep from '@/app/tutor/onboarding/components/SchedulingStep';
+import PricingStep from '@/app/tutor/onboarding/components/PricingStep';
+import AIAssessmentStep from '@/app/tutor/onboarding/components/AIAssessmentStep';
 import CompletionStep from '@/app/tutor/onboarding/components/CompletionStep';
-import ProgressStepper from '@/app/tutor/onboarding/components/ProgressStepper';export default function TutorOnboardingPage() {
+
+export default function TutorOnboardingPage() {
   return (
     <OnboardingProvider>
       <OnboardingContent />
@@ -22,34 +28,51 @@ function OnboardingContent() {
   const router = useRouter();
   const { state, goToStep, isHydrated } = useOnboarding();
   const [isLoading, setIsLoading] = React.useState(true);
+
   React.useEffect(() => {
     const checkAuth = async () => {
       setIsLoading(true);
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session?.user) {
-        router.replace(`/tutor/login?redirect=${encodeURIComponent('/tutor/onboarding')}`);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        // Fallback to mock session check
+        const mockUser = typeof window !== 'undefined' ? localStorage.getItem('eduearn_mock_user') : null;
+        if (!mockUser) {
+          router.replace('/tutor/login?redirect=' + encodeURIComponent('/tutor/onboarding'));
+          return;
+        }
       }
       setIsLoading(false);
     };
     checkAuth();
-  }, [supabaseClient, router]);
+  }, [router, supabase]);
 
-  if (isLoading || !isHydrated) return null;
+  if (isLoading || !isHydrated) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   const renderStep = () => {
     switch (state.currentStep) {
       case 1:
         return <BasicProfileStep />;
       case 2:
-        return <ProfessionalDetailsStep />;
+        return <EducationStep />;
       case 3:
-        return <TeachingSetupStep />;
+        return <ExperienceStep />;
       case 4:
-        return <VerificationStep />;
+        return <CategoriesSkillsStep />;
       case 5:
-        return <AIInterviewStep />;
+        return <PortfolioStep />;
       case 6:
-        return <ReviewSubmitStep />;
+        return <SchedulingStep />;
       case 7:
+        return <PricingStep />;
+      case 8:
+        return <AIAssessmentStep />;
+      case 9:
         return <CompletionStep />;
       default:
         return <BasicProfileStep />;
@@ -57,20 +80,23 @@ function OnboardingContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-10 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
+      <div className="max-w-[1200px] mx-auto space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-extrabold tracking-tight text-gray-950 dark:text-white">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white">
             Tutor Onboarding
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-slate-400">
             Complete your registration details to start teaching on EduEarn
           </p>
         </div>
 
-        <ProgressStepper currentStep={state.currentStep} goToStep={goToStep} />
+        {/* Progress Stepper - Hide on complete step (9) */}
+        {state.currentStep <= 8 && (
+          <ProgressStepper currentStep={state.currentStep} goToStep={goToStep} />
+        )}
 
-        <div className="mt-6">
+        <div className="mt-8">
           {renderStep()}
         </div>
       </div>

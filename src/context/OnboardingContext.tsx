@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 
-// Types for each phase's data
 export interface PersonalInfo {
   fullName: string;
   displayName: string;
@@ -17,15 +16,18 @@ export interface PersonalInfo {
   city: string;
   language: string;
   bio: string;
+  avatarUrl?: string;
 }
 
 export interface ProfessionalDetails {
   selectedCategories: string[];
   skillProficiencies: { skill: string; level: string }[];
   languages: string[];
-  educationList: { id: string; degree: string; college: string; passingYear: string }[];
+  educationList: { id: string; degree: string; college: string; passingYear: string; certificateName?: string; certificateProgress?: number }[];
   teachingExpYears: string;
   achievements: string;
+  experienceDocName?: string;
+  experienceDocProgress?: number;
 }
 
 export interface TeachingSetup {
@@ -36,6 +38,15 @@ export interface TeachingSetup {
   sessionDuration: number; // in minutes
   freeDemo: boolean;
   preferredLanguage: string;
+  coursePrice?: number;
+  subscriptionRate?: number;
+  groupRate?: number;
+  couponCode?: string;
+  cancellationPolicy?: string;
+  teachingFormats?: string[];
+  experienceLevel?: string;
+  preferredDuration?: number;
+  maxClassesPerDay?: string;
   profilePhilosophy: {
     professionalBio: string;
     whyTeach: string;
@@ -46,11 +57,19 @@ export interface TeachingSetup {
     behance: string;
     youtube: string;
     optionalDoc: string;
+    instagram?: string;
+    portfolioWebsite?: string;
+    portfolioPdf?: string;
+    coverImage?: string;
+    resume?: string;
   };
   availability: {
     timezone: string;
     maxHoursPerDay: number;
     slots: Record<string, string[]>;
+    maxStudents?: number;
+    maxSessions?: number;
+    holidayMode?: boolean;
   };
   liveClassSetup: {
     preferredPlatform: string;
@@ -103,6 +122,7 @@ const defaultState: OnboardingState = {
     city: 'Hyderabad',
     language: 'English, Hindi',
     bio: '',
+    avatarUrl: '',
   },
   professionalDetails: {
     selectedCategories: [],
@@ -120,6 +140,15 @@ const defaultState: OnboardingState = {
     sessionDuration: 60,
     freeDemo: false,
     preferredLanguage: 'English',
+    coursePrice: 49,
+    subscriptionRate: 29,
+    groupRate: 15,
+    couponCode: 'WELCOME10',
+    cancellationPolicy: '24 hrs notice required',
+    teachingFormats: [],
+    experienceLevel: 'Beginner Tutor',
+    preferredDuration: 60,
+    maxClassesPerDay: '3',
     profilePhilosophy: {
       professionalBio: '',
       whyTeach: '',
@@ -130,11 +159,19 @@ const defaultState: OnboardingState = {
       behance: '',
       youtube: '',
       optionalDoc: '',
+      instagram: '',
+      portfolioWebsite: '',
+      portfolioPdf: '',
+      coverImage: '',
+      resume: '',
     },
     availability: {
       timezone: 'IST (UTC+5:30)',
       maxHoursPerDay: 4,
       slots: {},
+      maxStudents: 5,
+      maxSessions: 10,
+      holidayMode: false,
     },
     liveClassSetup: {
       preferredPlatform: 'Google Meet',
