@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Button } from "../../components/ui/button";
 import { ChevronDown, Sparkles, Shield, Bell, Key, User, Landmark, ShieldCheck } from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
 
 type SettingsSection = {
   id: string;
@@ -63,6 +64,34 @@ export const Settings = React.memo(function Settings({
     assignmentUploads: true,
   });
   const [isPublicProfile, setIsPublicProfile] = useState(true);
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const { resetPassword } = useAuth();
+
+  const handleChangePassword = useCallback(async () => {
+    if (!newPassword || !confirmPassword) {
+      toast.error("Please fill in both password fields.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters.");
+      return;
+    }
+
+    const res = await resetPassword(newPassword);
+    if (res.ok) {
+      toast.success("Password changed successfully!");
+      setNewPassword("");
+      setConfirmPassword("");
+    } else {
+      toast.error(res.message || "Failed to change password.");
+    }
+  }, [newPassword, confirmPassword, resetPassword]);
 
   const handleSave = useCallback(async () => {
     const result = await completeProfile({
@@ -222,15 +251,36 @@ export const Settings = React.memo(function Settings({
       desc: "Update your system password and authentication configuration.",
       icon: Key,
       content: (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 text-left">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">New Password</label>
-            <input type="password" placeholder="••••••••" className={INPUT_CLASS} />
+        <div className="space-y-4 pt-4 text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">New Password</label>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className={INPUT_CLASS}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Confirm Password</label>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={INPUT_CLASS}
+              />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Confirm Password</label>
-            <input type="password" placeholder="••••••••" className={INPUT_CLASS} />
-          </div>
+          <Button
+            onClick={handleChangePassword}
+            size="sm"
+            className="h-10 px-5 text-xs font-bold shadow-soft uppercase tracking-wider bg-primary text-foreground"
+          >
+            Update Password
+          </Button>
         </div>
       ),
     },

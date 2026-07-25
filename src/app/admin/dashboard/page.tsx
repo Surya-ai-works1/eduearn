@@ -309,140 +309,58 @@ export default function AdminDashboardPage() {
     { id: "tick-2", type: "Tutor Complaint", title: "Whiteboard disconnect during Algebra session", user: "Amit Verma", status: "Open", assignedTo: "Tech Lead" }
   ]);
 
-  // Supabase Database synchronization effect
+  // Backend API synchronization effect
   useEffect(() => {
     async function loadAdminData() {
       try {
-        const { createClient } = await import("../../../lib/supabase");
-        const supabase = createClient();
-
         // 1. Fetch Users
-        const { data: profilesList } = await supabase
-          .from("profiles")
-          .select("id, display_name, role, updated_at");
-        
-        if (profilesList) {
-          const mappedUsers = profilesList.map((p: any) => ({
-            id: p.id,
-            name: p.display_name || "EduEarn User",
-            email: `${p.role || "learner"}@eduearn.com`,
-            role: (p.role || "learner") as "learner" | "tutor" | "admin",
-            status: "Active" as const,
-            createdAt: new Date(p.updated_at || Date.now()).toISOString().substring(0, 10),
-            walletCoins: p.role === "tutor" ? 450 : 120
-          }));
-          setUsers(mappedUsers);
+        const usersRes = await fetch("/api/admin/users");
+        if (usersRes.ok) {
+          const usersList = await usersRes.json();
+          setUsers(usersList);
         }
 
         // 2. Fetch Tutor Verifications
-        const { data: verifs } = await supabase
-          .from("tutor_verifications")
-          .select("*");
-        
-        if (verifs) {
-          const mappedVerifs = verifs.map((v: any) => ({
-            id: v.id,
-            tutorName: v.tutor_name || "Tutor Candidate",
-            expertise: v.expertise || "General Subject",
-            education: v.education || "Undergrad credentials",
-            status: (v.status || "Pending") as "Pending" | "Approved" | "Rejected",
-            govIdFile: v.gov_id_file || "id.jpg",
-            studentIdFile: v.student_id_file || "profile.png",
-            email: v.email || "tutor@eduearn.com"
-          }));
-          setVerifications(mappedVerifs);
+        const verifsRes = await fetch("/api/admin/verifications");
+        if (verifsRes.ok) {
+          const verifsList = await verifsRes.json();
+          setVerifications(verifsList);
         }
 
         // 3. Fetch Courses
-        const { data: coursesList } = await supabase
-          .from("courses")
-          .select("*");
-
-        if (coursesList) {
-          const config = PaymentService.getPlatformConfig();
-          const mappedCourses = coursesList.map((c: any) => {
-            const platformShare = Math.round((c.price * config.commission) / 100);
-            const tutorShare = c.price - platformShare;
-
-            return {
-              id: c.id,
-              title: c.title,
-              tutorName: c.tutor_name || "Tutor Member",
-              category: c.category || "General",
-              price: c.price || 0,
-              tutorEarnings: tutorShare,
-              platformEarnings: platformShare,
-              status: (c.status === "published" ? "Approved" : c.status === "pending" ? "Pending" : "Draft") as any,
-              featured: c.featured || false,
-              hidden: c.hidden || false,
-              assignedSkill: c.category || "General"
-            };
-          });
-          setCourses(mappedCourses);
+        const coursesRes = await fetch("/api/admin/courses");
+        if (coursesRes.ok) {
+          const coursesList = await coursesRes.json();
+          setCourses(coursesList);
         }
 
-        // 4. Fetch Live Classes
-        const { data: liveList } = await supabase
-          .from("live_classes")
-          .select("*");
-
-        if (liveList) {
-          const mappedLive = liveList.map((l: any) => ({
-            id: l.id,
-            title: l.title,
-            time: new Date(l.start_time).toLocaleString(),
-            countdown: "Scheduled",
-            meetingLink: l.meeting_link || "https://meet.eduearn.com",
-            platform: "EduEarn Classroom",
-            status: l.status || "Scheduled",
-            studentsCount: 3,
-            attendanceCount: 3
-          }));
-          setAdminLiveSessions(mappedLive);
+        // 4. Fetch Payments & Payouts
+        const paymentsRes = await fetch("/api/admin/payments");
+        if (paymentsRes.ok) {
+          const paymentsData = await paymentsRes.json();
+          setPayouts(paymentsData.payouts || []);
         }
 
-        // 5. Fetch Payouts
-        const { data: payoutsList } = await supabase
-          .from("withdrawal_requests")
-          .select("*");
-
-        if (payoutsList) {
-          const mappedPayouts = payoutsList.map((p: any) => ({
-            id: p.id,
-            tutorName: p.tutor_name || "Tutor Partner",
-            amount: p.amount || 0,
-            pendingWallet: 0,
-            status: p.status || "Pending",
-            date: new Date(p.created_at).toISOString().substring(0, 10),
-            method: "Bank",
-            bankDetails: "A/C: ****1234"
-          }));
-          setPayouts(mappedPayouts);
+        // 5. Fetch Tickets
+        const ticketsRes = await fetch("/api/admin/tickets");
+        if (ticketsRes.ok) {
+          const ticketsList = await ticketsRes.json();
+          setTickets(ticketsList);
         }
 
-        // 6. Fetch Audit Logs
-        const { data: logsList } = await supabase
-          .from("audit_logs")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (logsList) {
-          const mappedLogs = logsList.map((l: any) => ({
-            id: l.id,
-            timestamp: new Date(l.created_at).toLocaleString(),
-            adminName: "System Admin",
-            action: l.action
-          }));
-          setAuditLogs(mappedLogs);
+        // 6. Fetch Dashboard Stats & Audit Logs
+        const dbRes = await fetch("/api/admin/dashboard");
+        if (dbRes.ok) {
+          const dbData = await dbRes.json();
+          setAuditLogs(dbData.recentActivity || []);
         }
-
       } catch (err) {
-        console.error("Failed to load live admin data from Supabase:", err);
+        console.error("Failed to load admin data from backend APIs:", err);
       }
     }
 
     loadAdminData();
-  }, []);
+  }, [activeTab]);
 
   // Sync course moderation status back to localStorage tutor courses
   useEffect(() => {
@@ -485,32 +403,19 @@ export default function AdminDashboardPage() {
   const triggerTutorVerification = async (id: string, approve: boolean) => {
     const nextStatus = approve ? "Approved" : "Rejected";
     try {
-      const { createClient } = await import("../../../lib/supabase");
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("tutor_verifications")
-        .update({ status: nextStatus })
-        .eq("id", id);
+      const res = await fetch("/api/admin/verifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ verificationId: id, status: nextStatus })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update verification status");
 
-      if (error) throw error;
-    } catch (err) {
-      console.warn("Supabase tutor verification update failed, using localStorage fallback:", err);
-    }
-
-    setVerifications(prev => prev.map(v => {
-      if (v.id === id) {
-        if (v.isDynamic) {
-          localStorage.setItem("tutor_application_status", approve ? "approved" : "rejected");
-        }
-        return { ...v, status: nextStatus };
-      }
-      return v;
-    }));
-
-    const app = verifications.find(v => v.id === id);
-    if (app) {
-      logAuditAction(`${approve ? "Approved" : "Rejected"} tutor application verification for: ${app.tutorName}`);
+      setVerifications(prev => prev.map(v => (v.id === id ? { ...v, status: nextStatus } : v)));
+      logAuditAction(`${approve ? "Approved" : "Rejected"} tutor application verification for ID: ${id}`);
       toast.success(`Tutor verification marked as ${nextStatus}`);
+    } catch (err: any) {
+      toast.error(err.message);
     }
   };
 

@@ -7,6 +7,7 @@ import { Button } from "../../../components/ui/button";
 import Link from "next/link";
 import { lmsDb } from "../../../lib/lmsDb";
 import { createClient } from "../../../lib/supabase/server";
+import { enrollmentService } from "../../../lib/services/enrollmentService";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -20,6 +21,7 @@ export default async function CourseDetailsPage({ params }: PageProps) {
   let tutor: any = null;
   let relatedCourses: any[] = [];
   let courseReviews: any[] = [];
+  let isEnrolled = false;
 
   try {
     const dbCourse = await lmsDb.getCourseById(id);
@@ -132,6 +134,15 @@ export default async function CourseDetailsPage({ params }: PageProps) {
         }
         relatedCourses = mappedRelated;
       } catch (err) {}
+
+      // Check enrollment status
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const enrollResult = await enrollmentService.getEnrollment(user.id, id);
+          isEnrolled = !!enrollResult;
+        }
+      } catch (err) {}
     }
   } catch (err) {
     console.warn("Supabase course details load failed, falling back to mock courses:", err);
@@ -146,6 +157,16 @@ export default async function CourseDetailsPage({ params }: PageProps) {
         (c) => c.categoryId === course.categoryId && c.id !== course.id
       ).slice(0, 3);
       courseReviews = MOCK_REVIEWS.filter((r) => r.courseId === course.id);
+
+      // Check enrollment status for mock course
+      try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const enrollResult = await enrollmentService.getEnrollment(user.id, id);
+          isEnrolled = !!enrollResult;
+        }
+      } catch (err) {}
     }
   }
 
@@ -175,6 +196,7 @@ export default async function CourseDetailsPage({ params }: PageProps) {
       tutor={tutor}
       relatedCourses={relatedCourses}
       courseReviews={courseReviews}
+      isEnrolled={isEnrolled}
     />
   );
 }
@@ -184,3 +206,4 @@ export async function generateStaticParams() {
     id: course.id,
   }));
 }
+

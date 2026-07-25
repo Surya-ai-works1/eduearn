@@ -19,6 +19,7 @@ interface StudentManagerProps {
   setStudentFilterProgress: (v: string) => void;
   studentSortBy: string;
   setStudentSortBy: (v: string) => void;
+  onIssueCertificate?: (enrollmentId: string) => Promise<void>;
 }
 
 export const StudentManager = React.memo(function StudentManager({
@@ -32,8 +33,10 @@ export const StudentManager = React.memo(function StudentManager({
   setStudentFilterProgress,
   studentSortBy,
   setStudentSortBy,
+  onIssueCertificate,
 }: StudentManagerProps) {
   const [selectedStudent, setSelectedStudent] = useState<StudentProgress | null>(null);
+  const [isIssuing, setIsIssuing] = useState(false);
 
   // Dynamic course filter options from actual myCourses data
   const courseFilterOptions = useMemo(() => {
@@ -239,15 +242,32 @@ export const StudentManager = React.memo(function StudentManager({
                     </span>
                   </td>
                   <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      onClick={() => toast.success(`Chat with ${student.name} initiated!`)}
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-[9px] px-2 font-bold"
-                    >
-                      <MessageSquare size={10} className="mr-1" />
-                      Chat
-                    </Button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <Button
+                        onClick={() => toast.success(`Chat with ${student.name} initiated!`)}
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[9px] px-2 font-bold"
+                      >
+                        <MessageSquare size={10} className="mr-1" />
+                        Chat
+                      </Button>
+
+                      {!student.certificateEarned && student.progress === 100 && onIssueCertificate && (
+                        <Button
+                          onClick={async () => {
+                            setIsIssuing(true);
+                            await onIssueCertificate(student.id);
+                            setIsIssuing(false);
+                          }}
+                          disabled={isIssuing}
+                          size="sm"
+                          className="h-7 text-[9px] px-2 font-bold bg-primary text-foreground shadow-soft hover:bg-primary/90"
+                        >
+                          🏅 {isIssuing ? "Issuing..." : "Issue Cert"}
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -346,6 +366,21 @@ export const StudentManager = React.memo(function StudentManager({
                       />
                     </div>
                   </div>
+
+                  {!selectedStudent.certificateEarned && selectedStudent.progress === 100 && onIssueCertificate && (
+                    <Button
+                      onClick={async () => {
+                        setIsIssuing(true);
+                        await onIssueCertificate(selectedStudent.id);
+                        setIsIssuing(false);
+                        setSelectedStudent((prev) => prev ? { ...prev, certificateEarned: true } : null);
+                      }}
+                      disabled={isIssuing}
+                      className="w-full h-9 text-xs font-bold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-soft"
+                    >
+                      🏅 {isIssuing ? "Issuing..." : "Issue Certificate"}
+                    </Button>
+                  )}
 
                   <Button
                     onClick={() =>

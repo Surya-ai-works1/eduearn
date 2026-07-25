@@ -58,18 +58,22 @@ export default function UsersTab({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [countryFilter, setCountryFilter] = useState<string>("all");
   
-  const toggleUserStatus = (id: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id === id) {
-          const nextStatus = u.status === "Active" ? "Suspended" : "Active";
-          logAuditAction(`User status modified: ${u.name} set to ${nextStatus}`);
-          toast.success(`User status changed to ${nextStatus}.`);
-          return { ...u, status: nextStatus };
-        }
-        return u;
-      })
-    );
+  const toggleUserStatus = async (id: string) => {
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: id, status: users.find(u => u.id === id)?.status === "Active" ? "Suspended" : "Active" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update user status");
+
+      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status: data.status } : u)));
+      toast.success(`User status changed to ${data.status}.`);
+      logAuditAction(`User status modified: ${users.find(u => u.id === id)?.name} set to ${data.status}`);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const handleExportCSV = () => {
@@ -385,10 +389,19 @@ export default function UsersTab({
                         {u.status === "Active" ? "Suspend" : "Activate"}
                       </Button>
                       <button
-                        onClick={() => {
-                          setUsers((prev) => prev.filter((item) => item.id !== u.id));
-                          logAuditAction(`Permanently deleted user: ${u.name}`);
-                          toast.success("User permanently deleted.");
+                        onClick={async () => {
+                          if (!confirm(`Are you sure you want to permanently delete user "${u.name}"?`)) return;
+                          try {
+                            const res = await fetch(`/api/admin/users?userId=${u.id}`, { method: "DELETE" });
+                            const data = await res.json();
+                            if (!res.ok) throw new Error(data.error || "Failed to delete user");
+
+                            setUsers((prev) => prev.filter((item) => item.id !== u.id));
+                            logAuditAction(`Permanently deleted user: ${u.name}`);
+                            toast.success("User permanently deleted.");
+                          } catch (err: any) {
+                            toast.error(err.message);
+                          }
                         }}
                         className="p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive border border-border rounded cursor-pointer"
                       >

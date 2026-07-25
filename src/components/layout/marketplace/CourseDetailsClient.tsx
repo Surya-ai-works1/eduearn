@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Container } from "../Container";
@@ -37,6 +37,7 @@ interface CourseDetailsClientProps {
   tutor: typeof MOCK_TUTORS[number];
   relatedCourses: typeof MOCK_COURSES;
   courseReviews: typeof MOCK_REVIEWS;
+  isEnrolled?: boolean;
 }
 
 export function CourseDetailsClient({
@@ -44,12 +45,46 @@ export function CourseDetailsClient({
   tutor,
   relatedCourses,
   courseReviews,
+  isEnrolled = false,
 }: CourseDetailsClientProps) {
   const router = useRouter();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [reviewsSort, setReviewsSort] = useState("latest");
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [enrolledState, setEnrolledState] = useState(isEnrolled);
+
+  useEffect(() => {
+    setEnrolledState(isEnrolled);
+  }, [isEnrolled]);
+
+  const handleEnroll = async () => {
+    try {
+      const res = await fetch('/api/student/enrollment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseId: course.id }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to enroll');
+      }
+
+      toast.success("Successfully enrolled in course! Redirecting to classroom...");
+      setEnrolledState(true);
+      
+      // Navigate to the first lesson after a short delay
+      setTimeout(() => {
+        const lessonId = `${course.id}-lesson-1`;
+        router.push(`/student/course/${course.id}/lesson/${lessonId}`);
+      }, 1000);
+    } catch (err: any) {
+      console.error("Enrollment failed:", err);
+      toast.error(err.message || "Failed to enroll. Please log in as a student.");
+    }
+  };
+
 
   const sortedReviews = [...courseReviews].sort((a, b) => {
     if (reviewsSort === "highest") return b.rating - a.rating;
@@ -578,19 +613,32 @@ export function CourseDetailsClient({
 
               {/* Action triggers */}
               <div className="flex flex-col gap-3">
-                <Button
-                  onClick={() => {
-                    if (course.price === 0) {
-                      toast.success(`Registered successfully! Welcome to ${course.title}.`);
-                    } else {
-                      setIsCheckoutOpen(true);
-                    }
-                  }}
-                  size="md"
-                  className="w-full"
-                >
-                  {course.price === 0 ? "Enroll Now" : `Buy Now for ₹${course.price}`}
-                </Button>
+                {enrolledState ? (
+                  <Button
+                    onClick={() => {
+                      const lessonId = `${course.id}-lesson-1`;
+                      router.push(`/student/course/${course.id}/lesson/${lessonId}`);
+                    }}
+                    size="md"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    Continue Learning
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      if (course.price === 0) {
+                        handleEnroll();
+                      } else {
+                        setIsCheckoutOpen(true);
+                      }
+                    }}
+                    size="md"
+                    className="w-full"
+                  >
+                    {course.price === 0 ? "Enroll Now" : `Buy Now for ₹${course.price}`}
+                  </Button>
+                )}
                 <Button
                   onClick={handleWishlist}
                   variant="outline"
@@ -648,10 +696,20 @@ export function CourseDetailsClient({
           courseId={course.id}
           courseTitle={course.title}
           price={course.price}
-          onSuccess={() => {
+          onSuccess={async () => {
+            try {
+              await fetch('/api/student/enrollment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ courseId: course.id }),
+              });
+            } catch (err) {
+              console.warn("Failed to register enrollment in backend after payment:", err);
+            }
             toast.success("Purchase recorded! Redirecting to classroom...");
             setTimeout(() => {
-              router.push(`/learn/course/${course.id}`);
+              const lessonId = `${course.id}-lesson-1`;
+              router.push(`/student/course/${course.id}/lesson/${lessonId}`);
             }, 1000);
           }}
         />

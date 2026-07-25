@@ -38,8 +38,31 @@ export default function CategoriesTab({ logAuditAction }: CategoriesTabProps) {
   const [editingMetadataIndex, setEditingMetadataIndex] = useState<number | null>(null);
   const [editingMetadataValue, setEditingMetadataValue] = useState("");
 
-  const loadCategories = () => {
-    setCategories(MarketplaceService.getCategories());
+  const loadCategories = async () => {
+    try {
+      const res = await fetch("/api/admin/categories");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load categories");
+
+      // Merge backend categories with local subcategories structure
+      const localCats = MarketplaceService.getCategories();
+      const merged = data.map((cat: any) => {
+        const matchedLocal = localCats.find((lc) => lc.id === cat.id || lc.name === cat.name);
+        return {
+          id: cat.id,
+          name: cat.name,
+          status: cat.status || "Enabled",
+          subcategories: matchedLocal?.subcategories || []
+        };
+      });
+
+      // Include local categories that aren't in backend yet, to avoid losing default seeds
+      const missing = localCats.filter((lc) => !merged.some((m: any) => m.id === lc.id || m.name === lc.name));
+      setCategories([...merged, ...missing]);
+    } catch (err: any) {
+      console.warn("Failed to fetch API categories, falling back to local memory:", err);
+      setCategories(MarketplaceService.getCategories());
+    }
   };
 
   const loadMetadata = () => {
@@ -78,41 +101,95 @@ export default function CategoriesTab({ logAuditAction }: CategoriesTabProps) {
   }, [selectedEntity]);
 
   // --- SYLLABUS METRICS & ACTIONS ---
-  const handleAddCategory = (e: React.FormEvent) => {
+  const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
-    MarketplaceService.addCategory(newCatName.trim());
-    logAuditAction(`Created course category node: ${newCatName.trim()}`);
-    setNewCatName("");
-    loadCategories();
-    toast.success("Category created successfully.");
-  };
 
-  const handleDeleteCategory = (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete category "${name}"? All subcategories and skills will be lost.`)) {
-      MarketplaceService.deleteCategory(id);
-      logAuditAction(`Deleted course category node: ${name}`);
+    try {
+      // 1. Add locally
+      MarketplaceService.addCategory(newCatName.trim());
+      // 2. Add to backend API
+      const res = await fetch("/api/admin/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newCatName.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create category");
+
+      logAuditAction(`Created course category node: ${newCatName.trim()}`);
+      setNewCatName("");
       loadCategories();
-      toast.success("Category deleted.");
+      toast.success("Category created successfully.");
+    } catch (err: any) {
+      toast.error(err.message);
     }
   };
 
-  const handleRenameCategory = (id: string) => {
-    if (!editingCatName.trim()) return;
-    MarketplaceService.renameCategory(id, editingCatName.trim());
-    logAuditAction(`Renamed category to: ${editingCatName.trim()}`);
-    setEditingCatId(null);
-    setEditingCatName("");
-    loadCategories();
-    toast.success("Category renamed.");
+  const handleDeleteCategory = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete category "${name}"? All subcategories and skills will be lost.`)) return;
+
+    try {
+      // 1. Delete locally
+      MarketplaceService.deleteCategory(id);
+      // 2. Delete from backend API
+      const res = await fetch(`/api/admin/categories?categoryId=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete category");
+
+      logAuditAction(`Deleted course category node: ${name}`);
+      loadCategories();
+      toast.success("Category deleted.");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
-  const handleToggleCategory = (id: string, currentStatus: string, name: string) => {
-    const nextStatus = currentStatus === "Enabled" ? false : true;
-    MarketplaceService.toggleCategory(id, nextStatus);
-    logAuditAction(`Toggled category ${name} status to ${nextStatus ? "Enabled" : "Disabled"}`);
-    loadCategories();
-    toast.success(`Category ${nextStatus ? "Enabled" : "Disabled"}.`);
+  const handleRenameCategory = async (id: string) => {
+    if (!editingCatName.trim()) return;
+
+    try {
+      // 1. Rename locally
+      MarketplaceService.renameCategory(id, editingCatName.trim());
+      // 2. Update on backend API
+      const res = await fetch("/api/admin/categories", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categoryId: id, name: editingCatName.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to rename category");
+
+      logAuditAction(`Renamed category to: ${editingCatName.trim()}`);
+      setEditingCatId(null);
+      setEditingCatName("");
+      loadCategories();
+      toast.success("Category renamed.");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleToggleCategory = async (id: string, currentStatus: string, name: string) => {
+    const nextStatus = currentStatus === "Enabled" ? "Disabled" : "Enabled";
+    try {
+      // 1. Toggle locally
+      MarketplaceService.toggleCategory(id, nextStatus === "Enabled");
+      // 2. Update backend API
+      const res = await fetch("/api/admin/categories", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categoryId: id, status: nextStatus })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to toggle category");
+
+      logAuditAction(`Toggled category ${name} status to ${nextStatus}`);
+      loadCategories();
+      toast.success(`Category status set to ${nextStatus}.`);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const handleAddSubcategory = (catId: string) => {

@@ -22,6 +22,7 @@ import {
   X,
   LogOut,
   GraduationCap,
+  Bell,
 } from "lucide-react";
 
 interface NavItem {
@@ -47,6 +48,7 @@ interface SidebarProps {
   onLogout: () => void;
   pendingAssignments?: number;
   pendingReviews?: number;
+  pendingNotifications?: number;
 }
 
 const NAV_GROUPS: NavGroup[] = [
@@ -84,6 +86,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Communication",
     items: [
+      { id: "notifications", label: "Notifications", icon: Bell },
       { id: "messages", label: "Messages", icon: MessageSquare },
       { id: "community", label: "Community", icon: Globe2 },
     ],
@@ -104,6 +107,7 @@ function SidebarContent({
   onLogout,
   pendingAssignments = 0,
   pendingReviews = 0,
+  pendingNotifications = 0,
   onClose,
 }: {
   activeTab: string;
@@ -113,12 +117,14 @@ function SidebarContent({
   onLogout: () => void;
   pendingAssignments?: number;
   pendingReviews?: number;
+  pendingNotifications?: number;
   onClose?: () => void;
 }) {
   const badgeMap = useMemo<Record<string, number>>(() => ({
     assignments: pendingAssignments,
     reviews: pendingReviews,
-  }), [pendingAssignments, pendingReviews]);
+    notifications: pendingNotifications,
+  }), [pendingAssignments, pendingReviews, pendingNotifications]);
 
   return (
     <>
@@ -225,6 +231,7 @@ export const TutorSidebar = React.memo(function TutorSidebar({
   onLogout,
   pendingAssignments,
   pendingReviews,
+  pendingNotifications,
 }: SidebarProps) {
   return (
     <>
@@ -264,6 +271,7 @@ export const TutorSidebar = React.memo(function TutorSidebar({
           onLogout={onLogout}
           pendingAssignments={pendingAssignments}
           pendingReviews={pendingReviews}
+          pendingNotifications={pendingNotifications}
         />
       </aside>
 
@@ -304,6 +312,8 @@ export const TutorSidebar = React.memo(function TutorSidebar({
                 onLogout={onLogout}
                 pendingAssignments={pendingAssignments}
                 pendingReviews={pendingReviews}
+                pendingNotifications={pendingNotifications}
+                onClose={onCloseMobile}
               />
             </motion.aside>
           </>

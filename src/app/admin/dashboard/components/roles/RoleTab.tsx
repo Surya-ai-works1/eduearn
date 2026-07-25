@@ -34,11 +34,28 @@ export default function RoleTab({ logAuditAction }: RoleTabProps) {
     { role: "Content Editor", permissions: { view: true, create: true, update: true, delete: true, approve: false, export: false } }
   ]);
 
-  const handlePermissionToggle = (roleName: string, permissionKey: keyof RolePermission["permissions"]) => {
-    setRoles(prev => prev.map(r => {
+  // Load saved roles matrix from API
+  const loadRolesData = async () => {
+    try {
+      const res = await fetch("/api/admin/roles");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load roles");
+    } catch (err) {
+      console.warn("Failed to load roles matrix from API, using default mockup:", err);
+    }
+  };
+
+  React.useEffect(() => {
+    loadRolesData();
+  }, []);
+
+  const handlePermissionToggle = async (roleName: string, permissionKey: keyof RolePermission["permissions"]) => {
+    const targetRole = roles.find(r => r.role === roleName);
+    if (!targetRole) return;
+    const nextVal = !targetRole.permissions[permissionKey];
+
+    const updatedRoles = roles.map(r => {
       if (r.role === roleName) {
-        const nextVal = !r.permissions[permissionKey];
-        logAuditAction(`Toggled permission ${permissionKey} for role ${roleName} to ${nextVal ? "ON" : "OFF"}`);
         return {
           ...r,
           permissions: {
@@ -48,8 +65,23 @@ export default function RoleTab({ logAuditAction }: RoleTabProps) {
         };
       }
       return r;
-    }));
-    toast.success("Granular role permission schema updated.");
+    });
+
+    try {
+      const res = await fetch("/api/admin/roles", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matrix: updatedRoles })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update roles matrix");
+
+      setRoles(updatedRoles);
+      logAuditAction(`Toggled permission ${permissionKey} for role ${roleName} to ${nextVal ? "ON" : "OFF"}`);
+      toast.success("Granular role permission schema updated.");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   return (

@@ -51,7 +51,7 @@ export function RealtimeChat({ isTutor = false, localName = "You", classId }: Re
     if (lastAnnouncement) {
       setPinnedMsg(lastAnnouncement);
     }
-  }, [dbMessages]);
+  }, [dbMessages, uiMessages]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;

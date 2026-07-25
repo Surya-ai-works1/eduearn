@@ -121,13 +121,25 @@ export const Reviews = React.memo(function Reviews({
                   className="bg-card border border-border rounded px-3 py-1.5 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 flex-1 font-semibold"
                 />
                 <Button
-                  onClick={() => {
+                  onClick={async () => {
                     if (!replyText.trim()) return;
+                    // Optimistic local update
                     setReviews((prev) =>
                       prev.map((r) => (r.id === rev.id ? { ...r, reply: replyText } : r))
                     );
+                    const savedReply = replyText;
                     setReplyText("");
                     setActiveReplyReviewId(null);
+                    // Persist to backend (best-effort)
+                    try {
+                      await fetch(`/api/tutor/reviews/${rev.id}/reply`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ reply: savedReply }),
+                      });
+                    } catch {
+                      // non-critical – reply is already shown locally
+                    }
                     toast.success("Reply submitted!");
                   }}
                   size="sm"

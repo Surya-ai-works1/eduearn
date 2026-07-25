@@ -129,7 +129,7 @@ export default function CoursesTab({
     setIsNewMode(true);
   };
 
-  const handleSaveCourse = (e: React.FormEvent) => {
+  const handleSaveCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCourse) return;
 
@@ -160,23 +160,61 @@ export default function CoursesTab({
       landingPageFeatured: formLandingPageFeatured
     };
 
-    if (isNewMode) {
-      setCourses(prev => [updatedCourse, ...prev]);
-      logAuditAction(`Created new course: "${formTitle}"`);
-      toast.success("Course created successfully!");
-    } else {
-      setCourses(prev => prev.map(c => c.id === editingCourse.id ? updatedCourse : c));
-      logAuditAction(`Updated properties & visibility maps for course: "${formTitle}"`);
-      toast.success("Course properties saved.");
+    try {
+      // Save course status via PATCH
+      const res = await fetch("/api/admin/courses", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseId: editingCourse.id,
+          status: formStatus,
+          featured: formFeatured
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save course");
+
+      // Save category via PUT
+      await fetch("/api/admin/courses", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseId: editingCourse.id,
+          category: formCategory
+        })
+      });
+
+      if (isNewMode) {
+        setCourses(prev => [updatedCourse, ...prev]);
+        logAuditAction(`Created new course: "${formTitle}"`);
+        toast.success("Course created successfully!");
+      } else {
+        setCourses(prev => prev.map(c => c.id === editingCourse.id ? updatedCourse : c));
+        logAuditAction(`Updated properties & visibility maps for course: "${formTitle}"`);
+        toast.success("Course properties saved.");
+      }
+      setEditingCourse(null);
+    } catch (err: any) {
+      toast.error(err.message);
     }
-    setEditingCourse(null);
   };
 
-  const handleDeleteCourse = (id: string, title: string) => {
-    if (confirm(`Are you sure you want to permanently delete course "${title}"?`)) {
+  const handleDeleteCourse = async (id: string, title: string) => {
+    if (!confirm(`Are you sure you want to permanently delete course "${title}"?`)) return;
+    try {
+      const res = await fetch("/api/admin/courses", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId: id, status: "Archived" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete course");
+
       setCourses(prev => prev.filter(c => c.id !== id));
       logAuditAction(`Permanently deleted course: ${title}`);
       toast.success("Course deleted successfully.");
+    } catch (err: any) {
+      toast.error(err.message);
     }
   };
 
@@ -193,10 +231,22 @@ export default function CoursesTab({
     logAuditAction(`Duplicated course template of ${course.title}`);
   };
 
-  const handleSetQuickStatus = (id: string, nextStatus: AdminCourse["status"], title: string) => {
-    setCourses(prev => prev.map(c => c.id === id ? { ...c, status: nextStatus } : c));
-    toast.success(`Course "${title}" status set to ${nextStatus}.`);
-    logAuditAction(`Quick changed course status for "${title}" to ${nextStatus}`);
+  const handleSetQuickStatus = async (id: string, nextStatus: AdminCourse["status"], title: string) => {
+    try {
+      const res = await fetch("/api/admin/courses", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId: id, status: nextStatus })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update course status");
+
+      setCourses(prev => prev.map(c => c.id === id ? { ...c, status: nextStatus } : c));
+      toast.success(`Course "${title}" status set to ${nextStatus}.`);
+      logAuditAction(`Quick changed course status for "${title}" to ${nextStatus}`);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const filteredCourses = courses.filter(c => 

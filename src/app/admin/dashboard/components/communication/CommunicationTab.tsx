@@ -36,31 +36,71 @@ export default function CommunicationTab({
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [ticketReplyText, setTicketReplyText] = useState("");
 
-  const handleBroadcast = (e: React.FormEvent) => {
+  const handleBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!broadcastTitle.trim() || !broadcastText.trim()) return;
 
-    logAuditAction(`Sent targeted broadcast announcement to ${broadcastTarget}: "${broadcastTitle}"`);
-    toast.success(`Broadcast announcement successfully sent to ${broadcastTarget}!`);
-    setBroadcastTitle("");
-    setBroadcastText("");
+    try {
+      const res = await fetch("/api/admin/announcements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: broadcastTitle.trim(),
+          content: broadcastText.trim(),
+          targetAudience: broadcastTarget === "Everyone" ? "all" : broadcastTarget.toLowerCase()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create announcement");
+
+      logAuditAction(`Sent targeted broadcast announcement to ${broadcastTarget}: "${broadcastTitle}"`);
+      toast.success(`Broadcast announcement successfully sent to ${broadcastTarget}!`);
+      setBroadcastTitle("");
+      setBroadcastText("");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
-  const handleTicketResolve = (id: string, title: string) => {
-    setTickets(prev => prev.map(t => t.id === id ? { ...t, status: "Resolved" } : t));
-    logAuditAction(`Resolved support ticket: "${title}"`);
-    toast.success(`Ticket "${title}" marked as Resolved.`);
-    setActiveTicketId(null);
+  const handleTicketResolve = async (id: string, title: string) => {
+    try {
+      const res = await fetch("/api/admin/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticketId: id, action: "resolve" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to resolve ticket");
+
+      setTickets(prev => prev.map(t => t.id === id ? { ...t, status: "Resolved" } : t));
+      logAuditAction(`Resolved support ticket: "${title}"`);
+      toast.success(`Ticket "${title}" marked as Resolved.`);
+      setActiveTicketId(null);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
-  const handleTicketReply = (e: React.FormEvent, ticket: SupportTicket) => {
+  const handleTicketReply = async (e: React.FormEvent, ticket: SupportTicket) => {
     e.preventDefault();
     if (!ticketReplyText.trim()) return;
 
-    logAuditAction(`Replied to support ticket "${ticket.title}": "${ticketReplyText.trim()}"`);
-    toast.success(`Reply successfully dispatched to ${ticket.user}.`);
-    setTicketReplyText("");
-    setActiveTicketId(null);
+    try {
+      const res = await fetch("/api/admin/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticketId: ticket.id, replyText: ticketReplyText.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to submit reply");
+
+      logAuditAction(`Replied to support ticket "${ticket.title}": "${ticketReplyText.trim()}"`);
+      toast.success(`Reply successfully dispatched to ${ticket.user}.`);
+      setTicketReplyText("");
+      setActiveTicketId(null);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   return (

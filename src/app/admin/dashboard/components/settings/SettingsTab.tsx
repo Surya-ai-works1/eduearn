@@ -53,43 +53,85 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
   // --- SECURITY ---
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
-  // Load saved settings from localStorage if they exist
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedName = localStorage.getItem("eduearn_platform_name");
-      if (savedName) setPlatformName(savedName);
-      
-      const savedTitle = localStorage.getItem("eduearn_branding_title");
-      if (savedTitle) setBrandingTitle(savedTitle);
+  // Load saved settings from API
+  const loadSettingsData = async () => {
+    try {
+      const res = await fetch("/api/admin/settings");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load settings");
 
-      const savedMaintenance = localStorage.getItem("eduearn_maintenance_mode");
-      if (savedMaintenance) setMaintenanceMode(savedMaintenance === "true");
-    }
-  }, []);
+      setMaintenanceMode(!!data.maintenanceMode);
+      if (data.brandColor) setBrandColor(data.brandColor);
+    } catch (err) {
+      console.warn("Failed to fetch settings from API, using localStorage fallback:", err);
+      // Fallback
+      if (typeof window !== "undefined") {
+        const savedName = localStorage.getItem("eduearn_platform_name");
+        if (savedName) setPlatformName(savedName);
+        
+        const savedTitle = localStorage.getItem("eduearn_branding_title");
+        if (savedTitle) setBrandingTitle(savedTitle);
 
-  const handleSaveSettings = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (typeof window !== "undefined") {
-      localStorage.setItem("eduearn_platform_name", platformName);
-      localStorage.setItem("eduearn_branding_title", brandingTitle);
-      localStorage.setItem("eduearn_maintenance_mode", String(maintenanceMode));
-      
-      // Dispatch storage event to alert other frames
-      window.dispatchEvent(new Event("storage"));
+        const savedMaintenance = localStorage.getItem("eduearn_maintenance_mode");
+        if (savedMaintenance) setMaintenanceMode(savedMaintenance === "true");
+      }
     }
-    logAuditAction(`Updated global platform settings: subtab=${activeSubTab}`);
-    toast.success("Global configurations saved successfully!");
   };
 
-  const handleToggleMaintenance = () => {
-    const nextMode = !maintenanceMode;
-    setMaintenanceMode(nextMode);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("eduearn_maintenance_mode", String(nextMode));
-      window.dispatchEvent(new Event("storage"));
+  useEffect(() => {
+    loadSettingsData();
+  }, []);
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          maintenanceMode: maintenanceMode,
+          brandColor: brandColor,
+          systemVersion: "1.0.0"
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save settings");
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("eduearn_platform_name", platformName);
+        localStorage.setItem("eduearn_branding_title", brandingTitle);
+        localStorage.setItem("eduearn_maintenance_mode", String(maintenanceMode));
+        window.dispatchEvent(new Event("storage"));
+      }
+
+      logAuditAction(`Updated global platform settings: subtab=${activeSubTab}`);
+      toast.success("Global configurations saved successfully!");
+    } catch (err: any) {
+      toast.error(err.message);
     }
-    logAuditAction(`Toggled maintenance mode lock to ${nextMode ? "ON" : "OFF"}`);
-    toast.warning(`Maintenance Mode toggled ${nextMode ? "ON (simulating platform lock)" : "OFF"}`);
+  };
+
+  const handleToggleMaintenance = async () => {
+    const nextMode = !maintenanceMode;
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ maintenanceMode: nextMode })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to toggle maintenance mode");
+
+      setMaintenanceMode(nextMode);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("eduearn_maintenance_mode", String(nextMode));
+        window.dispatchEvent(new Event("storage"));
+      }
+      logAuditAction(`Toggled maintenance mode lock to ${nextMode ? "ON" : "OFF"}`);
+      toast.warning(`Maintenance Mode toggled ${nextMode ? "ON (simulating platform lock)" : "OFF"}`);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   return (

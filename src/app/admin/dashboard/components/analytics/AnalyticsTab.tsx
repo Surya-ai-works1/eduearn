@@ -7,6 +7,29 @@ import { Card } from "../../../../../components/ui/card";
 
 export default function AnalyticsTab() {
   const [timeframe, setTimeframe] = useState<"monthly" | "weekly" | "yearly">("monthly");
+  const [salesVal, setSalesVal] = useState("₹4,12,000");
+  const [dauCount, setDauCount] = useState("12 active");
+
+  const loadAnalytics = async () => {
+    try {
+      const res = await fetch("/api/admin/analytics");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load analytics");
+      
+      if (data.totalRevenue) {
+        setSalesVal(`₹${data.totalRevenue.toLocaleString()}`);
+      }
+      if (data.dailyActiveUsers) {
+        setDauCount(`${data.dailyActiveUsers} active`);
+      }
+    } catch (err) {
+      console.warn("Failed to load backend analytics stats, using mockup defaults:", err);
+    }
+  };
+
+  React.useEffect(() => {
+    loadAnalytics();
+  }, []);
 
   return (
     <motion.div
@@ -41,8 +64,8 @@ export default function AnalyticsTab() {
       {/* CORE STATS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 select-none">
         {[
-          { label: "Cohort Course Sales", val: "₹4,12,000", sub: "+18.4% vs last cycle", icon: DollarSign, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/10" },
-          { label: "Student Watch Time", val: "42.8 hours/mo", sub: "+2.5 hours vs last cycle", icon: Play, color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/10" },
+          { label: "Cohort Course Sales", val: salesVal, sub: "+18.4% vs last cycle", icon: DollarSign, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/10" },
+          { label: "Daily Active Users", val: dauCount, sub: "+15% activity rate", icon: Users, color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/10" },
           { label: "Completion Rate", val: "76.4%", sub: "+5.1% completion velocity", icon: Award, color: "text-amber-500 bg-amber-500/10 border-amber-500/10" },
           { label: "AI Helper Queries", val: "8,943 prompts", sub: "99.2% satisfaction rating", icon: BarChart3, color: "text-rose-500 bg-rose-500/10 border-rose-500/10" }
         ].map((stat, i) => {

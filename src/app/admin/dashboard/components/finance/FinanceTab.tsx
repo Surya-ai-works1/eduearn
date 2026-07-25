@@ -32,30 +32,74 @@ export default function FinanceTab({ logAuditAction }: FinanceTabProps) {
   const [withdrawalFee, setWithdrawalFee] = useState(25);
   const [referralReward, setReferralReward] = useState(50);
 
-  const loadFinanceData = () => {
-    setPayouts(PaymentService.getWithdrawalHistory());
-    setEscrows(PaymentService.getEscrowLogs());
-    setConfig(PaymentService.getPlatformConfig());
+  const loadFinanceData = async () => {
+    try {
+      const res = await fetch("/api/admin/payments");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load finance data");
+
+      setPayouts(data.payouts || []);
+      // Map API transactions to escrows format so it fits nicely
+      const mappedEscrows = (data.transactions || []).map((tx: any) => ({
+        id: tx.id,
+        studentName: tx.studentName,
+        courseTitle: tx.courseTitle,
+        amount: tx.amount,
+        status: tx.status === "Success" ? "Released" : "Escrowed",
+        date: tx.date,
+        tutorShare: Math.round(tx.amount * 0.8),
+        platformShare: tx.amount - Math.round(tx.amount * 0.8),
+      }));
+      setEscrows(mappedEscrows);
+      setConfig(PaymentService.getPlatformConfig());
+    } catch (err: any) {
+      console.warn("Failed to load backend finance details, falling back to local memory:", err);
+      setPayouts(PaymentService.getWithdrawalHistory() as any);
+      setEscrows(PaymentService.getEscrowLogs() as any);
+      setConfig(PaymentService.getPlatformConfig());
+    }
   };
 
   useEffect(() => {
     loadFinanceData();
   }, []);
 
-  const handleReleasePayout = (id: string, amount: number) => {
-    PaymentService.approveWithdrawal(id);
-    PaymentService.addNotification("Withdrawal Release Approved", `Your payout request of ₹${amount} has been approved and released.`, "system");
-    logAuditAction(`Released tutor payout request: ID ${id} of ₹${amount}`);
-    toast.success("Payout request approved and released.");
-    loadFinanceData();
+  const handleReleasePayout = async (id: string, amount: number) => {
+    try {
+      const res = await fetch("/api/admin/payments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payoutId: id, status: "Released" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to release payout");
+
+      PaymentService.approveWithdrawal(id);
+      logAuditAction(`Released tutor payout request: ID ${id} of ₹${amount}`);
+      toast.success("Payout request approved and released.");
+      loadFinanceData();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
-  const handleHoldPayout = (id: string, amount: number) => {
-    PaymentService.rejectWithdrawal(id);
-    PaymentService.addNotification("Withdrawal Request Rejected", `Your payout request of ₹${amount} has been rejected.`, "system");
-    logAuditAction(`Rejected tutor payout request: ID ${id} of ₹${amount}`);
-    toast.info("Payout request rejected.");
-    loadFinanceData();
+  const handleHoldPayout = async (id: string, amount: number) => {
+    try {
+      const res = await fetch("/api/admin/payments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payoutId: id, status: "Rejected" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reject payout");
+
+      PaymentService.rejectWithdrawal(id);
+      logAuditAction(`Rejected tutor payout request: ID ${id} of ₹${amount}`);
+      toast.info("Payout request rejected.");
+      loadFinanceData();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const handleReleaseEscrow = (escrowId: string, courseTitle: string, tutorShare: number) => {

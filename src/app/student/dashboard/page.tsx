@@ -53,6 +53,7 @@ import { InvoiceView } from "../../../features/payments/components/InvoiceView";
 import { cn } from "../../../utils/cn";
 
 import { PageWrapper } from "../../../components/layout/PageWrapper";
+import { useTheme } from "next-themes";
 import { Card } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
@@ -104,6 +105,7 @@ interface Certificate {
   courseImage?: string;
   tutorName?: string;
   blockchainHash?: string;
+  courseId?: string;
 }
 
 interface Assignment {
@@ -215,8 +217,27 @@ export default function StudentDashboardPage() {
 function StudentDashboardContent() {
   const { user, logout, completeProfile } = useAuth();
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    enrolledCourses: 4,
+    completedCourses: 3,
+    certificatesEarned: 2,
+    completionRate: 59,
+    currentLearningStreak: 7,
+    totalLearningHours: 14,
+  });
+
+  const [notificationPrefs, setNotificationPrefs] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("eduearn_notification_prefs");
+        if (saved) return JSON.parse(saved);
+      } catch {}
+    }
+    return { email: true, push: false, reminders: true };
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -371,18 +392,12 @@ function StudentDashboardContent() {
     },
   ]);
 
-  // Notifications list
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: "Live Class Starts Soon", text: "Your Keyboard Live class starts in 30 minutes. Join the Meet classroom.", time: "30 mins ago", read: false, type: "Live Class" },
-    { id: 2, title: "Quiz Ending Today", text: "derivatives calculus challenge ends at 11:59 PM today.", time: "2 hours ago", read: false, type: "Course Update" },
-    { id: 3, title: "Certificate Ready", text: "Congratulations! Your Pencil Sketching certificate is ready to download.", time: "2 days ago", read: false, type: "Certificate" },
-    { id: 4, title: "Assignment Due Tomorrow", text: "Calculus limits assignment submission closes in 24 hours.", time: "1 day ago", read: true, type: "Assignment" },
-    { id: 5, title: "Tutor uploaded notes", text: "Sneha Iyer uploaded Kuchipudi hand mudras revision PDF.", time: "3 days ago", read: true, type: "Tutor" },
-    { id: 6, title: "Payment Success Receipt", text: "Payment of ₹1,500 for Full-stack Python cohort processed.", time: "4 days ago", read: true, type: "Payment" },
-    { id: 7, title: "New Platform Update", text: "✨ Sparky AI Hub has been updated with voice controls & history.", time: "5 days ago", read: true, type: "Announcements" },
-    { id: 8, title: "Admin notice: profile active", text: "Your peer educator status was verified by the moderation board.", time: "6 days ago", read: true, type: "Admin" },
-    { id: 9, title: "✨ Smart Recommendation", text: "✨ Sparky AI recommends starting Advanced DSLR photography next week.", time: "7 days ago", read: true, type: "Achievement" },
-  ]);
+  // Notifications list (typed from API)
+  type NotifItem = { id: string | number; title: string; text: string; time: string; read: boolean; type: string; actionUrl?: string };
+  type ActivityItem = { id: string; type: string; title: string; description: string; createdAt: string };
+  const [notifications, setNotifications] = useState<NotifItem[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   // Downloads list
   const [downloads, setDownloads] = useState([
@@ -414,52 +429,29 @@ function StudentDashboardContent() {
   const handleMarkAllRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     toast.success("All marked as read.");
-    
-    if (!user) return;
     try {
-      const { createClient } = await import("../../../lib/supabase");
-      const supabase = createClient();
-      await supabase
-        .from("notifications")
-        .update({ is_read: true })
-        .eq("user_id", user.id);
+      await fetch("/api/student/notifications/read-all", { method: "POST" });
     } catch (err) {
-      console.warn("Failed to mark all notifications as read in Supabase:", err);
+      console.warn("Failed to mark all notifications as read:", err);
     }
   };
 
   const handleMarkOneRead = async (id: any) => {
     setNotifications((p) => p.map((item) => item.id === id ? { ...item, read: true } : item));
-    
     try {
-      const { createClient } = await import("../../../lib/supabase");
-      const supabase = createClient();
-      if (typeof id === "string") {
-        await supabase
-          .from("notifications")
-          .update({ is_read: true })
-          .eq("id", id);
-      }
+      await fetch(`/api/student/notifications/${id}`, { method: "PATCH" });
     } catch (err) {
-      console.warn("Failed to mark notification as read in Supabase:", err);
+      console.warn("Failed to mark notification as read:", err);
     }
   };
 
   const handleDeleteNotification = async (id: any) => {
     setNotifications((prev) => prev.filter((item) => item.id !== id));
     toast.success("Notification deleted.");
-
     try {
-      const { createClient } = await import("../../../lib/supabase");
-      const supabase = createClient();
-      if (typeof id === "string") {
-        await supabase
-          .from("notifications")
-          .delete()
-          .eq("id", id);
-      }
+      await fetch(`/api/student/notifications/${id}`, { method: "DELETE" });
     } catch (err) {
-      console.warn("Failed to delete notification from Supabase:", err);
+      console.warn("Failed to delete notification:", err);
     }
   };
 
@@ -523,22 +515,31 @@ function StudentDashboardContent() {
           setWishlist(mappedWish as any);
         }
 
-        // 3. Notifications
-        const { data: dbNotifications } = await supabase
-          .from("notifications")
-          .select("*")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false });
-        if (dbNotifications && dbNotifications.length > 0) {
-          const mappedNoti = dbNotifications.map((n: any) => ({
-            id: n.id,
-            title: n.title,
-            text: n.content,
-            time: new Date(n.created_at).toLocaleDateString(),
-            read: n.is_read,
-            type: n.type || "System",
-          }));
-          setNotifications(mappedNoti);
+        // 3. Notifications + Activities via Service API
+        try {
+          setNotificationsLoading(true);
+          const notiRes = await fetch("/api/student/notifications");
+          if (notiRes.ok) {
+            const notiData = await notiRes.json();
+            if (notiData.notifications && notiData.notifications.length > 0) {
+              setNotifications(
+                notiData.notifications.map((n: any) => ({
+                  id: n.id,
+                  title: n.title,
+                  text: n.message,
+                  time: new Date(n.createdAt).toLocaleDateString(),
+                  read: n.isRead,
+                  type: n.type || "System",
+                  actionUrl: n.actionUrl,
+                }))
+              );
+            }
+            if (notiData.activities) {
+              setActivities(notiData.activities);
+            }
+          }
+        } finally {
+          setNotificationsLoading(false);
         }
 
         // 4. Certificates (derived from enrollments that have certificate_url)
@@ -713,10 +714,12 @@ function StudentDashboardContent() {
   const [courseFilter, setCourseFilter] = useState<string>("all");
 
   // ─── PLAYABLE QUIZ STATES ──────────────────────────────────────────────────
-  const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
+  const [activeQuiz, setActiveQuiz] = useState<any | null>(null);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState<number>(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
-  const [quizResult, setQuizResult] = useState<{ score: number; submitted: boolean } | null>(null);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, any>>({});
+  const [quizResult, setQuizResult] = useState<any>(null);
+  const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   // ─── AI PLAYGROUND HUB DIALOG STATES ───────────────────────────────────────
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
@@ -888,20 +891,71 @@ function StudentDashboardContent() {
           setEnrolledCourses(mapped);
         }
 
-        // 2. Map Assignments
-        if (assignmentsList.length > 0) {
-          const mappedAsg = assignmentsList.map((asg: any) => ({
-            id: asg.id,
-            title: asg.title,
-            courseTitle: asg.courseTitle,
-            dueDate: "Next Week",
-            status: asg.status,
-            grade: asg.grade,
-            feedback: asg.feedback,
-            prompt: asg.prompt || "",
-          }));
-          setAssignments(mappedAsg);
-        }
+        // 2. Map Assignments (Fetch from unified assignment service API)
+        fetch("/api/student/assignments")
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data && data.assignments) {
+              const mapped = data.assignments.map((item: any) => {
+                const sub = item.submission || {};
+                return {
+                  id: item.id,
+                  title: item.title,
+                  courseTitle: item.courseTitle || "Enrolled Course",
+                  dueDate: item.dueDate ? new Date(item.dueDate).toLocaleDateString() : "No deadline",
+                  status: sub.status || "Pending",
+                  grade: sub.grade,
+                  feedback: sub.feedback,
+                  prompt: item.description || "Complete the practice challenge.",
+                };
+              });
+              setAssignments(mapped);
+            }
+          })
+          .catch((err) => console.warn("Failed to sync assignments:", err));
+
+        // Sync Quizzes from API
+        fetch("/api/student/quizzes")
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data && data.quizzes) {
+              const mapped = data.quizzes.map((q: any) => ({
+                id: q.id,
+                title: q.title,
+                subject: q.courseTitle || "General",
+                difficulty: q.level || "Intermediate",
+                questionsCount: q.totalQuestions || q.questions?.length || 3,
+                timeLimit: `${q.duration || 5} mins`,
+                rewardCoins: 50,
+                questions: q.questions,
+                latestAttempt: q.latestAttempt,
+                passingScore: q.passingScore,
+              }));
+              setQuizzes(mapped);
+            }
+          })
+          .catch((err) => console.warn("Failed to sync quizzes:", err));
+
+        // Sync Certificates from API
+        fetch("/api/student/certificates")
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data && data.certificates) {
+              const mapped = data.certificates.map((cert: any) => ({
+                id: cert.id,
+                courseId: cert.courseId,
+                courseTitle: cert.courseTitle || "Course Title",
+                serialNumber: cert.certificateNumber,
+                issueDate: new Date(cert.issuedAt).toLocaleDateString(),
+                qrCode: cert.verificationCode,
+                courseImage: "/images/courses/arts.png",
+                tutorName: cert.instructor || "Tutor Instructor",
+                blockchainHash: cert.pdfUrl,
+              }));
+              setCertificates(mapped);
+            }
+          })
+          .catch((err) => console.warn("Failed to sync certificates:", err));
 
         // 3. Map Live Sessions
         if (sessionsList.length > 0) {
@@ -919,6 +973,34 @@ function StudentDashboardContent() {
           }));
           setLiveClasses(mappedSessions);
         }
+
+        // Sync Profile & Stats from API
+        fetch("/api/student/profile")
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data) {
+              if (data.profile) {
+                setProfileForm({
+                  fullName: data.profile.fullName || "Rahul Sharma",
+                  username: data.profile.username || "rahul_learner",
+                  bio: data.profile.bio || "",
+                  country: data.profile.country || "India",
+                  language: data.profile.language || "English",
+                });
+                if (data.profile.avatarUrl) {
+                  setAvatarPreview(data.profile.avatarUrl);
+                }
+              }
+              if (data.stats) {
+                setStats(data.stats);
+                if (data.stats.currentLearningStreak) {
+                  setStreak(data.stats.currentLearningStreak);
+                }
+              }
+            }
+          })
+          .catch((err) => console.warn("Failed to sync profile and stats:", err));
+
       } catch (err) {
         console.warn("Ecosystem sync failed:", err);
       }
@@ -960,72 +1042,244 @@ function StudentDashboardContent() {
   ];
 
   // Interactive Quiz Start
-  const handleStartQuiz = (quiz: Quiz) => {
+  const handleStartQuiz = (quiz: any) => {
     setActiveQuiz(quiz);
     setCurrentQuestionIdx(0);
-    setSelectedAnswers({});
     setQuizResult(null);
-    toast.info(`Started ${quiz.title}`);
+
+    const saved = localStorage.getItem(`eduearn_quiz_progress_${quiz.id}`);
+    if (saved) {
+      try {
+        setSelectedAnswers(JSON.parse(saved));
+        toast.info(`Resumed ${quiz.title}`);
+      } catch {
+        setSelectedAnswers({});
+        toast.info(`Started ${quiz.title}`);
+      }
+    } else {
+      setSelectedAnswers({});
+      toast.info(`Started ${quiz.title}`);
+    }
+
+    const duration = quiz.duration || (quiz.timeLimit ? parseInt(quiz.timeLimit) : 5);
+    setTimeLeft(duration * 60);
   };
 
   const handleSelectAnswer = (optionIdx: number) => {
-    setSelectedAnswers((prev) => ({
-      ...prev,
-      [currentQuestionIdx]: optionIdx,
-    }));
+    if (!activeQuiz) return;
+    const q = activeQuiz.questions[currentQuestionIdx];
+    let updatedVal: any;
+
+    if (q.type === "multiple") {
+      const current = Array.isArray(selectedAnswers[currentQuestionIdx])
+        ? (selectedAnswers[currentQuestionIdx] as any as number[])
+        : [];
+      if (current.includes(optionIdx)) {
+        updatedVal = current.filter((idx) => idx !== optionIdx);
+      } else {
+        updatedVal = [...current, optionIdx];
+      }
+    } else {
+      updatedVal = optionIdx;
+    }
+
+    const updated = {
+      ...selectedAnswers,
+      [currentQuestionIdx]: updatedVal,
+    };
+    setSelectedAnswers(updated);
+    localStorage.setItem(`eduearn_quiz_progress_${activeQuiz.id}`, JSON.stringify(updated));
   };
 
-  const handleSubmitQuiz = () => {
+  const handleSubmitQuiz = async () => {
     if (!activeQuiz) return;
-    let correctCount = 0;
-    activeQuiz.questions.forEach((q, idx) => {
-      if (selectedAnswers[idx] === q.correctAnswerIdx) {
-        correctCount++;
+    setIsUploading(true);
+    try {
+      const res = await fetch(`/api/student/quizzes/${activeQuiz.id}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: selectedAnswers }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to submit quiz.");
       }
-    });
 
-    setQuizResult({
-      score: correctCount,
-      submitted: true,
-    });
+      const data = await res.json();
+      const attempt = data.attempt;
 
-    if (correctCount === activeQuiz.questions.length) {
-      addCoins(activeQuiz.rewardCoins, `Weekly Quiz: Scored 100% on ${activeQuiz.subject}`);
-      toast.success(`Perfect score! You earned ${activeQuiz.rewardCoins} EduEarn Coins and XP!`);
-    } else if (correctCount > 0) {
-      const partialCoins = Math.round(activeQuiz.rewardCoins * (correctCount / activeQuiz.questions.length));
-      addCoins(partialCoins, `Weekly Quiz Completion: ${activeQuiz.subject}`);
-      toast.success(`Completed! Scored ${correctCount}/${activeQuiz.questions.length}. Earned ${partialCoins} Coins.`);
-    } else {
-      toast.info("Completed! Scored 0/3. Better luck next time.");
+      setQuizResult({
+        score: attempt.score,
+        totalQuestions: activeQuiz.questionsCount || activeQuiz.questions.length,
+        percentage: attempt.percentage,
+        passed: attempt.passed,
+        submitted: true,
+      });
+
+      localStorage.removeItem(`eduearn_quiz_progress_${activeQuiz.id}`);
+
+      if (attempt.passed) {
+        addCoins(50, `Completed Quiz: ${activeQuiz.title}`);
+        toast.success(`Passed! You earned 50 EduEarn Coins and XP!`);
+      } else {
+        toast.info(`Quiz completed. Score: ${attempt.percentage}%. Passing score is ${activeQuiz.passingScore}%.`);
+      }
+
+      const quizRes = await fetch("/api/student/quizzes");
+      if (quizRes.ok) {
+        const quizData = await quizRes.json();
+        const mapped = quizData.quizzes.map((q: any) => ({
+          id: q.id,
+          title: q.title,
+          subject: q.courseTitle || "General",
+          difficulty: q.level || "Intermediate",
+          questionsCount: q.totalQuestions || q.questions?.length || 3,
+          timeLimit: `${q.duration || 5} mins`,
+          rewardCoins: 50,
+          questions: q.questions,
+          latestAttempt: q.latestAttempt,
+          passingScore: q.passingScore,
+        }));
+        setQuizzes(mapped);
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to submit quiz.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const handleUploadAssignment = (id: string) => {
+  useEffect(() => {
+    if (timeLeft === null || !activeQuiz || quizResult) return;
+    if (timeLeft <= 0) {
+      toast.warning("Time is up! Auto-submitting your quiz.");
+      handleSubmitQuiz();
+      return;
+    }
+    const timer = setTimeout(() => {
+      setTimeLeft(timeLeft - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, activeQuiz, quizResult]);
+
+  const handleUploadAssignment = async (id: string) => {
     if (!selectedFile) {
       toast.error("Please enter a file name to submit.");
       return;
     }
     setIsUploading(true);
-    setTimeout(() => {
-      setAssignments((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, status: "Submitted" } : a))
-      );
+    try {
+      const res = await fetch(`/api/student/assignments/${id}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submissionUrl: selectedFile, submissionType: "file" }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to submit assignment.");
+      }
+
+      // Reload assignments list
+      const listRes = await fetch("/api/student/assignments");
+      if (listRes.ok) {
+        const data = await listRes.json();
+        const mapped = (data.assignments || []).map((item: any) => {
+          const sub = item.submission || {};
+          return {
+            id: item.id,
+            title: item.title,
+            courseTitle: item.courseTitle || "Enrolled Course",
+            dueDate: item.dueDate ? new Date(item.dueDate).toLocaleDateString() : "No deadline",
+            status: sub.status || "Pending",
+            grade: sub.grade,
+            feedback: sub.feedback,
+            prompt: item.description || "Complete the practice challenge.",
+          };
+        });
+        setAssignments(mapped);
+      }
+
       setIsUploading(false);
       setSelectedFile("");
       setExpandedAssignmentId(null);
       addCoins(100, `Assignment Submission: ${id}`);
       toast.success("Assignment submitted successfully! +100 Coins added.");
-    }, 1500);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to submit assignment.");
+      setIsUploading(false);
+    }
+  };
+
+  const handleClaimCertificate = async (courseId: string) => {
+    setIsUploading(true);
+    try {
+      const res = await fetch("/api/student/certificates/issue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to generate certificate.");
+      }
+
+      toast.success("Congratulations! Certificate generated successfully!");
+
+      // Reload certificates list
+      const certRes = await fetch("/api/student/certificates");
+      if (certRes.ok) {
+        const certData = await certRes.json();
+        const mapped = certData.certificates.map((cert: any) => ({
+          id: cert.id,
+          courseId: cert.courseId,
+          courseTitle: cert.courseTitle || "Course Title",
+          serialNumber: cert.certificateNumber,
+          issueDate: new Date(cert.issuedAt).toLocaleDateString(),
+          qrCode: cert.verificationCode,
+          courseImage: "/images/courses/arts.png",
+          tutorName: cert.instructor || "Tutor Instructor",
+          blockchainHash: cert.pdfUrl,
+        }));
+        setCertificates(mapped);
+      }
+      setActiveTab("certificates");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to claim certificate.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await completeProfile(profileForm, avatarFile || undefined);
-    if (result.success) {
+    try {
+      const res = await fetch("/api/student/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profileForm),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to update profile.");
+      }
+
+      const data = await res.json();
+      
+      // Update global completeProfile state too
+      await completeProfile(profileForm, avatarFile || undefined);
+      
       toast.success("Profile details updated successfully!");
-    } else {
-      toast.error(result.error || "Failed to update profile details.");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to update profile.");
     }
   };
 
@@ -1101,6 +1355,7 @@ function StudentDashboardContent() {
     { id: "downloads", label: "Downloads", icon: Download },
     { id: "career-hub", label: "Career Hub", icon: Briefcase },
     { id: "referral", label: "Refer & Earn", icon: Gift },
+    { id: "notifications", label: "Notifications", icon: Bell },
     { id: "settings", label: "Profile & Settings", icon: Settings },
   ];
 
@@ -1381,42 +1636,42 @@ function StudentDashboardContent() {
                   <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
                     <span className="text-lg">🏆</span>
                     <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Completed</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">3 Courses</span>
+                    <span className="text-sm font-black text-foreground mt-0.5">{stats.completedCourses} Courses</span>
                   </Card>
                   <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
                     <span className="text-lg">📚</span>
                     <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Active</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">4 Courses</span>
+                    <span className="text-sm font-black text-foreground mt-0.5">{stats.enrolledCourses} Courses</span>
                   </Card>
                   <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
                     <span className="text-lg">✅</span>
-                    <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Lessons</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">32 Done</span>
+                    <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Streak</span>
+                    <span className="text-sm font-black text-foreground mt-0.5">{streak} Days</span>
                   </Card>
                   <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
                     <span className="text-lg">⏱️</span>
                     <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Hours</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">14.5 Hrs</span>
+                    <span className="text-sm font-black text-foreground mt-0.5">{stats.totalLearningHours} Hrs</span>
                   </Card>
                   <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
                     <span className="text-lg">📝</span>
                     <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Assignments</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">2 Done</span>
+                    <span className="text-sm font-black text-foreground mt-0.5">{assignments.filter(a => a.status !== "Pending").length} Done</span>
                   </Card>
                   <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
                     <span className="text-lg">📜</span>
                     <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Certificates</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">2 Earned</span>
+                    <span className="text-sm font-black text-foreground mt-0.5">{stats.certificatesEarned} Earned</span>
                   </Card>
                   <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
                     <span className="text-lg">📅</span>
-                    <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Attendance</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">92%</span>
+                    <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Quizzes</span>
+                    <span className="text-sm font-black text-foreground mt-0.5">{quizzes.filter(q => !!q.latestAttempt).length} Passed</span>
                   </Card>
                   <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
                     <span className="text-lg">📈</span>
                     <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Overall Progress</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">59%</span>
+                    <span className="text-sm font-black text-foreground mt-0.5">{stats.completionRate}%</span>
                   </Card>
                 </div>
 
@@ -1742,13 +1997,25 @@ function StudentDashboardContent() {
                             <Clock size={11} />
                             {course.duration}
                           </span>
-                          <Button
-                            onClick={() => router.push(`/student/courses/${course.id}/learn`)}
-                            size="sm"
-                            className="h-8 gap-1"
-                          >
-                            View Course
-                          </Button>
+                          <div className="flex gap-1.5">
+                            {course.progress === 100 && !certificates.some((cert) => cert.courseId === course.id || cert.id === course.id) && (
+                              <Button
+                                onClick={() => handleClaimCertificate(course.id)}
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-[10px] border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 font-bold"
+                              >
+                                Claim Cert
+                              </Button>
+                            )}
+                            <Button
+                              onClick={() => router.push(`/student/courses/${course.id}/learn`)}
+                              size="sm"
+                              className="h-8 gap-1 text-[10px]"
+                            >
+                              View Course
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -2051,49 +2318,74 @@ function StudentDashboardContent() {
                     </Card>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {WEEKLY_QUIZZES.map((quiz) => (
-                        <div
-                          key={quiz.id}
-                          className="card-surface p-5 rounded-card flex flex-col justify-between gap-4"
-                        >
-                          <div className="space-y-2 text-left">
-                            <div className="flex justify-between items-center">
-                              <span className="text-[8px] font-extrabold uppercase bg-primary/10 text-primary px-2 py-0.5 rounded">
-                                {quiz.subject}
-                              </span>
-                              <span className="text-[9px] font-black text-yellow-600 dark:text-yellow-400">
-                                🪙 {quiz.rewardCoins} Coins
-                              </span>
+                      {(quizzes.length > 0 ? quizzes : WEEKLY_QUIZZES).map((quiz) => {
+                        const inProgress = typeof window !== "undefined" && localStorage.getItem(`eduearn_quiz_progress_${quiz.id}`);
+                        const completed = quiz.latestAttempt && quiz.latestAttempt.status === "Submitted";
+                        return (
+                          <div
+                            key={quiz.id}
+                            className="card-surface p-5 rounded-card flex flex-col justify-between gap-4"
+                          >
+                            <div className="space-y-2 text-left">
+                              <div className="flex justify-between items-center">
+                                <span className="text-[8px] font-extrabold uppercase bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                  {quiz.subject}
+                                </span>
+                                {completed ? (
+                                  <span className={`text-[9px] font-black px-2 py-0.5 rounded ${
+                                    quiz.latestAttempt.passed
+                                      ? "bg-emerald-500/10 text-emerald-600"
+                                      : "bg-rose-500/10 text-rose-600"
+                                  }`}>
+                                    {quiz.latestAttempt.passed ? "Passed" : "Failed"}: {quiz.latestAttempt.percentage}%
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] font-black text-yellow-600 dark:text-yellow-400">
+                                    🪙 {quiz.rewardCoins || 50} Coins
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="text-xs font-bold text-foreground mt-1.5">{quiz.title}</h4>
+                              <div className="flex items-center gap-3 text-[9px] text-muted-foreground font-semibold">
+                                <span>Difficulty: {quiz.difficulty || "Intermediate"}</span>
+                                <span>·</span>
+                                <span>{quiz.questionsCount || quiz.questions?.length || 3} questions</span>
+                                <span>·</span>
+                                <span>Time: {quiz.timeLimit}</span>
+                              </div>
                             </div>
-                            <h4 className="text-xs font-bold text-foreground mt-1.5">{quiz.title}</h4>
-                            <div className="flex items-center gap-3 text-[9px] text-muted-foreground font-semibold">
-                              <span>Difficulty: {quiz.difficulty}</span>
-                              <span>·</span>
-                              <span>{quiz.questionsCount} questions</span>
-                              <span>·</span>
-                              <span>Time: {quiz.timeLimit}</span>
-                            </div>
+                            <Button
+                              onClick={() => handleStartQuiz(quiz)}
+                              disabled={completed}
+                              size="sm"
+                              className={`h-8 text-[10px] w-full ${completed ? "bg-muted text-muted-foreground" : ""}`}
+                            >
+                              {completed ? "Completed" : (inProgress ? "Resume Quiz" : "Start Quiz")}
+                            </Button>
                           </div>
-                          <Button onClick={() => handleStartQuiz(quiz)} size="sm" className="h-8 text-[10px] w-full">
-                            Start Quiz
-                          </Button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ) : (
                   <Card variant="glass" className="p-6 max-w-xl mx-auto shadow-floating text-left">
                     {quizResult ? (
                       <div className="text-center space-y-5 py-4">
-                        <div className="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
-                          <CheckCircle size={28} className="fill-current bg-white rounded-full text-emerald-500" />
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto ${
+                          quizResult.passed ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"
+                        }`}>
+                          <CheckCircle size={28} className="fill-current bg-white rounded-full" />
                         </div>
                         <div>
-                          <h3 className="text-base font-heading font-extrabold text-foreground">Quiz Submitted Successfully!</h3>
-                          <p className="text-xs text-muted-foreground mt-1">You earned coins &amp; XP for completing this quiz.</p>
+                          <h3 className="text-base font-heading font-extrabold text-foreground">
+                            {quizResult.passed ? "Quiz Passed!" : "Quiz Failed"}
+                          </h3>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {quizResult.passed ? "Excellent job! You passed the evaluation." : "You did not score enough to pass this attempt. Try reviewing the material."}
+                          </p>
                         </div>
                         <span className="text-3xl font-heading font-extrabold text-primary block">
-                          Score: {quizResult.score}/{activeQuiz.questions.length}
+                          Score: {quizResult.score}/{quizResult.totalQuestions} ({quizResult.percentage}%)
                         </span>
                         <div className="flex gap-2 justify-center">
                           <Button onClick={() => setActiveQuiz(null)} size="sm" variant="outline">
@@ -2107,9 +2399,16 @@ function StudentDashboardContent() {
                     ) : (
                       <div className="space-y-5">
                         <div className="flex items-center justify-between border-b border-border/40 pb-3 select-none">
-                          <span className="text-xs font-extrabold text-foreground truncate max-w-[250px]">{activeQuiz.title}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-extrabold text-foreground truncate max-w-[250px]">{activeQuiz.title}</span>
+                            {timeLeft !== null && (
+                              <span className="text-[10px] font-bold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded animate-pulse">
+                                ⏱️ {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, "0")}
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] font-bold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded">
-                            Reward: 🪙 {activeQuiz.rewardCoins} Coins
+                            Reward: 🪙 {activeQuiz.rewardCoins || 50} Coins
                           </span>
                         </div>
 
@@ -2123,8 +2422,10 @@ function StudentDashboardContent() {
                         </div>
 
                         <div className="flex flex-col gap-2">
-                          {activeQuiz.questions[currentQuestionIdx].options.map((opt, idx) => {
-                            const isSelected = selectedAnswers[currentQuestionIdx] === idx;
+                          {activeQuiz.questions[currentQuestionIdx].options.map((opt: string, idx: number) => {
+                            const isSelected = activeQuiz.questions[currentQuestionIdx].type === "multiple"
+                              ? (Array.isArray(selectedAnswers[currentQuestionIdx]) && (selectedAnswers[currentQuestionIdx] as number[]).includes(idx))
+                              : selectedAnswers[currentQuestionIdx] === idx;
                             return (
                               <button
                                 key={idx}
@@ -2161,7 +2462,7 @@ function StudentDashboardContent() {
                           ) : (
                             <button
                               onClick={handleSubmitQuiz}
-                              className="h-9 text-xs bg-emerald-500 hover:bg-emerald-600 border-emerald-500 text-white">
+                              className="h-9 text-xs bg-emerald-500 hover:bg-emerald-600 border-emerald-500 text-white rounded px-4 font-bold animate-pulse">
                               Submit Quiz
                             </button>
                           )}
@@ -2481,7 +2782,7 @@ function StudentDashboardContent() {
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Button
                           variant="outline"
-                          onClick={() => toast.success("Opening certificate preview window...")}
+                          onClick={() => window.open(cert.blockchainHash || `/student/certificate/${cert.id}`, "_blank")}
                           className="text-[10px] h-8 font-bold px-2.5"
                         >
                           Preview
@@ -2489,7 +2790,7 @@ function StudentDashboardContent() {
                         
                         <Button
                           variant="outline"
-                          onClick={() => toast.success("Downloading certificate PDF file...")}
+                          onClick={() => window.open(cert.blockchainHash || `/student/certificate/${cert.id}`, "_blank")}
                           className="text-[10px] h-8 font-bold px-2.5 gap-1"
                         >
                           <Download size={11} /> PDF
@@ -2498,8 +2799,9 @@ function StudentDashboardContent() {
                         <Button
                           variant="outline"
                           onClick={() => {
-                            navigator.clipboard.writeText(`https://eduearn.org/credentials/${cert.serialNumber}`);
-                            toast.success("Credential link copied to clipboard");
+                            const url = `${window.location.origin}${cert.blockchainHash || `/student/certificate/${cert.id}`}`;
+                            navigator.clipboard.writeText(url);
+                            toast.success("Shareable certificate link copied!");
                           }}
                           className="text-[10px] h-8 font-bold px-2.5"
                         >
@@ -2518,7 +2820,7 @@ function StudentDashboardContent() {
                         </Button>
 
                         <Button
-                          onClick={() => toast.success(`Checked. Credentials verified for ${profileForm.fullName || "Student"}.`)}
+                          onClick={() => window.open(cert.blockchainHash || `/student/certificate/${cert.id}`, "_blank")}
                           className="text-[10px] h-8 font-bold px-3"
                         >
                           Verify
@@ -2873,111 +3175,224 @@ function StudentDashboardContent() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.25 }}
-                className="space-y-4"
+                className="space-y-6"
               >
-                {/* Categorized filter tabs */}
-                <div className="flex flex-wrap gap-1.5 border-b border-border/40 pb-3 mb-2 select-none">
-                  {["All", "Unread", "Read", "Course", "Payment", "Live Class", "Tutor", "Admin", "AI", "Announcements"].map((f) => (
-                    <button
-                      key={f}
-                      type="button"
-                      onClick={() => setNotificationFilter(f)}
-                      className={cn(
-                        "px-3 py-1 rounded text-[10px] font-bold border transition-colors",
-                        notificationFilter === f
-                          ? "bg-primary border-primary text-white"
-                          : "bg-card border-border hover:bg-muted text-muted-foreground hover:text-foreground"
+                {/* NOTIFICATIONS SECTION */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-heading font-extrabold uppercase tracking-wide text-foreground flex items-center gap-2">
+                      <span>🔔</span> Notifications
+                      {notifications.filter((n) => !n.read).length > 0 && (
+                        <span className="bg-primary text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-full">
+                          {notifications.filter((n) => !n.read).length}
+                        </span>
                       )}
+                    </h3>
+                    <button
+                      onClick={handleMarkAllRead}
+                      className="text-[10px] font-bold text-primary hover:underline focus:outline-none"
                     >
-                      {f}
+                      Mark all as read
                     </button>
-                  ))}
-                </div>
+                  </div>
 
-                <div className="flex justify-end pr-1">
-                  <button
-                    onClick={handleMarkAllRead}
-                    className="text-[10px] font-bold text-primary hover:underline focus:outline-none"
-                  >
-                    Mark all as read
-                  </button>
-                </div>
+                  {/* Categorized filter tabs */}
+                  <div className="flex flex-wrap gap-1.5 border-b border-border/40 pb-3 select-none">
+                    {["All", "Unread", "Read", "Course", "Assignment", "Quiz", "Certificate", "System", "Live Class", "Tutor", "Admin"].map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => setNotificationFilter(f)}
+                        className={cn(
+                          "px-3 py-1 rounded text-[10px] font-bold border transition-colors",
+                          notificationFilter === f
+                            ? "bg-primary border-primary text-white"
+                            : "bg-card border-border hover:bg-muted text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
 
-                <div className="flex flex-col gap-3">
-                  {notifications
-                    .filter((n) => {
-                      if (notificationFilter === "All") return true;
-                      if (notificationFilter === "Unread") return !n.read;
-                      if (notificationFilter === "Read") return n.read;
-                      return n.type === notificationFilter;
-                    })
-                    .map((n) => {
-                      const meta = (() => {
-                        switch (n.type) {
-                          case "Live Class":
-                            return { emoji: "🔴", badgeClass: "bg-rose-500/10 text-rose-600 dark:text-rose-450 border-rose-500/20" };
-                          case "Assignment":
-                            return { emoji: "🟢", badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 border-emerald-500/20" };
-                          case "Course Update":
-                            return { emoji: "🔵", badgeClass: "bg-blue-500/10 text-blue-600 dark:text-blue-450 border-blue-500/20" };
-                          case "Certificate":
-                            return { emoji: "🟣", badgeClass: "bg-purple-500/10 text-purple-600 dark:text-purple-450 border-purple-500/20" };
-                          case "Payment":
-                            return { emoji: "🟠", badgeClass: "bg-orange-500/10 text-orange-650 dark:text-orange-450 border-orange-500/20" };
-                          case "Achievement":
-                            return { emoji: "⭐", badgeClass: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20 animate-pulse" };
-                          default:
-                            return { emoji: "🔔", badgeClass: "bg-slate-105 text-slate-600 dark:bg-slate-900 dark:text-slate-400 border-border" };
-                        }
-                      })();
-                      return (
-                        <div
-                          key={n.id}
-                          className={cn(
-                            "border p-4 rounded-card shadow-soft flex items-start justify-between gap-4 transition-all",
-                            n.read ? "bg-card border-border" : "bg-primary/5 border-primary/20"
-                          )}
-                        >
-                          <div className="flex items-start gap-3 text-left">
-                            <div className={cn(
-                              "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm select-none",
-                              n.read ? "bg-muted text-muted-foreground" : "bg-primary/15 text-primary"
-                            )}>
-                              <span>{meta.emoji}</span>
+                  {/* Loading skeleton */}
+                  {notificationsLoading && (
+                    <div className="flex flex-col gap-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="border p-4 rounded-card bg-card border-border animate-pulse">
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-full bg-muted shrink-0" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-2.5 bg-muted rounded w-2/3" />
+                              <div className="h-2 bg-muted rounded w-full" />
+                              <div className="h-2 bg-muted rounded w-1/3" />
                             </div>
-                            <div>
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <h4 className="text-xs font-bold text-foreground pr-2">{n.title}</h4>
-                                {n.type && (
-                                  <span className={cn("text-[8px] font-extrabold uppercase px-1.5 py-0.2 rounded border select-none", meta.badgeClass)}>
-                                    {n.type}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-muted-foreground mt-0.5">{n.text}</p>
-                              <span className="text-[8px] text-muted-foreground/60 block mt-1">{n.time}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            {!n.read && (
-                              <button
-                                onClick={() => handleMarkOneRead(n.id)}
-                                className="p-1 hover:bg-muted border border-border rounded text-[10px] font-bold hover:text-foreground cursor-pointer focus:outline-none"
-                              >
-                                Mark Read
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDeleteNotification(n.id)}
-                              className="p-1 hover:bg-destructive/10 text-muted-foreground hover:text-destructive border border-border rounded cursor-pointer focus:outline-none"
-                            >
-                              <Trash2 size={12} />
-                            </button>
                           </div>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Notification list */}
+                  {!notificationsLoading && (
+                    <div className="flex flex-col gap-3">
+                      {notifications
+                        .filter((n) => {
+                          if (notificationFilter === "All") return true;
+                          if (notificationFilter === "Unread") return !n.read;
+                          if (notificationFilter === "Read") return n.read;
+                          return n.type === notificationFilter;
+                        })
+                        .map((n) => {
+                          const meta = (() => {
+                            switch (n.type) {
+                              case "Live Class":
+                                return { emoji: "🔴", badgeClass: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20" };
+                              case "Assignment":
+                                return { emoji: "📝", badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" };
+                              case "Quiz":
+                                return { emoji: "🧠", badgeClass: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" };
+                              case "Course":
+                                return { emoji: "📚", badgeClass: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20" };
+                              case "Certificate":
+                                return { emoji: "🏆", badgeClass: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" };
+                              case "Payment":
+                                return { emoji: "💳", badgeClass: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20" };
+                              case "Tutor":
+                                return { emoji: "👩‍🏫", badgeClass: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20" };
+                              case "Admin":
+                                return { emoji: "🛡️", badgeClass: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20" };
+                              default:
+                                return { emoji: "🔔", badgeClass: "bg-muted text-muted-foreground border-border" };
+                            }
+                          })();
+                          return (
+                            <div
+                              key={n.id}
+                              className={cn(
+                                "border p-4 rounded-card shadow-soft flex items-start justify-between gap-4 transition-all",
+                                n.read ? "bg-card border-border" : "bg-primary/5 border-primary/20"
+                              )}
+                            >
+                              <div className="flex items-start gap-3 text-left">
+                                <div className={cn(
+                                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm select-none",
+                                  n.read ? "bg-muted text-muted-foreground" : "bg-primary/15 text-primary"
+                                )}>
+                                  <span>{meta.emoji}</span>
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <h4 className="text-xs font-bold text-foreground pr-2">{n.title}</h4>
+                                    {n.type && (
+                                      <span className={cn("text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded border select-none", meta.badgeClass)}>
+                                        {n.type}
+                                      </span>
+                                    )}
+                                    {!n.read && (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground mt-0.5">{n.text}</p>
+                                  <span className="text-[8px] text-muted-foreground/60 block mt-1">{n.time}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                {!n.read && (
+                                  <button
+                                    onClick={() => handleMarkOneRead(n.id)}
+                                    className="p-1 hover:bg-muted border border-border rounded text-[10px] font-bold hover:text-foreground cursor-pointer focus:outline-none"
+                                  >
+                                    Mark Read
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleDeleteNotification(n.id)}
+                                  className="p-1 hover:bg-destructive/10 text-muted-foreground hover:text-destructive border border-border rounded cursor-pointer focus:outline-none"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                      {/* Empty state */}
+                      {notifications.filter((n) => {
+                        if (notificationFilter === "All") return true;
+                        if (notificationFilter === "Unread") return !n.read;
+                        if (notificationFilter === "Read") return n.read;
+                        return n.type === notificationFilter;
+                      }).length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-12 text-center gap-2">
+                          <span className="text-3xl">🔕</span>
+                          <p className="text-xs font-bold text-foreground">No notifications</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {notificationFilter === "Unread" ? "You're all caught up!" : "Nothing to show for this filter."}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* ACTIVITY TIMELINE SECTION */}
+                <div className="space-y-4">
+                  <div className="border-t border-border/40 pt-4">
+                    <h3 className="text-xs font-heading font-extrabold uppercase tracking-wide text-foreground flex items-center gap-2 mb-4">
+                      <span>📋</span> Activity Timeline
+                    </h3>
+
+                    {activities.length === 0 && !notificationsLoading && (
+                      <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
+                        <span className="text-3xl">📭</span>
+                        <p className="text-xs font-bold text-foreground">No activity yet</p>
+                        <p className="text-[10px] text-muted-foreground">Enroll in a course to start tracking your progress.</p>
+                      </div>
+                    )}
+
+                    <div className="relative flex flex-col gap-0">
+                      {activities.map((activity, idx) => {
+                        const activityMeta = (() => {
+                          switch (activity.type) {
+                            case "course_enrolled":
+                              return { emoji: "🎓", dotClass: "bg-indigo-500" };
+                            case "lesson_completed":
+                              return { emoji: "✅", dotClass: "bg-emerald-500" };
+                            case "assignment_submitted":
+                              return { emoji: "📝", dotClass: "bg-amber-500" };
+                            case "quiz_completed":
+                              return { emoji: "🧠", dotClass: "bg-blue-500" };
+                            case "certificate_earned":
+                              return { emoji: "🏆", dotClass: "bg-purple-500" };
+                            default:
+                              return { emoji: "📌", dotClass: "bg-muted-foreground" };
+                          }
+                        })();
+                        return (
+                          <div key={activity.id} className="flex gap-3 pb-4 relative">
+                            {/* Timeline line */}
+                            {idx < activities.length - 1 && (
+                              <div className="absolute left-3 top-7 w-0.5 bottom-0 bg-border/60" />
+                            )}
+                            {/* Dot */}
+                            <div className={cn("w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs mt-0.5 z-10", activityMeta.dotClass)}>
+                              <span>{activityMeta.emoji}</span>
+                            </div>
+                            {/* Content */}
+                            <div className="flex-1 bg-card border border-border rounded-card p-3 shadow-soft text-left">
+                              <p className="text-[11px] font-bold text-foreground">{activity.title}</p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">{activity.description}</p>
+                              <span className="text-[8px] text-muted-foreground/60 block mt-1">
+                                {new Date(activity.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -3411,33 +3826,97 @@ function StudentDashboardContent() {
                   </Card>
                 </div>
 
-                {/* Achievements Badges display */}
+                {/* Achievements Badges display replaced with App Preferences */}
                 <div className="space-y-6">
-                  <Card variant="default" className="p-5 shadow-soft border-border bg-card flex flex-col gap-4 text-xs font-semibold text-left">
-                    <h4 className="text-xs font-heading font-extrabold uppercase tracking-wider text-muted-foreground border-b border-border/60 pb-1.5">
-                      Earned Badges &amp; Achievements
+                  <Card variant="glass" className="p-6 shadow-soft text-left">
+                    <h4 className="text-xs font-heading font-extrabold uppercase tracking-wide text-foreground border-b border-border/60 pb-1.5 mb-4">
+                      App Preferences
                     </h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { title: "🔥 7 Day Streak", desc: "Maintained 7 day learning activity", icon: "🔥", color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
-                        { title: "🏆 Quiz Champion", desc: "Completed quiz with 100% score", icon: "🏆", color: "text-yellow-600 bg-yellow-500/10 border-yellow-500/20" },
-                        { title: "🎹 Keyboard Star", desc: "Reached intermediate level", icon: "🎹", color: "text-sky-500 bg-sky-500/10 border-sky-500/20" },
-                        { title: "💃 Dance Performer", desc: "Kuchipudi mudras coordination unlocked", icon: "💃", color: "text-rose-500 bg-rose-500/10 border-rose-500/20" },
-                        { title: "💻 Coding Explorer", desc: "Completed advanced Python syntax", icon: "💻", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
-                        { title: "🤖 AI Explorer", desc: "Completed AI roadmap challenges", icon: "🤖", color: "text-purple-500 bg-purple-500/10 border-purple-500/20" },
-                        { title: "🎯 Perfect Attendance", desc: "Attended all planned live classes", icon: "🎯", color: "text-muted-foreground/80 bg-muted border-border/60" },
-                      ].map((badge, idx) => (
-                        <div
-                          key={idx}
-                          className={`border p-3 rounded-card flex flex-col items-center text-center gap-1.5 shadow-soft transition-all duration-300 ${badge.color}`}
-                        >
-                          <span className="text-xl">{badge.icon}</span>
-                          <div>
-                            <span className="text-[10px] font-bold text-foreground block">{badge.title}</span>
-                            <span className="text-[8px] text-muted-foreground leading-snug mt-0.5 block">{badge.desc}</span>
-                          </div>
-                        </div>
-                      ))}
+                    
+                    {/* Theme selector */}
+                    <div className="space-y-2 select-none mb-5">
+                      <label className="text-xs font-bold text-foreground block">App Theme</label>
+                      <div className="flex gap-2">
+                        {["light", "dark", "system"].map((t) => (
+                          <button
+                            key={t}
+                            onClick={() => setTheme(t)}
+                            type="button"
+                            className={`flex-1 py-2 text-xs font-bold rounded capitalize cursor-pointer border transition-all ${
+                              theme === t
+                                ? "bg-primary text-white border-primary"
+                                : "bg-card hover:bg-muted/40 border-border text-muted-foreground"
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Language selector */}
+                    <div className="space-y-2 select-none mb-5">
+                      <label className="text-xs font-bold text-foreground block">Primary Language</label>
+                      <select
+                        value={profileForm.language}
+                        onChange={(e) => setProfileForm((p) => ({ ...p, language: e.target.value }))}
+                        className="h-10 w-full rounded-input border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                      >
+                        <option value="English">English</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Spanish">Spanish</option>
+                        <option value="French">French</option>
+                      </select>
+                    </div>
+
+                    {/* Notification Toggles */}
+                    <div className="space-y-3 select-none border-t border-border/40 pt-4">
+                      <label className="text-xs font-bold text-foreground block">Notification Preferences</label>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-muted-foreground">Email Notifications</span>
+                        <input
+                          type="checkbox"
+                          checked={notificationPrefs.email}
+                          onChange={(e) => {
+                            const updated = { ...notificationPrefs, email: e.target.checked };
+                            setNotificationPrefs(updated);
+                            localStorage.setItem("eduearn_notification_prefs", JSON.stringify(updated));
+                            toast.success("Email preferences updated!");
+                          }}
+                          className="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-muted-foreground">Push Notifications</span>
+                        <input
+                          type="checkbox"
+                          checked={notificationPrefs.push}
+                          onChange={(e) => {
+                            const updated = { ...notificationPrefs, push: e.target.checked };
+                            setNotificationPrefs(updated);
+                            localStorage.setItem("eduearn_notification_prefs", JSON.stringify(updated));
+                            toast.success("Push preferences updated!");
+                          }}
+                          className="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-muted-foreground">Weekly Reminders</span>
+                        <input
+                          type="checkbox"
+                          checked={notificationPrefs.reminders}
+                          onChange={(e) => {
+                            const updated = { ...notificationPrefs, reminders: e.target.checked };
+                            setNotificationPrefs(updated);
+                            localStorage.setItem("eduearn_notification_prefs", JSON.stringify(updated));
+                            toast.success("Reminder preferences updated!");
+                          }}
+                          className="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer"
+                        />
+                      </div>
                     </div>
                   </Card>
                 </div>

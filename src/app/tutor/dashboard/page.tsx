@@ -39,6 +39,7 @@ import { CalendarView } from "../../../components/tutor/Calendar";
 import { Resources } from "../../../components/tutor/Resources";
 import { Messages } from "../../../components/tutor/Messages";
 import { Community } from "../../../components/tutor/Community";
+import TutorNotifications from "../../../components/tutor/TutorNotifications";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 import type {
@@ -110,16 +111,30 @@ export default function TutorDashboardPage() {
   }, []);
 
   // ─── Course Management ─────────────────────────────────────────────────────
-  const [myCourses, setMyCourses] = useState<TutorCourse[]>([
-    { id: "course-t1", title: "Introduction to Calculus & Geometry Applications", category: "Mathematics", price: 999, level: "beginner", duration: "8 hours", studentsCount: 45, rating: 4.8, status: "published" },
-    { id: "course-t2", title: "UI/UX Figma Design: Layouts & Grids Essentials", category: "Design", price: 1499, level: "intermediate", duration: "12 hours", studentsCount: 32, rating: 4.9, status: "published" },
-    { id: "course-t3", title: "Advanced React Context & Local Storage States", category: "Programming", price: 499, level: "advanced", duration: "6 hours", studentsCount: 0, rating: 0, status: "draft" },
-  ]);
+  const [myCourses, setMyCourses] = useState<TutorCourse[]>([]);
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
-  const [courseForm, setCourseForm] = useState({ title: "", category: "Programming", price: 999, level: "beginner", duration: "10 hours", seoKeywords: "" });
+  const [courseForm, setCourseForm] = useState({
+    title: "",
+    category: "Programming",
+    price: 999,
+    level: "beginner",
+    duration: "10 hours",
+    seoKeywords: "",
+    subtitle: "",
+    description: "",
+    language: "English",
+    thumbnail: "",
+    status: "draft",
+    tags: [] as string[],
+  });
   const [courseSelCatId, setCourseSelCatId] = useState("");
   const [courseSelSubName, setCourseSelSubName] = useState("");
+
+  const [courseSearch, setCourseSearch] = useState("");
+  const [courseCategoryFilter, setCourseCategoryFilter] = useState("All");
+  const [coursePage, setCoursePage] = useState(1);
+  const [courseTotalPages, setCourseTotalPages] = useState(1);
 
   useEffect(() => {
     let calculatedPrice = 999;
@@ -218,6 +233,16 @@ export default function TutorDashboardPage() {
   const [verificationTimeline, setVerificationTimeline] = useState("uploaded");
   const [isIdUploaded, setIsIdUploaded] = useState(false);
 
+  // ─── Tutor Dashboard API Data ──────────────────────────────────────────────
+  const [statistics, setStatistics] = useState<any | null>(null);
+  const [recentEnrollments, setRecentEnrollments] = useState<any[]>([]);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+
+  // ─── Lesson Management API Data ────────────────────────────────────────────
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
+
   // ─── AI Studio ─────────────────────────────────────────────────────────────
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiModalConfig, setAiModalConfig] = useState({ title: "", template: "", placeholder: "" });
@@ -304,36 +329,12 @@ export default function TutorDashboardPage() {
       try {
         const supabase = createClient();
         
-        // 1. Fetch courses
-        const dbCourses = await lmsDb.getCourses(user.id);
-        
-        // Fetch enrollments counts for these courses
-        const courseIds = dbCourses.map(c => c.id);
-        const enrollmentCounts: Record<string, number> = {};
-        
-        if (courseIds.length > 0) {
-          const { data: enrollments, error: enrollErr } = await supabase
-            .from("enrollments")
-            .select("course_id");
-          if (!enrollErr && enrollments) {
-            enrollments.forEach((e: any) => {
-              enrollmentCounts[e.course_id] = (enrollmentCounts[e.course_id] || 0) + 1;
-            });
-          }
-        }
-
-        const mappedCourses: TutorCourse[] = dbCourses.map(c => ({
-          id: c.id,
-          title: c.title,
-          category: c.category,
-          price: c.price,
-          level: c.level || "beginner",
-          duration: "10 hours",
-          studentsCount: enrollmentCounts[c.id] || 0,
-          rating: 5.0,
-          status: c.status === "published" ? "published" : "draft",
-        }));
-        setMyCourses(mappedCourses);
+        // Courses are now managed dynamically by the fetchCoursesList hook below
+        const { data: tutorCoursesData } = await supabase
+          .from("courses")
+          .select("id")
+          .eq("tutor_id", user.id);
+        const courseIds = tutorCoursesData ? tutorCoursesData.map((c: any) => c.id) : [];
 
         // 2. Fetch live sessions
         const { data: liveData } = await supabase
@@ -381,26 +382,32 @@ export default function TutorDashboardPage() {
         }
 
         // 4. Fetch earnings
-        const dbEarnings = await lmsDb.getTutorEarnings(user.id);
-        setEarningsBalanceState({
-          total: dbEarnings.total_earnings,
-          available: dbEarnings.available_balance,
-          withdrawn: dbEarnings.withdrawn_amount,
-          pending: 0,
-          commission: 10,
-        });
+        const resEarnings = await fetch("/api/tutor/finance/earnings");
+        if (resEarnings.ok) {
+          const dbEarnings = await resEarnings.json();
+          setEarningsBalanceState({
+            total: dbEarnings.total || 0,
+            available: dbEarnings.available || 0,
+            withdrawn: dbEarnings.withdrawn || 0,
+            pending: dbEarnings.pending || 0,
+            commission: dbEarnings.commission || 10,
+          });
+        }
 
         // 5. Fetch withdrawals
-        const dbWithdrawals = await lmsDb.getWithdrawalRequests(user.id);
-        const mappedWithdrawals: WithdrawalRequest[] = dbWithdrawals.map(w => ({
-          id: w.id,
-          amount: w.amount,
-          method: "UPI" as "UPI" | "Bank",
-          status: (w.status.charAt(0).toUpperCase() + w.status.slice(1)) as "Pending" | "Approved" | "Rejected",
-          date: new Date(w.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-          bankDetails: "upiId",
-        }));
-        setWithdrawalsState(mappedWithdrawals);
+        const resWithdrawals = await fetch("/api/tutor/finance/withdrawals");
+        if (resWithdrawals.ok) {
+          const dbWithdrawals = await resWithdrawals.json();
+          const mappedWithdrawals: WithdrawalRequest[] = dbWithdrawals.map((w: any) => ({
+            id: w.id,
+            amount: w.amount,
+            method: w.method as "UPI" | "Bank",
+            status: w.status as "Pending" | "Approved" | "Rejected",
+            date: w.date,
+            bankDetails: w.bankDetails || "upiId",
+          }));
+          setWithdrawalsState(mappedWithdrawals);
+        }
 
         // 6. Fetch students list dynamically from enrollments table
         const { data: enrollmentsList } = await supabase
@@ -430,7 +437,104 @@ export default function TutorDashboardPage() {
     fetchDbData();
   }, [user]);
 
-  // Sync settings inputs when user data updates
+  // ─── Fetch Dynamic Tutor Dashboard API Data ────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchDashboardApiData = async () => {
+      try {
+        setDashboardLoading(true);
+        const res = await fetch("/api/tutor/dashboard");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.statistics) {
+            setStatistics(data.statistics);
+          }
+          if (data.recentEnrollments) {
+            setRecentEnrollments(data.recentEnrollments);
+          }
+          if (data.recentActivities) {
+            setRecentActivities(data.recentActivities);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch tutor dashboard API data:", err);
+      } finally {
+        setDashboardLoading(false);
+      }
+    };
+
+    fetchDashboardApiData();
+  }, [user]);
+
+  // ─── Fetch Dynamic Tutor Courses API Data ──────────────────────────────────
+  const fetchCoursesList = useCallback(async () => {
+    if (!user) return;
+    try {
+      let url = `/api/tutor/courses?page=${coursePage}&limit=6`;
+      if (courseSearch) {
+        url += `&search=${encodeURIComponent(courseSearch)}`;
+      }
+      if (courseCategoryFilter && courseCategoryFilter !== "All") {
+        url += `&category=${encodeURIComponent(courseCategoryFilter)}`;
+      }
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.courses) {
+          const mapped = data.courses.map((c: any) => ({
+            id: c.id,
+            title: c.title,
+            category: c.category,
+            price: Number(c.price || 0),
+            level: c.level,
+            duration: c.duration || "10 hours",
+            studentsCount: c.studentsCount || 0,
+            rating: c.rating || 5.0,
+            status: c.status,
+            subtitle: c.subtitle || "",
+            description: c.description || "",
+            language: c.language || "English",
+            thumbnail: c.thumbnail || "",
+            tags: c.tags || [],
+          }));
+          setMyCourses(mapped);
+          if (data.pagination) {
+            setCourseTotalPages(data.pagination.pages || 1);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch tutor courses list:", err);
+    }
+  }, [user, coursePage, courseSearch, courseCategoryFilter]);
+
+  useEffect(() => {
+    fetchCoursesList();
+  }, [fetchCoursesList]);
+
+  // ─── Fetch Lessons for Selected Course ─────────────────────────────────────
+  useEffect(() => {
+    if (activeBuilderCourseId) {
+      const loadLessons = async () => {
+        try {
+          setLessonsLoading(true);
+          const res = await fetch(`/api/tutor/courses/${activeBuilderCourseId}/lessons`);
+          if (res.ok) {
+            const data = await res.json();
+            setLessons(data);
+          }
+        } catch (err) {
+          console.warn("Failed to load lessons:", err);
+        } finally {
+          setLessonsLoading(false);
+        }
+      };
+      loadLessons();
+    } else {
+      setLessons([]);
+    }
+  }, [activeBuilderCourseId]);
   useEffect(() => {
     if (user) {
       setTutorProfileForm((p) => ({
@@ -484,18 +588,86 @@ export default function TutorDashboardPage() {
     triggerAutoSave();
   }, [lessonForm, triggerAutoSave]);
 
-  const handleSubmitGrade = useCallback((studentId: string) => {
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.id === studentId
-          ? { ...s, assignmentStatus: "Graded", grade: gradingForm.grade, feedback: gradingForm.feedback }
-          : s
-      )
-    );
-    setActiveGradingStudentId(null);
-    setGradingForm({ grade: "A", feedback: "", score: "" });
-    toast.success("Grade submitted successfully.");
-  }, [gradingForm]);
+  // ─── Fetch Submissions for Grading ─────────────────────────────────────────
+  const fetchSubmissionsList = useCallback(async () => {
+    try {
+      const res = await fetch("/api/tutor/assignments/submissions");
+      if (res.ok) {
+        const data: any[] = await res.json();
+        const mappedFromSubmissions = data.map((s: any) => ({
+          id: s.id, // submission ID
+          studentId: s.studentId,
+          name: s.studentName || "Student",
+          courseTitle: s.courseTitle || "Course Module",
+          progress: 100,
+          attendance: 95,
+          assignmentStatus: (s.grade ? "Graded" : "Submitted") as "Pending" | "Submitted" | "Graded",
+          submittedFile: s.fileUrl || "Attachment URL",
+          grade: s.grade || "",
+          feedback: s.feedback || "",
+          quizScore: "N/A",
+          certificateEarned: false,
+        }));
+        setStudents(mappedFromSubmissions);
+      }
+    } catch (err) {
+      console.warn("Failed to load submissions:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "assignments") {
+      fetchSubmissionsList();
+    }
+  }, [activeTab, fetchSubmissionsList]);
+
+  const handleSubmitGrade = useCallback(async (submissionId: string) => {
+    try {
+      const res = await fetch("/api/tutor/assignments/submissions", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submissionId,
+          grade: gradingForm.grade,
+          feedback: gradingForm.feedback,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success("Grade submitted successfully.");
+        setActiveGradingStudentId(null);
+        setGradingForm({ grade: "A", feedback: "", score: "" });
+        fetchSubmissionsList();
+      } else {
+        const errData = await res.json();
+        toast.error(errData.error || "Failed to submit grade.");
+      }
+    } catch (err) {
+      toast.error("Error submitting grade.");
+    }
+  }, [gradingForm, fetchSubmissionsList]);
+
+  const handleIssueCertificate = useCallback(async (enrollmentId: string) => {
+    try {
+      const res = await fetch("/api/tutor/students/certificates/issue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enrollmentId }),
+      });
+
+      if (res.ok) {
+        toast.success("Certificate issued successfully.");
+        setStudents((prev) =>
+          prev.map((s) => (s.id === enrollmentId ? { ...s, certificateEarned: true } : s))
+        );
+      } else {
+        const errData = await res.json();
+        toast.error(errData.error || "Failed to issue certificate.");
+      }
+    } catch (err) {
+      toast.error("Error issuing certificate.");
+    }
+  }, []);
 
   const handleScheduleLive = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -562,28 +734,42 @@ export default function TutorDashboardPage() {
     if (!withdrawForm.bankDetails.trim()) { toast.error("Enter UPI ID or bank details."); return; }
 
     try {
-      const dbWth = await lmsDb.requestWithdrawal(user.id, amt);
+      const res = await fetch("/api/tutor/finance/withdrawals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: amt,
+          method: withdrawForm.method,
+          bankDetails: withdrawForm.bankDetails,
+        }),
+      });
 
-      const newWth: WithdrawalRequest = {
-        id: dbWth.id,
-        amount: dbWth.amount,
-        method: withdrawForm.method as "UPI" | "Bank",
-        status: (dbWth.status.charAt(0).toUpperCase() + dbWth.status.slice(1)) as "Pending" | "Approved" | "Rejected",
-        date: new Date(dbWth.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-        bankDetails: withdrawForm.bankDetails,
-      };
+      if (res.ok) {
+        const dbWth = await res.json();
+        const newWth: WithdrawalRequest = {
+          id: dbWth.id,
+          amount: dbWth.amount,
+          method: dbWth.method as "UPI" | "Bank",
+          status: dbWth.status as "Pending" | "Approved" | "Rejected",
+          date: dbWth.date,
+          bankDetails: dbWth.bankDetails || withdrawForm.bankDetails,
+        };
 
-      setWithdrawalsState((prev) => [newWth, ...prev]);
-      setEarningsBalanceState((prev) => ({
-        ...prev,
-        available: prev.available - amt,
-        pending: prev.pending + amt,
-      }));
-      toast.success("Withdrawal request submitted successfully!");
-      setWithdrawForm({ amount: "", method: "UPI", bankDetails: "" });
+        setWithdrawalsState((prev) => [newWth, ...prev]);
+        setEarningsBalanceState((prev) => ({
+          ...prev,
+          available: prev.available - amt,
+          pending: prev.pending + amt,
+        }));
+        toast.success("Withdrawal request submitted successfully!");
+        setWithdrawForm({ amount: "", method: "UPI", bankDetails: "" });
+      } else {
+        const errData = await res.json();
+        toast.error(errData.error || "Failed to submit withdrawal request.");
+      }
     } catch (err: any) {
       console.error("Withdrawal request failed:", err);
-      toast.error("Failed to submit withdrawal request to database.");
+      toast.error("Error submitting withdrawal request.");
     }
   }, [withdrawForm, earningsBalanceState.available, user]);
 
@@ -609,6 +795,7 @@ export default function TutorDashboardPage() {
             onLogout={logout}
             pendingAssignments={pendingAssignments}
             pendingReviews={pendingReviewsCount}
+            pendingNotifications={0}
           />
 
           {/* Main content */}
@@ -640,6 +827,9 @@ export default function TutorDashboardPage() {
                     onTabChange={handleTabChange}
                     onCreateCourse={() => { handleTabChange("courses"); setIsCreatingCourse(true); }}
                     onScheduleLive={() => { handleTabChange("live-classes"); setIsSchedulingLive(true); }}
+                    statistics={statistics || undefined}
+                    recentEnrollments={recentEnrollments}
+                    recentActivities={recentActivities}
                   />
                 )}
 
@@ -673,6 +863,16 @@ export default function TutorDashboardPage() {
                     handleAddModule={handleAddModule}
                     handleAddLesson={handleAddLesson}
                     triggerAutoSave={triggerAutoSave}
+                    courseSearch={courseSearch}
+                    setCourseSearch={setCourseSearch}
+                    courseCategoryFilter={courseCategoryFilter}
+                    setCourseCategoryFilter={setCourseCategoryFilter}
+                    coursePage={coursePage}
+                    setCoursePage={setCoursePage}
+                    courseTotalPages={courseTotalPages}
+                    lessons={lessons}
+                    setLessons={setLessons}
+                    lessonsLoading={lessonsLoading}
                   />
                 )}
 
@@ -689,6 +889,7 @@ export default function TutorDashboardPage() {
                     setStudentFilterProgress={setStudentFilterProgress}
                     studentSortBy={studentSortBy}
                     setStudentSortBy={setStudentSortBy}
+                    onIssueCertificate={handleIssueCertificate}
                   />
                 )}
 
@@ -778,6 +979,10 @@ export default function TutorDashboardPage() {
                     setReplyText={setReplyText}
                   />
                 )}
+
+
+                {/* Notifications */}
+                {activeTab === "notifications" && <TutorNotifications />}
 
                 {/* Messages */}
                 {activeTab === "messages" && <Messages />}
