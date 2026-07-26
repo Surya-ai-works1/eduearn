@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { createClient } from '@/lib/supabase';
+
 export default function ReviewSubmitStep() {
   const { state, setState, goToStep, goBack } = useOnboarding();
   const { personalInfo, professionalDetails, teachingSetup, verification } = state;
@@ -19,8 +21,57 @@ export default function ReviewSubmitStep() {
     if (!agreed) return;
 
     setIsSubmitting(true);
-    // Simulate API call to save onboarding details to database
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        const userId = session.user.id;
+        
+        // 1. Update Auth user metadata
+        const { error: authErr } = await supabase.auth.updateUser({
+          data: { complete: true }
+        });
+        
+        if (authErr) {
+          console.error("Auth metadata update failed:", authErr);
+        }
+
+        // 2. Insert/Upsert Tutor Verification request
+        const { error: verifyErr } = await supabase.from("tutor_verifications").upsert({
+          tutor_id: userId,
+          tutor_name: personalInfo.fullName || session.user.user_metadata?.fullName || session.user.user_metadata?.full_name || "Tutor",
+          expertise: professionalDetails.selectedCategories.join(", ") || "General",
+          education: professionalDetails.educationList.map(e => `${e.degree} at ${e.college}`).join("; ") || "N/A",
+          status: "Pending",
+          gov_id_url: verification.documents?.[0] || null,
+          degree_url: verification.documents?.[1] || null,
+          updated_at: new Date().toISOString()
+        });
+
+        if (verifyErr) {
+          console.error("Failed to insert tutor verification:", verifyErr);
+        }
+
+        // 3. Update profiles table to match
+        const { error: profileErr } = await supabase.from("profiles").upsert({
+          id: userId,
+          role: "tutor",
+          display_name: personalInfo.displayName || personalInfo.fullName || null,
+          bio: personalInfo.bio || null,
+          avatar_url: personalInfo.avatarUrl || null,
+          country: personalInfo.country || null,
+          language: personalInfo.language || null,
+          updated_at: new Date().toISOString()
+        });
+
+        if (profileErr) {
+          console.error("Failed to update profile:", profileErr);
+        }
+      }
+    } catch (err) {
+      console.error("Error submitting onboarding details to database:", err);
+    }
     setIsSubmitting(false);
     toast.success('Onboarding Application Submitted ✓');
     setState((prev: OnboardingState) => ({

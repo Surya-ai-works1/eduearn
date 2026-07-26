@@ -34,7 +34,11 @@ export function RequireAuth({ children }: RouteGuardProps) {
       if (!user.role) {
         router.replace("/choose-role");
       } else if (!user.complete) {
-        router.replace("/complete-profile");
+        if (user.role === "tutor") {
+          router.replace("/tutor/onboarding");
+        } else {
+          router.replace("/complete-profile");
+        }
       }
     }
   }, [isLoading, isAuthenticated, user, pathname, router]);

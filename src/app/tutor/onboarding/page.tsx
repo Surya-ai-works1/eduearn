@@ -2,7 +2,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useOnboarding, OnboardingProvider } from '@/context/OnboardingContext';
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@/lib/supabase';
 import ProgressStepper from '@/app/tutor/onboarding/components/ProgressStepper';
 
 // Steps imports
@@ -32,6 +32,7 @@ function OnboardingContent() {
   React.useEffect(() => {
     const checkAuth = async () => {
       setIsLoading(true);
+      const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         // Fallback to mock session check
@@ -44,7 +45,7 @@ function OnboardingContent() {
       setIsLoading(false);
     };
     checkAuth();
-  }, [router, supabase]);
+  }, [router]);
 
   if (isLoading || !isHydrated) {
     return (

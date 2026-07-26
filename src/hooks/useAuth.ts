@@ -159,69 +159,79 @@ export const useAuth = create<AuthStore>((set, get) => ({
   isLoading: true,
 
   initialize: async () => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("eduearn_mock_user");
-      if (stored) {
-        try {
-          const mockUser = JSON.parse(stored);
-          set({ user: mockUser, isAuthenticated: true, isLoading: false });
-        } catch {}
+    try {
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("eduearn_mock_user");
+        if (stored) {
+          try {
+            const mockUser = JSON.parse(stored);
+            set({ user: mockUser, isAuthenticated: true, isLoading: false });
+          } catch {}
+        }
       }
-    }
 
-    const supabase = getSafeSupabase();
-    if (!supabase) {
-      set((s) => ({ isLoading: false }));
-      return;
-    }
+      const supabase = getSafeSupabase();
+      if (!supabase) {
+        set((s) => ({ isLoading: false }));
+        return;
+      }
 
-    set({ isLoading: true });
+      set({ isLoading: true });
 
-    // ── Register listener FIRST so no events are missed during getSession() ─
-    supabase.auth.onAuthStateChange((event: any, newSession: any) => {
-      if (newSession?.user) {
-        // Set auth state immediately — do NOT await syncProfile here.
-        // syncProfile runs in the background; role falls back to user_metadata.
+      // ── Register listener FIRST so no events are missed during getSession() ─
+      supabase.auth.onAuthStateChange((event: any, newSession: any) => {
+        if (newSession?.user) {
+          // Set auth state immediately — do NOT await syncProfile here.
+          // syncProfile runs in the background; role falls back to user_metadata.
+          set({
+            user: toUserSession(newSession.user),
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          // Background sync — updates role from DB without blocking auth.
+          syncProfile(supabase, newSession.user).then((profile) => {
+            if (profile?.role) {
+              set((s) => ({
+                user: s.user ? { ...s.user, role: toUserSession(newSession.user, profile.role).role } : s.user,
+              }));
+            }
+          }).catch(() => { /* sync failure is non-fatal */ });
+        } else if (event === "SIGNED_OUT") {
+          set({ user: null, isAuthenticated: false, isLoading: false });
+        }
+      });
+
+      // ── Now read the existing session (fires synchronously from local storage) ─
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        // Set immediately from session without waiting for DB round-trip.
         set({
-          user: toUserSession(newSession.user),
+          user: toUserSession(session.user),
           isAuthenticated: true,
           isLoading: false,
         });
-        // Background sync — updates role from DB without blocking auth.
-        syncProfile(supabase, newSession.user).then((profile) => {
+        // Background DB sync for accurate role.
+        syncProfile(supabase, session.user).then((profile) => {
           if (profile?.role) {
             set((s) => ({
-              user: s.user ? { ...s.user, role: toUserSession(newSession.user, profile.role).role } : s.user,
+              user: s.user ? { ...s.user, role: toUserSession(session.user, profile.role).role } : s.user,
             }));
           }
         }).catch(() => { /* sync failure is non-fatal */ });
-      } else if (event === "SIGNED_OUT") {
-        set({ user: null, isAuthenticated: false, isLoading: false });
-      }
-    });
-
-    // ── Now read the existing session (fires synchronously from local storage) ─
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (session?.user) {
-      // Set immediately from session without waiting for DB round-trip.
-      set({
-        user: toUserSession(session.user),
-        isAuthenticated: true,
-        isLoading: false,
-      });
-      // Background DB sync for accurate role.
-      syncProfile(supabase, session.user).then((profile) => {
-        if (profile?.role) {
-          set((s) => ({
-            user: s.user ? { ...s.user, role: toUserSession(session.user, profile.role).role } : s.user,
-          }));
+      } else {
+        if (typeof window !== "undefined" && localStorage.getItem("eduearn_mock_user")) {
+          // Preserve mock user state when no active Supabase session is found
+        } else {
+          set({ user: null, isAuthenticated: false, isLoading: false });
         }
-      }).catch(() => { /* sync failure is non-fatal */ });
-    } else {
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      }
+    } catch (err) {
+      console.error("[useAuth initialize] Auth initialization failed:", err);
+    } finally {
+      set({ isLoading: false });
     }
   },
 
@@ -433,6 +443,13 @@ export const useAuth = create<AuthStore>((set, get) => ({
       // Email confirmation required — user must verify before logging in.
       set({ isLoading: false });
       if (data.user) {
+        if (data.user.identities && data.user.identities.length === 0) {
+          console.log("[DIAGNOSTIC] Duplicate registration detected via empty identities array in client fallback.");
+          return {
+            ok: false,
+            message: "An account with this email already exists. Please log in.",
+          };
+        }
         console.log("[DIAGNOSTIC] Email confirmation required. Syncing default profile in background.");
         syncProfile(supabase, data.user).catch((syncErr) => {
           console.warn("[DIAGNOSTIC] Non-fatal syncProfile error:", syncErr);

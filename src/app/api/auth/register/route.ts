@@ -15,14 +15,15 @@ export async function POST(request: Request) {
 
     const isDisableVerification = process.env.NEXT_PUBLIC_DISABLE_EMAIL_VERIFICATION === "true";
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const brevoApiKey = process.env.BREVO_API_KEY;
 
-    // Fallback: If no service role key is present, return fallback flag so client can register via standard signUp
-    if (!serviceRoleKey) {
-      console.warn("[Register API] SUPABASE_SERVICE_ROLE_KEY is not configured. Returning fallback command.");
+    // Fallback: If no service role key is present, or if verification is enabled but Brevo key is missing, return fallback flag
+    if (!serviceRoleKey || (!isDisableVerification && !brevoApiKey)) {
+      console.warn("[Register API] Server configuration incomplete (missing Service Role Key or Brevo API Key). Returning fallback command.");
       return NextResponse.json({ 
         success: false, 
         fallback: true,
-        message: "Server admin client not configured. Proceeding with standard client sign up."
+        message: "Server admin or email configuration not loaded. Proceeding with standard client sign up."
       });
     }
 
@@ -46,7 +47,18 @@ export async function POST(request: Request) {
 
       if (error || !data.user) {
         console.error("[Register API] Auto-confirmed user creation failed:", error);
-        return NextResponse.json({ error: error?.message || "User creation failed" }, { status: 400 });
+        const errMsg = error?.message || "";
+        if (
+          errMsg.toLowerCase().includes("already registered") ||
+          errMsg.toLowerCase().includes("already exists") ||
+          errMsg.toLowerCase().includes("email_exists")
+        ) {
+          return NextResponse.json(
+            { error: "An account with this email already exists. Please log in." },
+            { status: 400 }
+          );
+        }
+        return NextResponse.json({ error: errMsg || "User creation failed" }, { status: 400 });
       }
 
       console.log(`[Register API] User ${data.user.id} created and confirmed successfully.`);
@@ -84,30 +96,44 @@ export async function POST(request: Request) {
 
     if (error || !data.user || !data.properties?.action_link) {
       console.error("[Register API] Generating confirmation link failed:", error);
-      return NextResponse.json({ error: error?.message || "Generating confirmation link failed" }, { status: 400 });
+      const errMsg = error?.message || "";
+      if (
+        errMsg.toLowerCase().includes("already registered") ||
+        errMsg.toLowerCase().includes("already exists") ||
+        errMsg.toLowerCase().includes("email_exists")
+      ) {
+        return NextResponse.json(
+          { error: "An account with this email already exists. Please log in." },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json({ error: errMsg || "Generating confirmation link failed" }, { status: 400 });
     }
 
     const verificationLink = data.properties.action_link;
     console.log(`[Register API] Signup link generated. Dispatching verification email to: ${email}`);
 
     // Send verification email via Brevo SMTP
-    let emailMessage = "Account created. Check your inbox to verify your email.";
     try {
       const emailResult = await emailService.sendVerificationEmail(email, verificationLink);
       if (!emailResult.success) {
         console.error(`[Register API] Failed to send verification email via Brevo to: ${email}. Error:`, emailResult.error);
-        emailMessage = "Account created. Verification email could not be sent.";
+        return NextResponse.json({ 
+          error: "Verification email could not be sent. Please try resending or contact support." 
+        }, { status: 400 });
       }
     } catch (emailErr: any) {
       console.error(`[Register API] Exception thrown while sending verification email:`, emailErr);
-      emailMessage = "Account created. Verification email could not be sent.";
+      return NextResponse.json({ 
+        error: `Verification email sending failed: ${emailErr.message || emailErr}` 
+      }, { status: 400 });
     }
 
-    console.log(`[Register API] Registration completed for ${email}. Message: ${emailMessage}`);
+    console.log(`[Register API] Registration completed for ${email}.`);
     return NextResponse.json({
       success: true,
       sessionCreated: false,
-      message: emailMessage
+      message: "Account created. Check your inbox to verify your email."
     });
 
   } catch (err: any) {

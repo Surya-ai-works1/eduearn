@@ -40,6 +40,23 @@ function isRateLimited(ip: string): boolean {
   return rateData.count > MAX_REQUESTS_PER_MINUTE;
 }
 
+// Helper function to create a redirect response and copy session/auth cookies from the baseResponse
+function createRedirectResponse(url: URL, baseResponse: NextResponse) {
+  const redirectResponse = NextResponse.redirect(url);
+  baseResponse.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie.name, cookie.value, {
+      path: cookie.path,
+      domain: cookie.domain,
+      secure: cookie.secure,
+      sameSite: cookie.sameSite,
+      expires: cookie.expires,
+      maxAge: cookie.maxAge,
+      httpOnly: cookie.httpOnly,
+    });
+  });
+  return redirectResponse;
+}
+
 export async function proxy(request: NextRequest) {
   // 1. Rate Limiting Protection Check
   const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
@@ -128,7 +145,7 @@ export async function proxy(request: NextRequest) {
       if (!isVerificationBypassPath) {
         url.pathname = "/verify-email";
         url.searchParams.set("email", user.email || "");
-        return NextResponse.redirect(url);
+        return createRedirectResponse(url, response);
       }
     } else {
       // If email IS confirmed, and they try to visit /verify-email, bypass it
@@ -155,7 +172,7 @@ export async function proxy(request: NextRequest) {
             url.pathname = "/learn";
           }
         }
-        return NextResponse.redirect(url);
+        return createRedirectResponse(url, response);
       }
     }
   }
@@ -168,7 +185,7 @@ export async function proxy(request: NextRequest) {
       url.pathname = "/login";
     }
     url.searchParams.set("redirect", request.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    return createRedirectResponse(url, response);
   }
 
   // ── 2. Authenticated → auth page ─────────────────────────────────────────
@@ -201,7 +218,7 @@ export async function proxy(request: NextRequest) {
       }
     }
 
-    return NextResponse.redirect(url);
+    return createRedirectResponse(url, response);
   }
 
   // ── 3. Authenticated + incomplete onboarding ──────────────────────────────
@@ -216,7 +233,7 @@ export async function proxy(request: NextRequest) {
 
     if (!hasRole && url.pathname !== "/choose-role") {
       url.pathname = "/choose-role";
-      return NextResponse.redirect(url);
+      return createRedirectResponse(url, response);
     }
 
     // Tutors go to /tutor/onboarding, Students go to /complete-profile
@@ -224,12 +241,12 @@ export async function proxy(request: NextRequest) {
       if (metadata.role === "tutor") {
         if (url.pathname !== "/tutor/onboarding") {
           url.pathname = "/tutor/onboarding";
-          return NextResponse.redirect(url);
+          return createRedirectResponse(url, response);
         }
       } else {
         if (url.pathname !== "/complete-profile") {
           url.pathname = "/complete-profile";
-          return NextResponse.redirect(url);
+          return createRedirectResponse(url, response);
         }
       }
     }
@@ -244,7 +261,7 @@ export async function proxy(request: NextRequest) {
       } else {
         url.pathname = "/learn";
       }
-      return NextResponse.redirect(url);
+      return createRedirectResponse(url, response);
     }
   }
 
@@ -260,7 +277,7 @@ export async function proxy(request: NextRequest) {
         url.pathname.startsWith("/admin")
       ) {
         url.pathname = "/forbidden";
-        return NextResponse.redirect(url);
+        return createRedirectResponse(url, response);
       }
     }
 
@@ -268,7 +285,7 @@ export async function proxy(request: NextRequest) {
     if (role === "tutor") {
       if (url.pathname.startsWith("/admin")) {
         url.pathname = "/forbidden";
-        return NextResponse.redirect(url);
+        return createRedirectResponse(url, response);
       }
     }
   }
