@@ -22,6 +22,29 @@ const mockPeers: PeerParticipant[] = [
 
 export const VideoService = {
   /**
+   * Returns STUN/TURN Ice Server configurations for WebRTC peer signaling.
+   */
+  getIceServers(): RTCConfiguration {
+    return {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun2.l.google.com:19302" },
+      ],
+    };
+  },
+
+  /**
+   * Creates a new RTCPeerConnection instance using Google STUN ICE servers.
+   */
+  createPeerConnection(): RTCPeerConnection | null {
+    if (typeof window !== "undefined" && window.RTCPeerConnection) {
+      return new RTCPeerConnection(this.getIceServers());
+    }
+    return null;
+  },
+
+  /**
    * Captures the user's local webcam stream using web-native MediaDevices API.
    */
   async getLocalVideoStream(): Promise<MediaStream | null> {
