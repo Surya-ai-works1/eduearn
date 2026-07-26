@@ -51,6 +51,7 @@ import { PaymentService, PurchaseHistoryItem } from "../../../features/payments/
 import { EcosystemSync } from "../../../features/payments/services/marketplaceService";
 import { InvoiceView } from "../../../features/payments/components/InvoiceView";
 import { cn } from "../../../utils/cn";
+import { AiService } from "../../../features/ai/services/aiService";
 
 import { PageWrapper } from "../../../components/layout/PageWrapper";
 import { useTheme } from "next-themes";
@@ -728,36 +729,27 @@ function StudentDashboardContent() {
   const [aiResultText, setAiResultText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
 
-  const handleAiAction = (e: React.FormEvent) => {
+  const handleAiAction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiInputText.trim()) return;
     setAiLoading(true);
     setAiResultText("");
-    setTimeout(() => {
+
+    try {
+      const response = await AiService.chat(aiInputText, {
+        module: aiAssistantType === "study" ? "study" :
+                aiAssistantType === "homework" ? "doubt" :
+                aiAssistantType === "quiz" ? "quiz" :
+                aiAssistantType === "roadmap" ? "roadmap" : "doubt"
+      });
+      setAiResultText(response);
+    } catch (err) {
+      console.error("AI action query failure:", err);
+      setAiResultText("⚠️ Sparky AI failed to load. Please try again.");
+    } finally {
       setAiLoading(false);
-      if (aiAssistantType === "study") {
-        setAiResultText(
-          `🤖 [AI Study Assistant]: Great question! In peer learning, active recall is essential. Here is a simplified summary: \n\n1. Summarize details in your own words.\n2. Teach it to a peer tutor (this locks in 90% of the concepts).\n3. Test yourself using the EduEarn Quiz Hub.\n\nKeep going, you're doing fantastic!`
-        );
-      } else if (aiAssistantType === "homework") {
-        setAiResultText(
-          `🤖 [AI Homework Helper]: Here are some conceptual hints for your topic: \n\n- Breakdown the derivative using the power rule: d/dx[x^n] = n * x^(n-1).\n- Check limit convergence values by substituting x close to 0.\n- Keep calculations structured step-by-step for full credit.`
-        );
-      } else if (aiAssistantType === "quiz") {
-        setAiResultText(
-          `🤖 [AI Quiz Generator]: Custom mini-quiz generated! \n\nQuestion 1: What is 2^10? (Answer: 1024)\nQuestion 2: Which symbol is the assignment operator in JS? (Answer: =)\nQuestion 3: What does CSS stand for? (Answer: Cascading Style Sheets)`
-        );
-      } else if (aiAssistantType === "roadmap") {
-        setAiResultText(
-          `🤖 [AI Roadmap Generator]: 4-Step Pathway for "${aiInputText}":\n\nStep 1 (Week 1-2): Core Basics and Fundamentals.\nStep 2 (Week 3-4): Intermediate projects & live code practice.\nStep 3 (Week 5-6): Build a comprehensive portfolio item.\nStep 4 (Week 7+): Deploy, test, and apply for student tutoring roles!`
-        );
-      } else if (aiAssistantType === "career") {
-        setAiResultText(
-          `🤖 [AI Career Counselor]: Based on your skills in "${aiInputText}", here is your pathway:\n\n- Suggested Role: Junior Full-Stack Developer / AI Integrator.\n- Expected salary: ₹6,00,000 - ₹9,50,000/annum.\n- Target Skills to add: Next.js 16, TypeScript, prompt chaining.`
-        );
-      }
-    }, 1200);
-  };
+    }
+  };;
 
   // ─── ASSIGNMENT SUBMISSION STATES ──────────────────────────────────────────
   const [expandedAssignmentId, setExpandedAssignmentId] = useState<string | null>(null);
