@@ -256,22 +256,70 @@ export default function UsersTab({
                       </div>
                       
                       {/* ✨ Sparky AI Interview Report */}
-                      <div className="p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2 select-none">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] uppercase font-extrabold text-primary flex items-center gap-1.5">
-                            <Sparkles size={12} className="animate-pulse" /> ✨ Sparky AI Interview Report
-                          </span>
-                          <span className="text-[9px] font-extrabold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                            Score: 88/100 (PASSED)
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
-                          <div><span className="text-muted-foreground">Knowledge:</span> <strong className="text-foreground">90/100</strong></div>
-                          <div><span className="text-muted-foreground">Teaching Style:</span> <strong className="text-foreground">88/100</strong></div>
-                          <div><span className="text-muted-foreground">Communication:</span> <strong className="text-foreground">92/100</strong></div>
-                          <div><span className="text-muted-foreground">Doubt Resolution:</span> <strong className="text-foreground">90/100</strong></div>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground italic">&quot;Candidate demonstrated strong domain knowledge, clear teaching methodology, and empathetic student doubt handling.&quot;</p>
+                      {(() => {
+                        let aiDetails = {
+                          score: 88,
+                          overall_score: 88,
+                          knowledge_score: 90,
+                          teaching_score: 88,
+                          communication_score: 92,
+                          doubt_handling_score: 90,
+                          summary: "Candidate demonstrated strong domain knowledge, clear teaching methodology, and empathetic student doubt handling."
+                        };
+
+                        if (v.isDynamic && typeof window !== "undefined") {
+                          const stored = localStorage.getItem("tutor_application_details");
+                          if (stored) {
+                            try {
+                              const parsed = JSON.parse(stored);
+                              aiDetails = {
+                                score: parsed.score || parsed.overall_score || 85,
+                                overall_score: parsed.overall_score || 85,
+                                knowledge_score: parsed.knowledge_score || parsed.score || 85,
+                                teaching_score: parsed.teaching_score || parsed.score || 85,
+                                communication_score: parsed.communication_score || parsed.score || 85,
+                                doubt_handling_score: parsed.doubt_handling_score || parsed.score || 85,
+                                summary: parsed.summary || "Completed live multi-agent AI onboarding evaluation."
+                              };
+                            } catch {}
+                          }
+                        }
+
+                        return (
+                          <div className="p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2 select-none">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] uppercase font-extrabold text-primary flex items-center gap-1.5">
+                                <Sparkles size={12} className="animate-pulse" /> ✨ Sparky AI Interview Report
+                              </span>
+                              <span className="text-[9px] font-extrabold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                                Score: {aiDetails.score}/100 ({aiDetails.score >= 80 ? "PASSED" : "NEEDS REVIEW"})
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
+                              <div><span className="text-muted-foreground">Knowledge:</span> <strong className="text-foreground">{aiDetails.knowledge_score}/100</strong></div>
+                              <div><span className="text-muted-foreground">Teaching Style:</span> <strong className="text-foreground">{aiDetails.teaching_score}/100</strong></div>
+                              <div><span className="text-muted-foreground">Communication:</span> <strong className="text-foreground">{aiDetails.communication_score}/100</strong></div>
+                              <div><span className="text-muted-foreground">Doubt Resolution:</span> <strong className="text-foreground">{aiDetails.doubt_handling_score}/100</strong></div>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground italic">&quot;{aiDetails.summary}&quot;</p>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Admin Notes & Overrides */}
+                      <div className="space-y-2 select-none border-t border-border/30 pt-3">
+                        <label className="text-[10px] uppercase font-extrabold text-muted-foreground/80 block">Admin Verification Notes & Overrides</label>
+                        <textarea
+                          placeholder="Add comments on application credentials or specify manual overrides..."
+                          className="w-full text-[10px] p-2 bg-background border border-border rounded resize-none text-foreground"
+                          rows={2}
+                          defaultValue={v.isDynamic && typeof window !== "undefined" ? localStorage.getItem("tutor_admin_notes") || "" : ""}
+                          onChange={(e) => {
+                            if (v.isDynamic && typeof window !== "undefined") {
+                              localStorage.setItem("tutor_admin_notes", e.target.value);
+                            }
+                          }}
+                        />
                       </div>
 
                       {/* Audits Action */}

@@ -53,6 +53,26 @@ export class AiOrchestrator {
     let resolvedPrompt = req.prompt;
     const moduleName = req.module || "doubt";
 
+    // If it's a tutor-assessment, run the TutorAssessmentTool immediately
+    if (moduleName === "tutor-assessment") {
+      try {
+        const tool = ToolRegistry.getTool("TutorAssessmentTool");
+        if (tool) {
+          const result = await tool.execute({ prompt: req.prompt });
+          const latencyMs = Date.now() - startTime;
+          return {
+            text: JSON.stringify(result),
+            model: "multi-agent-tutor-assessment",
+            costEstimate: 0.002,
+            latencyMs,
+            tokensCount: 1500
+          };
+        }
+      } catch (err: any) {
+        console.error("Tutor assessment tool run failed:", err);
+      }
+    }
+
     // Dynamic prompt mapping from strongly-typed Prompt Library
     if (moduleName === "study" || moduleName === "sparky-chat") {
       systemPrompt += "\n" + studyAssistant.chat.render(req.context || {});

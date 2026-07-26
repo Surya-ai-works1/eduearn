@@ -27,6 +27,12 @@ interface SettingsProps {
     ifscCode: string;
     upiId: string;
     taxId: string;
+    expertise: string;
+    experience: string;
+    qualifications: string;
+    certifications: string;
+    availability: string;
+    hourlyRate: string;
   };
   setTutorProfileForm: React.Dispatch<React.SetStateAction<SettingsProps["tutorProfileForm"]>>;
   activeSettingAccordion: string;
@@ -129,6 +135,30 @@ export const Settings = React.memo(function Settings({
             <div className="space-y-1.5">
               <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Skills (comma separated)</label>
               <input type="text" value={tutorProfileForm.skills} onChange={(e) => setTutorProfileForm((p) => ({ ...p, skills: e.target.value }))} placeholder="React, Statistics, Algebra..." className={INPUT_CLASS} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Expertise / Primary Subject</label>
+              <input type="text" value={tutorProfileForm.expertise} onChange={(e) => setTutorProfileForm((p) => ({ ...p, expertise: e.target.value }))} placeholder="Web Development, Physics..." className={INPUT_CLASS} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Teaching Experience (Years)</label>
+              <input type="text" value={tutorProfileForm.experience} onChange={(e) => setTutorProfileForm((p) => ({ ...p, experience: e.target.value }))} placeholder="5 Years, 10+ Years..." className={INPUT_CLASS} />
+            </div>
+            <div className="space-y-1.5 font-semibold">
+              <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Qualifications / Education</label>
+              <input type="text" value={tutorProfileForm.qualifications} onChange={(e) => setTutorProfileForm((p) => ({ ...p, qualifications: e.target.value }))} placeholder="B.Tech, PhD in Mathematics..." className={INPUT_CLASS} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Certifications</label>
+              <input type="text" value={tutorProfileForm.certifications} onChange={(e) => setTutorProfileForm((p) => ({ ...p, certifications: e.target.value }))} placeholder="AWS Certified, Oracle Java Certified..." className={INPUT_CLASS} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Availability Hours</label>
+              <input type="text" value={tutorProfileForm.availability} onChange={(e) => setTutorProfileForm((p) => ({ ...p, availability: e.target.value }))} placeholder="Weekdays 4:00 PM - 8:00 PM IST..." className={INPUT_CLASS} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Hourly Rate (INR/hour)</label>
+              <input type="text" value={tutorProfileForm.hourlyRate} onChange={(e) => setTutorProfileForm((p) => ({ ...p, hourlyRate: e.target.value }))} placeholder="1200, 1500..." className={INPUT_CLASS} />
             </div>
           </div>
         </div>

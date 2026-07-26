@@ -262,6 +262,13 @@ export default function TutorDashboardPage() {
     ifscCode: "HDFC0000XXX",
     upiId: "yourid@upi",
     taxId: "ABCDE1234F",
+    // Expanded Tutor Profile Parameters (Phase 8.3)
+    expertise: "Web Development",
+    experience: "5 Years",
+    qualifications: "Bachelor of Technology in Computer Science",
+    certifications: "AWS Certified Solutions Architect",
+    availability: "Weekdays 4:00 PM - 8:00 PM IST",
+    hourlyRate: "1200",
   });
   const [activeSettingAccordion, setActiveSettingAccordion] = useState("profile");
 
