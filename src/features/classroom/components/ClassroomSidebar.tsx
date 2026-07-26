@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { MessageSquare, Users, BarChart2, X, Plus } from "lucide-react";
+import { MessageSquare, Users, BarChart2, X, Plus, Sparkles, Brain, BookOpen } from "lucide-react";
 import { useClassroom } from "../context/ClassroomContext";
 import { ChatPanel } from "./ChatPanel";
 import { ParticipantsPanel } from "./ParticipantsPanel";
 import { Button } from "../../../components/ui/button";
+import { AiService } from "../../../features/ai/services/aiService";
 
 interface Poll {
   id: string;
@@ -18,8 +19,40 @@ interface Poll {
 export function ClassroomSidebar() {
   const { sidebarOpen, sidebarTab, setSidebarTab, toggleSidebar } = useClassroom();
   
-  // Local state for tabs so we can support "polls" without breaking typescript context signatures
-  const [localTab, setLocalTab] = useState<"chat" | "participants" | "polls">("chat");
+  // Local state for tabs so we can support "polls" and "ai" without breaking typescript context signatures
+  const [localTab, setLocalTab] = useState<"chat" | "participants" | "polls" | "ai">("chat");
+  const [aiOutput, setAiOutput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiType, setAiType] = useState<"notes" | "summary" | null>(null);
+
+  const handleGenerateAi = async (type: "notes" | "summary") => {
+    setAiLoading(true);
+    setAiType(type);
+    setAiOutput("");
+
+    // Simulated classroom transcript payload
+    const simulatedTranscript = `
+      [Tutor]: Welcome back everyone! Today we are discussing Next.js routing.
+      [Learner Rahul]: Sir, is App Router layout nested by default?
+      [Tutor]: Yes, Rahul! Nested folders represent nested segments, and layout.js wraps page.js automatically.
+      [Learner Priya]: Awesome! What about loading states?
+      [Tutor]: You can create loading.js in the segment folder which uses React Suspense internally.
+    `;
+
+    const prompt = type === "notes"
+      ? `Generate clean, bulleted learning notes from this classroom transcript:\n${simulatedTranscript}`
+      : `Generate a concise, 1-paragraph summary and action points from this classroom transcript:\n${simulatedTranscript}`;
+
+    try {
+      const response = await AiService.chat(prompt, { module: "study" });
+      setAiOutput(response);
+    } catch (err) {
+      console.error(err);
+      setAiOutput("⚠️ Failed to generate AI insights. Please try again.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   // Keep local tab in sync with context updates
   React.useEffect(() => {
@@ -121,6 +154,19 @@ export function ClassroomSidebar() {
           >
             <BarChart2 size={12} />
             Polls
+          </button>
+
+          {/* AI Tab Button */}
+          <button
+            onClick={() => setLocalTab("ai")}
+            className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-[10px] font-semibold transition-all focus:outline-none ${
+              localTab === "ai"
+                ? "bg-slate-800 text-white border border-slate-700/60 shadow-inner font-bold"
+                : "text-muted-foreground hover:text-foreground hover:bg-slate-850/40"
+            }`}
+          >
+            <Sparkles size={12} className="text-primary animate-pulse" />
+            AI Notes
           </button>
         </div>
 
@@ -232,6 +278,53 @@ export function ClassroomSidebar() {
                 );
               })}
             </div>
+          </div>
+        )}
+        {localTab === "ai" && (
+          <div className="flex-1 flex flex-col p-4 overflow-y-auto space-y-4">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-primary select-none">
+              <Sparkles size={14} className="animate-pulse" />
+              <span>Sparky AI Classroom Copilot</span>
+            </div>
+            
+            <p className="text-[10px] text-muted-foreground leading-relaxed select-none">
+              Sparky analyzes the live classroom chat and whiteboard transcription stream to generate instant summaries or concept notes.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 select-none">
+              <button
+                onClick={() => handleGenerateAi("notes")}
+                disabled={aiLoading}
+                className="py-2.5 px-2 bg-slate-850 hover:bg-slate-800 border border-slate-700/50 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 cursor-pointer transition disabled:opacity-50"
+              >
+                <BookOpen size={14} className="text-blue-400" />
+                <span>Class Notes</span>
+              </button>
+              <button
+                onClick={() => handleGenerateAi("summary")}
+                disabled={aiLoading}
+                className="py-2.5 px-2 bg-slate-850 hover:bg-slate-800 border border-slate-700/50 rounded-lg text-[10px] font-bold flex flex-col items-center gap-1 cursor-pointer transition disabled:opacity-50"
+              >
+                <Brain size={14} className="text-indigo-400" />
+                <span>Session Summary</span>
+              </button>
+            </div>
+
+            {aiLoading && (
+              <div className="flex flex-col items-center justify-center py-8 gap-2 text-xs text-muted-foreground select-none">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span>Sparky is analyzing transcription...</span>
+              </div>
+            )}
+
+            {!aiLoading && aiOutput && (
+              <div className="p-3 bg-slate-950/40 border border-border/80 rounded-lg text-[10px] leading-relaxed whitespace-pre-line text-foreground overflow-y-auto max-h-80 scrollbar-thin">
+                <span className="font-extrabold text-[9px] uppercase tracking-wider text-primary block mb-2 select-none">
+                  ✨ Generated {aiType === "notes" ? "Class Notes" : "Session Summary"}
+                </span>
+                {aiOutput}
+              </div>
+            )}
           </div>
         )}
       </div>
