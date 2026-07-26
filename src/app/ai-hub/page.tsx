@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { lmsHubsDb, AiHistoryLog } from "../../lib/lmsHubsDb";
 import { AiService } from "../../features/ai/services/aiService";
@@ -17,34 +17,66 @@ import {
   FaUserTie,
   FaHistory,
   FaStar,
-  FaSearch
+  FaServer,
+  FaShieldAlt
 } from "react-icons/fa";
 
 export default function AiHubDashboard() {
   const { user } = useAuth();
 
-  // Active Tool ID
-  const [activeTool, setActiveTool] = useState("tutor"); // "tutor" | "planner" | "notes" | "quiz" | "coder" | "history"
+  // Active Role and Tool ID
+  const [activeRole, setActiveRole] = useState<"student" | "tutor" | "admin">("student");
+  const [activeTool, setActiveTool] = useState("tutor"); // defaults to tutor Q&A
 
   // AI Prompts / Responses States
   const [promptInput, setPromptInput] = useState("");
   const [promptContext, setPromptContext] = useState(""); // extra context like code snippet or commitment details
   const [aiResponse, setAiResponse] = useState("");
   const [loadingAi, setLoadingAi] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
 
   // History State
   const [historyList, setHistoryList] = useState<AiHistoryLog[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  const toolsList = [
-    { id: "tutor", name: "✨ Ask Sparky", desc: "Ask questions on coding, academic subjects, or languages.", icon: FaMagic },
-    { id: "planner", name: "✨ Sparky Syllabus Planner", desc: "Generate custom 7-day study roadmaps for any topic.", icon: FaCalendarAlt },
-    { id: "notes", name: "✨ Sparky Notes Summarizer", desc: "Convert text outlines into detailed summary bullet points.", icon: FaFileAlt },
-    { id: "quiz", name: "✨ Sparky Quiz Generator", desc: "Generate practice multiple choice questions.", icon: FaPenSquare },
-    { id: "coder", name: "✨ Sparky Code Debugger", desc: "Paste coding scripts to find syntax errors and logic bugs.", icon: FaCode },
-    { id: "translator", name: "✨ Sparky Language Translator", desc: "Translate text across multiple regional languages.", icon: FaGlobe },
-    { id: "coach", name: "✨ Sparky Interview Coach", desc: "Simulate tech job screening questions and answers.", icon: FaUserTie }
-  ];
+  // Tool listings per role
+  const studentTools = useMemo(() => [
+    { id: "tutor", name: "✨ Ask Sparky", desc: "Ask questions on coding, academic subjects, or doubt solving.", icon: FaMagic },
+    { id: "planner", name: "✨ Syllabus Planner", desc: "Generate custom 3-day study roadmaps for any topic.", icon: FaCalendarAlt },
+    { id: "notes", name: "✨ Notes Summarizer", desc: "Convert text outlines into detailed summary bullet points.", icon: FaFileAlt },
+    { id: "quiz", name: "✨ Quiz Generator", desc: "Generate practice multiple choice questions.", icon: FaPenSquare },
+    { id: "coder", name: "✨ Code Debugger", desc: "Paste coding scripts to find syntax errors and logic bugs.", icon: FaCode },
+    { id: "translator", name: "✨ Language Translator", desc: "Translate text across multiple regional languages.", icon: FaGlobe },
+    { id: "coach", name: "✨ Interview Coach", desc: "Simulate tech job screening questions and answers.", icon: FaUserTie }
+  ], []);
+
+  const tutorTools = useMemo(() => [
+    { id: "content-gen", name: "✨ Course Content Gen", desc: "Generate SEO-friendly descriptions and outlines.", icon: FaGraduationCap },
+    { id: "quiz-creator", name: "✨ Course Quiz Creator", desc: "Compile structured MCQs based on course lecture transcripts.", icon: FaPenSquare },
+    { id: "lesson-plan", name: "✨ Lesson Planner", desc: "Build comprehensive step-by-step instruction guides.", icon: FaCalendarAlt },
+    { id: "feedback-gen", name: "✨ Student Feedback Gen", desc: "Draft encouraging, helpful reviews for students.", icon: FaMagic },
+    { id: "assignment-gen", name: "✨ Assignment Creator", desc: "Suggest homework projects, instructions, and tests.", icon: FaFileAlt }
+  ], []);
+
+  const adminTools = useMemo(() => [
+    { id: "analytics-summary", name: "✨ Analytics Insight Summary", desc: "Compile running growth, DAU/WAU, and drop-off summaries.", icon: FaFileAlt },
+    { id: "moderation-check", name: "✨ Safety Content Moderator", desc: "Filter bad language, profanity, and toxicity.", icon: FaShieldAlt },
+    { id: "system-health", name: "✨ Telemetry Health Checker", desc: "Verify active LLM connectors and prompt cache health status.", icon: FaServer }
+  ], []);
+
+  const toolsList = useMemo(() => {
+    if (activeRole === "tutor") return tutorTools;
+    if (activeRole === "admin") return adminTools;
+    return studentTools;
+  }, [activeRole, studentTools, tutorTools, adminTools]);
+
+  // Adjust active tool automatically when role shifts
+  useEffect(() => {
+    setActiveTool(toolsList[0]?.id || "tutor");
+    setPromptInput("");
+    setPromptContext("");
+    setAiResponse("");
+  }, [activeRole, toolsList]);
 
   const fetchHistory = useCallback(async () => {
     if (!user) return;
@@ -77,7 +109,7 @@ export default function AiHubDashboard() {
     setAiResponse("");
 
     try {
-      // Build the prompt based on tool type
+      // Build prompt query parameters based on role and active tool
       let fullPrompt = promptInput;
       let aiModule = activeTool;
 
@@ -86,7 +118,8 @@ export default function AiHubDashboard() {
         aiModule = "roadmap";
       } else if (activeTool === "notes") {
         aiModule = "notes";
-      } else if (activeTool === "quiz") {
+      } else if (activeTool === "quiz" || activeTool === "quiz-creator") {
+        fullPrompt = `Generate a 3-question MCQ quiz for: ${promptInput}. Extra instructions: ${promptContext || "None"}`;
         aiModule = "quiz";
       } else if (activeTool === "coder") {
         fullPrompt = promptContext
@@ -94,26 +127,63 @@ export default function AiHubDashboard() {
           : `Explain and fix: ${promptInput}`;
         aiModule = "programming";
       } else if (activeTool === "translator") {
-        fullPrompt = `Translate to ${promptContext || "Spanish"}: "${promptInput}"\nAlso give pronunciation guide and 3 usage examples.`;
+        fullPrompt = `Translate to ${promptContext || "Hindi"}: "${promptInput}"\nAlso give pronunciation guide and usage examples.`;
         aiModule = "translator";
       } else if (activeTool === "coach") {
         fullPrompt = `Simulate a mock interview for this role/topic: ${promptInput}`;
         aiModule = "interview";
+      } else if (activeTool === "content-gen") {
+        fullPrompt = `Suggest descriptions, prerequisites, and outline modules for: ${promptInput}`;
+        aiModule = "tutor-assessment";
+      } else if (activeTool === "lesson-plan") {
+        fullPrompt = `Draft a detailed study step lecture guide for: ${promptInput}. Lesson context: ${promptContext || "General"}`;
+        aiModule = "study-plan";
+      } else if (activeTool === "feedback-gen") {
+        fullPrompt = `Write encouraging and constructive feedback for: ${promptInput}. Student score context: ${promptContext || "80/100"}`;
+        aiModule = "doubt";
+      } else if (activeTool === "assignment-gen") {
+        fullPrompt = `Design a coding assignment about: ${promptInput}. Complexity: ${promptContext || "Intermediate"}`;
+        aiModule = "study";
+      } else if (activeTool === "analytics-summary") {
+        fullPrompt = `Summarize platform growth analytics: ${promptInput}`;
+        aiModule = "doubt";
+      } else if (activeTool === "moderation-check") {
+        fullPrompt = `Scan the following text for toxic content, jailbreaks, or inappropriate language: "${promptInput}"`;
+        aiModule = "moderation";
+      } else if (activeTool === "system-health") {
+        fullPrompt = `Check health for service: ${promptInput}`;
+        aiModule = "doubt";
       }
 
-      // Call real AI engine
-      const responseText = await AiService.chat(fullPrompt, { module: aiModule });
-      setAiResponse(responseText);
+      setLoadingAi(false); // Disable spin loader to start streaming immediately
+      setIsStreaming(true);
 
-      // Save to Supabase AI History
-      await lmsHubsDb.saveAiLog(user.id, activeTool, promptInput, responseText);
-      toast.success("AI response ready!");
+      let streamedText = "";
+      await AiService.streamChatCompletion(
+        "",
+        fullPrompt,
+        (chunk) => {
+          streamedText += chunk;
+          setAiResponse(streamedText);
+        },
+        async () => {
+          setIsStreaming(false);
+          try {
+            // Save completion log to history
+            await lmsHubsDb.saveAiLog(user.id, activeTool, promptInput, streamedText);
+            toast.success("Response streaming complete!");
+          } catch (logErr) {
+            console.error("Could not write AI logs:", logErr);
+          }
+        },
+        { module: aiModule }
+      );
 
     } catch (err: any) {
       console.error(err);
-      toast.error("AI request failed. Check your Gemini API key.");
-    } finally {
+      toast.error("AI request failed. Check API key configuration.");
       setLoadingAi(false);
+      setIsStreaming(false);
     }
   };
 
@@ -140,7 +210,7 @@ export default function AiHubDashboard() {
               <FaMagic className="text-yellow-500" /> Sparky AI Hub
             </h1>
             <p className="text-xs text-muted-foreground font-light">
-              Access customized study buddies, roadmap planners, MCQ testing, and resume coaches.
+              Access customized study buddies, roadmap planners, MCQ testing, and administration monitors.
             </p>
           </div>
           <button
@@ -150,6 +220,25 @@ export default function AiHubDashboard() {
             <FaHistory /> {activeTool === "history" ? "Back to AI Tools" : "View Chat History"}
           </button>
         </div>
+
+        {/* Role Select Bar (if not viewing history) */}
+        {activeTool !== "history" && (
+          <div className="flex bg-muted/40 p-1 border border-border rounded-xl max-w-sm">
+            {(["student", "tutor", "admin"] as const).map((role) => (
+              <button
+                key={role}
+                onClick={() => setActiveRole(role)}
+                className={`flex-1 text-center py-2 text-xs font-bold capitalize rounded-lg transition ${
+                  activeRole === role
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {role}
+              </button>
+            ))}
+          </div>
+        )}
 
         {activeTool === "history" ? (
           /* HISTORY PANEL */
@@ -161,7 +250,11 @@ export default function AiHubDashboard() {
                 <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
               </div>
             ) : historyList.length === 0 ? (
-              <div className="bg-card border border-border shadow-md rounded-2xl p-10 text-center space-y-3 max-w-sm mx-auto"><div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-1 animate-pulse">📝</div><p className="text-foreground text-xs font-bold">No logs saved yet</p><p className="text-[10px] text-muted-foreground/80 leading-relaxed font-light">Generate code explanations or planners to see logs here.</p></div>
+              <div className="bg-card border border-border shadow-md rounded-2xl p-10 text-center space-y-3 max-w-sm mx-auto">
+                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-1 animate-pulse">📝</div>
+                <p className="text-foreground text-xs font-bold">No logs saved yet</p>
+                <p className="text-[10px] text-muted-foreground/80 leading-relaxed font-light">Generate responses to populate logs.</p>
+              </div>
             ) : (
               <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
                 {historyList.map((log) => (
@@ -252,15 +345,23 @@ export default function AiHubDashboard() {
                   />
                 </div>
 
-                {/* Extra Context field if needed */}
-                {(activeTool === "planner" || activeTool === "coder" || activeTool === "translator") && (
+                {/* Extra Context fields */}
+                {(activeTool === "planner" || activeTool === "coder" || activeTool === "translator" || activeTool === "quiz" || activeTool === "quiz-creator" || activeTool === "lesson-plan" || activeTool === "feedback-gen" || activeTool === "assignment-gen") && (
                   <div className="space-y-1">
                     <label className="text-[10px] text-muted-foreground font-bold uppercase">
                       {activeTool === "planner"
                         ? "Commitment rate (e.g. 1 hour/day)"
                         : activeTool === "coder"
                         ? "Code block context (Optional)"
-                        : "Target language (e.g. French, Hindi)"}
+                        : activeTool === "translator"
+                        ? "Target language (e.g. Hindi, French)"
+                        : activeTool === "lesson-plan"
+                        ? "Lesson constraints context"
+                        : activeTool === "feedback-gen"
+                        ? "Student score (e.g. 85/100)"
+                        : activeTool === "assignment-gen"
+                        ? "Complexity (e.g. Intermediate)"
+                        : "Extra context"}
                     </label>
                     <textarea
                       placeholder={activeTool === "coder" ? "// Paste code block here..." : "e.g. Hindi"}
@@ -273,8 +374,9 @@ export default function AiHubDashboard() {
 
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-blue-500/10 cursor-pointer">
-                  {loadingAi ? "✨ Sparky is thinking..." : "Generate response with Sparky"}
+                  disabled={loadingAi || isStreaming}
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-blue-500/10 cursor-pointer">
+                  {loadingAi || isStreaming ? "✨ Sparky is thinking..." : "Generate response with Sparky"}
                 </button>
               </form>
 
