@@ -1729,6 +1729,75 @@ function StudentDashboardContent() {
                   </div>
                 </div>
 
+                {/* 3. SPARKY AI ANALYTICS & INSIGHTS (Phase 11.3 / 11.4) */}
+                <Card variant="glass" className="p-6 border-primary/20 bg-card space-y-4 text-left shadow-soft">
+                  <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={18} className="text-primary animate-pulse" />
+                      <h3 className="text-sm font-heading font-extrabold uppercase tracking-wide text-foreground">
+                        ✨ Sparky AI Learning Analytics & Recommendations
+                      </h3>
+                    </div>
+                    <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-black">
+                      AI Active
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Weekly Study Hours & Attendance Trend */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold text-foreground">📈 Study Hours & Attendance Trends</h4>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground font-semibold">
+                          <span>Weekly Goal: 15 Hrs</span>
+                          <span>12 Hrs Logged (80%)</span>
+                        </div>
+                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full" style={{ width: "80%" }} />
+                        </div>
+                        <div className="flex justify-between text-[9px] text-muted-foreground font-semibold pt-1">
+                          <span>Mon: 2h</span>
+                          <span>Tue: 3h</span>
+                          <span>Wed: 4h</span>
+                          <span>Thu: 1h</span>
+                          <span>Fri: 2h</span>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground italic">Attendance rate is at 91.6% — exceeding class requirements.</p>
+                    </div>
+
+                    {/* Weak Topic Detection */}
+                    <div className="space-y-3 border-t lg:border-t-0 lg:border-x border-border/30 pt-4 lg:pt-0 lg:px-6">
+                      <h4 className="text-xs font-bold text-foreground">⚠️ Weak-Topic Detection & Quiz Performance</h4>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="font-semibold text-foreground">Recursion Base Cases</span>
+                          <span className="text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded text-[8px] font-bold">Needs Focus (45%)</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="font-semibold text-foreground">React useEffect cleanup</span>
+                          <span className="text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded text-[8px] font-bold">Review (68%)</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="font-semibold text-foreground">Python Dict comprehensions</span>
+                          <span className="text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[8px] font-bold">Mastered (90%)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* AI Personalized Recommendation */}
+                    <div className="space-y-3 pt-4 lg:pt-0">
+                      <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        💡 Sparky Recommendations
+                      </h4>
+                      <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 text-[10px] leading-relaxed text-muted-foreground">
+                        <strong className="text-foreground block mb-1">🎯 Action Item:</strong>
+                        Take the 5-minute quiz on <strong>Recursion Base Cases</strong> today to boost your mastery to Intermediate. We recommend scheduling a 1-on-1 session with tutor Sneha Iyer if you need extra guidance.
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
                 {/* Dashboard bottom layout cards split */}
                 <div className="grid grid-cols-1 xl:grid-cols-[1.8fr_1fr] gap-6">
                   {/* Left block: Live classes countdown & interactive calendar */}
