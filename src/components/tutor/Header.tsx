@@ -135,10 +135,11 @@ export const TutorHeader = React.memo(function TutorHeader({
           )}
         </div>
 
-        {/* Notification Bell */}
+        {/* Notification Bell — navigates to notifications tab */}
         <button
+          onClick={() => onTabChange("notifications")}
           className="relative p-1.5 hover:bg-muted rounded-button transition-colors cursor-pointer"
-          aria-label="Notifications"
+          aria-label="View notifications"
         >
           <Bell size={17} className="text-muted-foreground" />
           {notificationCount > 0 && (

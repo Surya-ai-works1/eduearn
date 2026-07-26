@@ -57,7 +57,7 @@ export function RequireAuth({ children }: RouteGuardProps) {
 /**
  * RequireLearner Guard
  *
- * Ensures that the user is authenticated and has either 'learner' or 'admin' role.
+ * Ensures that the user is authenticated and has either 'student', 'learner', or 'admin' role.
  * Otherwise, redirects to /forbidden.
  */
 export function RequireLearner({ children }: RouteGuardProps) {
@@ -92,7 +92,8 @@ export function RequireLearner({ children }: RouteGuardProps) {
  * RequireTutor Guard
  *
  * Ensures that the user is authenticated and has either 'tutor' or 'admin' role.
- * Otherwise, redirects to /forbidden.
+ * Also enforces onboarding completion — an incomplete tutor is redirected to /tutor/onboarding.
+ * Unauthenticated users are sent to /tutor/login (not the student /login page).
  */
 export function RequireTutor({ children }: RouteGuardProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -102,16 +103,29 @@ export function RequireTutor({ children }: RouteGuardProps) {
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      router.replace("/login");
+      router.replace("/tutor/login");
       return;
     }
 
-    if (user && user.role !== "tutor" && user.role !== "admin") {
-      router.replace("/forbidden");
+    if (user) {
+      if (user.role !== "tutor" && user.role !== "admin") {
+        router.replace("/forbidden");
+        return;
+      }
+      // Tutors must complete onboarding before accessing the dashboard
+      if (user.role === "tutor" && !user.complete) {
+        router.replace("/tutor/onboarding");
+        return;
+      }
     }
   }, [isLoading, isAuthenticated, user, router]);
 
-  if (isLoading || !isAuthenticated || (user && user.role !== "tutor" && user.role !== "admin")) {
+  const isBlocked =
+    !isAuthenticated ||
+    (user && user.role !== "tutor" && user.role !== "admin") ||
+    (user && user.role === "tutor" && !user.complete);
+
+  if (isLoading || isBlocked) {
     return (
       <div className="flex min-h-[70vh] w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

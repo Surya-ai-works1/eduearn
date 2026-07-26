@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingState } from '@/context/OnboardingContext';
 import { 
-  Users, Video, BookOpen, Zap, MessageCircle,
+  Users, Video, BookOpen, MessageCircle,
   Sparkles, ShieldCheck, CreditCard, Lock, FileText, 
   LayoutDashboard, BadgeCheck, ArrowRight
 } from 'lucide-react';
@@ -13,56 +13,56 @@ import { toast } from 'sonner';
 const TEACHING_FORMATS = [
   {
     id: 'live-1on1',
-    label: 'Live 1-on-1',
-    description: 'Private sessions tailored to individual students.',
+    label: 'One-to-One Mentoring',
+    description: 'Private 1-on-1 sessions tailored to student peers.',
     icon: <Users className="w-5 h-5" />,
   },
   {
     id: 'live-group',
-    label: 'Live Group Classes',
-    description: 'Teach multiple students simultaneously.',
+    label: 'Group Sessions',
+    description: 'Interactive study groups with multiple student peers.',
+    icon: <Users className="w-5 h-5" />,
+  },
+  {
+    id: 'live-class',
+    label: 'Live Classes',
+    description: 'Scheduled real-time virtual teaching classrooms.',
     icon: <Video className="w-5 h-5" />,
-  },
-  {
-    id: 'recorded',
-    label: 'Recorded Courses',
-    description: 'Pre-recorded lessons students access any time.',
-    icon: <BookOpen className="w-5 h-5" />,
-  },
-  {
-    id: 'workshops',
-    label: 'Workshops / Bootcamps',
-    description: 'Intensive short-format training programmes.',
-    icon: <Zap className="w-5 h-5" />,
   },
   {
     id: 'doubt',
     label: 'Doubt Solving',
-    description: 'On-demand sessions for quick student queries.',
+    description: 'On-demand doubt clarification for quick concepts.',
     icon: <MessageCircle className="w-5 h-5" />,
+  },
+  {
+    id: 'recorded',
+    label: 'Recorded Lessons',
+    description: 'Pre-recorded courses and lesson modules.',
+    icon: <BookOpen className="w-5 h-5" />,
   },
 ];
 
 const EXPERIENCE_LEVELS = [
   {
     id: 'beginner',
-    label: 'Beginner',
-    description: 'New to formal instruction but knowledgeable in your subject.',
+    label: 'Beginner Student Tutor',
+    description: 'New to peer tutoring but highly competent in subjects.',
   },
   {
     id: 'intermediate',
-    label: 'Intermediate',
-    description: 'Some teaching or mentoring experience.',
+    label: 'Intermediate Student Tutor',
+    description: 'Has successfully mentored peers or junior students before.',
   },
   {
     id: 'advanced',
-    label: 'Advanced',
-    description: 'Established track record of successful student outcomes.',
+    label: 'Advanced Student Tutor',
+    description: 'Established track record of hosting peer study groups.',
   },
   {
     id: 'expert',
-    label: 'Industry Expert',
-    description: 'Professional with real-world domain expertise.',
+    label: 'Campus Expert',
+    description: 'Rank holder, hackathon leader, or campus coding club lead.',
   },
 ];
 
@@ -133,26 +133,26 @@ export default function PricingStep() {
       {/* ── MAIN FORM ── */}
       <form
         onSubmit={handleSubmit}
-        className="bg-slate-900 border border-slate-800 rounded-3xl shadow-xl overflow-hidden"
+        className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] overflow-hidden transition-all duration-300"
       >
         {/* Header */}
-        <div className="px-8 pt-8 pb-6 border-b border-slate-800">
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">
-            Teaching Preferences &amp; Payouts
+        <div className="px-8 pt-8 pb-6 border-b border-slate-100 dark:border-slate-800">
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Tutoring Preferences &amp; Payouts
           </h1>
-          <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">
-            Configure your teaching preferences. EduEarn manages pricing, billing and payouts automatically.
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+            Configure your tutoring preferences. EduEarn manages pricing, billing and payouts automatically.
           </p>
         </div>
 
         <div className="px-8 py-8 space-y-10">
-          {/* ── SECTION 1: Teaching Format ── */}
+          {/* ── SECTION 1: Tutoring Format ── */}
           <section className="space-y-4">
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Teaching Format
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Tutoring Format
               </h2>
-              <p className="text-[11px] text-slate-550 mt-0.5">Select all formats you plan to offer.</p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">Select all formats you plan to offer.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -166,7 +166,7 @@ export default function PricingStep() {
                     className={`relative p-4 rounded-2xl text-left border transition-all duration-200 group ${
                       isSelected
                         ? 'bg-blue-600/8 border-blue-500 shadow-[0_0_16px_rgba(37,99,235,0.12)]'
-                        : 'bg-slate-950/50 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60'
+                        : 'bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-900/60'
                     }`}
                   >
                     {/* Checkmark */}
@@ -179,11 +179,11 @@ export default function PricingStep() {
                     )}
 
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition ${
-                      isSelected ? 'bg-blue-600/15 text-blue-400' : 'bg-slate-900 text-slate-500 group-hover:text-slate-400'
+                      isSelected ? 'bg-blue-650/15 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-slate-900 text-slate-500 group-hover:text-slate-750 dark:group-hover:text-slate-400'
                     }`}>
                       {f.icon}
                     </div>
-                    <p className={`text-xs font-bold leading-tight ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                    <p className={`text-xs font-bold leading-tight ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
                       {f.label}
                     </p>
                     <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">{f.description}</p>
@@ -196,10 +196,10 @@ export default function PricingStep() {
           {/* ── SECTION 2: Experience Level ── */}
           <section className="space-y-4">
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Experience Level
               </h2>
-              <p className="text-[11px] text-slate-550 mt-0.5">Select one — helps EduEarn match you with the right students.</p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">Select one — helps EduEarn match you with the right students.</p>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -213,13 +213,13 @@ export default function PricingStep() {
                     className={`p-4 rounded-2xl text-left border transition-all duration-200 ${
                       isSelected
                         ? 'bg-blue-600/8 border-blue-500 shadow-[0_0_14px_rgba(37,99,235,0.1)]'
-                        : 'bg-slate-950/50 border-slate-800 hover:border-slate-700'
+                        : 'bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 hover:border-blue-500'
                     }`}
                   >
-                    <span className={`text-xs font-bold block mb-1.5 ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                    <span className={`text-xs font-bold block mb-1.5 ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
                       {lvl.label}
                     </span>
-                    <span className="text-[10px] text-slate-500 leading-relaxed">{lvl.description}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">{lvl.description}</span>
                     {isSelected && (
                       <div className="mt-2 w-full h-0.5 rounded-full bg-blue-600/40" />
                     )}
@@ -232,10 +232,10 @@ export default function PricingStep() {
           {/* ── SECTION 3: Preferred Session Duration ── */}
           <section className="space-y-4">
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Preferred Session Duration
               </h2>
-              <p className="text-[11px] text-slate-550 mt-0.5">Select one option.</p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">Select one option.</p>
             </div>
 
             <div className="flex flex-wrap gap-2.5">
@@ -249,7 +249,7 @@ export default function PricingStep() {
                     className={`px-6 py-2.5 rounded-full text-xs font-bold border transition-all duration-200 hover:scale-[1.03] ${
                       isSelected
                         ? 'bg-blue-600 border-blue-600 text-white shadow-[0_0_12px_rgba(37,99,235,0.2)]'
-                        : 'bg-transparent border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                        : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-500 hover:text-blue-600'
                     }`}
                   >
                     {d.label}
@@ -262,10 +262,10 @@ export default function PricingStep() {
           {/* ── SECTION 4: Maximum Classes Per Day ── */}
           <section className="space-y-4">
             <div>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Maximum Classes Per Day
               </h2>
-              <p className="text-[11px] text-slate-550 mt-0.5">Select your daily teaching capacity.</p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">Select your daily teaching capacity.</p>
             </div>
 
             <div className="flex flex-wrap gap-2.5">
@@ -280,7 +280,7 @@ export default function PricingStep() {
                     className={`relative px-6 py-2.5 rounded-full text-xs font-bold border transition-all duration-200 hover:scale-[1.03] ${
                       isSelected
                         ? 'bg-blue-600 border-blue-600 text-white shadow-[0_0_12px_rgba(37,99,235,0.2)]'
-                        : 'bg-transparent border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-300'
+                        : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-500 hover:text-blue-600'
                     }`}
                   >
                     {n}
@@ -297,14 +297,14 @@ export default function PricingStep() {
 
           {/* ── SECTION 5: Payments & Payouts ── */}
           <section>
-            <div className="p-5 border border-slate-800 rounded-2xl bg-slate-950/30 space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <div className="p-5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-950/30 space-y-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Payments &amp; Payouts
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {PAYOUT_ITEMS.map((item, i) => (
-                  <div key={i} className="flex items-center gap-2.5 text-xs text-slate-400">
-                    <div className="w-7 h-7 rounded-lg bg-blue-950/40 text-blue-500 flex items-center justify-center flex-shrink-0">
+                  <div key={i} className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400">
+                    <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-500 flex items-center justify-center flex-shrink-0">
                       {item.icon}
                     </div>
                     <span>{item.text}</span>
@@ -316,11 +316,11 @@ export default function PricingStep() {
         </div>
 
         {/* ── STICKY FOOTER BUTTONS ── */}
-        <div className="px-8 py-5 border-t border-slate-800 bg-slate-900 flex justify-between gap-4">
+        <div className="px-8 py-5 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-between gap-4">
           <button
             type="button"
             onClick={goBack}
-            className="flex-1 md:flex-none md:w-32 py-3 border border-slate-700 text-slate-400 hover:bg-slate-800/50 font-bold rounded-xl text-sm transition"
+            className="flex-1 md:flex-none md:w-32 py-3 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 font-bold rounded-xl text-sm transition"
           >
             Back
           </button>
@@ -336,8 +336,8 @@ export default function PricingStep() {
 
       {/* ── RIGHT SIDEBAR ── */}
       <div className="lg:sticky lg:top-24 space-y-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4">
-          <h4 className="font-bold text-xs text-blue-400 flex items-center gap-1.5 uppercase tracking-wider">
+        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100/80 dark:border-slate-800 rounded-3xl p-5 space-y-4">
+          <h4 className="font-bold text-xs text-blue-700 dark:text-blue-400 flex items-center gap-1.5 uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
             What Happens Next
           </h4>
@@ -349,18 +349,18 @@ export default function PricingStep() {
               'Secure payment verification',
               'Automatic earnings reports',
             ].map((item, i) => (
-              <li key={i} className="flex items-center gap-2 text-[11px] text-slate-400">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+              <li key={i} className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-550 flex-shrink-0" />
                 {item}
               </li>
             ))}
           </ul>
 
-          <div className="pt-3 border-t border-slate-800">
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
             <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1">
               Estimated Approval
             </p>
-            <p className="text-sm font-extrabold text-white">24–48 hours</p>
+            <p className="text-sm font-extrabold text-slate-800 dark:text-white">24–48 hours</p>
           </div>
         </div>
       </div>

@@ -136,14 +136,14 @@ const defaultState: OnboardingState = {
     teachingMode: 'Online',
     targetStudentLevels: [],
     teachingStyles: [],
-    hourlyRate: 30,
+    hourlyRate: 300,       // INR per hour
     sessionDuration: 60,
-    freeDemo: false,
+    freeDemo: true,
     preferredLanguage: 'English',
-    coursePrice: 49,
-    subscriptionRate: 29,
-    groupRate: 15,
-    couponCode: 'WELCOME10',
+    coursePrice: 499,       // INR
+    subscriptionRate: 299,  // INR per month
+    groupRate: 149,          // INR per session
+    couponCode: '',
     cancellationPolicy: '24 hrs notice required',
     teachingFormats: [],
     experienceLevel: 'Beginner Tutor',
@@ -190,7 +190,9 @@ const defaultState: OnboardingState = {
   verification: { profileVerified: false, documents: [] },
   review: {},
   submission: {},
-};interface OnboardingContextProps {
+};
+
+interface OnboardingContextProps {
   state: OnboardingState;
   setState: React.Dispatch<React.SetStateAction<OnboardingState>>;
   goNext: () => void;
@@ -228,9 +230,9 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('tutor_onboarding_state', JSON.stringify(state));
   }, [state, isHydrated]);
 
-  const goNext = () => setState((prev: OnboardingState) => ({ ...prev, currentStep: prev.currentStep + 1 }));
+  const goNext = () => setState((prev: OnboardingState) => ({ ...prev, currentStep: Math.min(10, prev.currentStep + 1) }));
   const goBack = () => setState((prev: OnboardingState) => ({ ...prev, currentStep: Math.max(1, prev.currentStep - 1) }));
-  const goToStep = (step: number) => setState((prev: OnboardingState) => ({ ...prev, currentStep: step }));
+  const goToStep = (step: number) => setState((prev: OnboardingState) => ({ ...prev, currentStep: Math.max(1, Math.min(10, step)) }));
   const saveDraft = () => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('tutor_onboarding_state', JSON.stringify(state));
@@ -239,7 +241,13 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
   const loadDraft = () => {
     if (typeof window === 'undefined') return;
     const saved = localStorage.getItem('tutor_onboarding_state');
-    if (saved) setState(JSON.parse(saved));
+    if (saved) {
+      try {
+        setState(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse saved onboarding draft', e);
+      }
+    }
   };
   const resetOnboarding = () => setState(defaultState);
   return (

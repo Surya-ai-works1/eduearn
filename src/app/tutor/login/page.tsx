@@ -84,6 +84,19 @@ export default function TutorLoginPage() {
     },
   });
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedEmail = localStorage.getItem("eduearn_remembered_email");
+      const rememberMe = localStorage.getItem("eduearn_remember_me") !== "false";
+      if (savedEmail && rememberMe) {
+        setValue("email", savedEmail);
+        setValue("rememberMe", true);
+      } else {
+        setValue("rememberMe", rememberMe);
+      }
+    }
+  }, [setValue]);
+
   const onSubmit = async (values: LoginFields) => {
     try {
       setFormError(null);

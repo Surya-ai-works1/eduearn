@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -66,6 +66,19 @@ export default function LoginPage() {
       rememberMe: true,
     },
   });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedEmail = localStorage.getItem("eduearn_remembered_email");
+      const rememberMe = localStorage.getItem("eduearn_remember_me") !== "false";
+      if (savedEmail && rememberMe) {
+        setValue("email", savedEmail);
+        setValue("rememberMe", true);
+      } else {
+        setValue("rememberMe", rememberMe);
+      }
+    }
+  }, [setValue]);
 
   const onSubmit = async (values: LoginFields) => {
     try {

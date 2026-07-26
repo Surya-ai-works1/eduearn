@@ -68,6 +68,16 @@ import { getCourseThumbnail } from "../../../lib/courseThumbnailRegistry";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { EmptyState } from "../../../components/ui/empty-state";
 
+// Modular Dashboard Components & Hooks
+import { useDashboard } from "./hooks/useDashboard";
+import { 
+  TopNavigation, 
+  DashboardHome, 
+  MyCoursesTab, 
+  NotificationsPanel, 
+  DashboardSkeleton 
+} from "./components";
+
 // ─── TYPES & INTERFACES ──────────────────────────────────────────────────────
 
 interface EnrolledCourse {
@@ -220,1117 +230,138 @@ function StudentDashboardContent() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState({
-    enrolledCourses: 4,
-    completedCourses: 3,
-    certificatesEarned: 2,
-    completionRate: 59,
-    currentLearningStreak: 7,
-    totalLearningHours: 14,
-  });
-
-  const [notificationPrefs, setNotificationPrefs] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("eduearn_notification_prefs");
-        if (saved) return JSON.parse(saved);
-      } catch {}
-    }
-    return { email: true, push: false, reminders: true };
-  });
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // ─── REWARDS & GAMIFICATION STATES (LOCAL STORAGE) ──────────────────────────
-  const [coins, setCoins] = useState(() => {
-    if (typeof window !== "undefined") {
-      return Number(localStorage.getItem("eduearn_coins") || "450");
-    }
-    return 450;
-  });
-
-  const [xp, setXp] = useState(() => {
-    if (typeof window !== "undefined") {
-      return Number(localStorage.getItem("eduearn_xp") || "1850");
-    }
-    return 1850;
-  });
-
-  const [streak, setStreak] = useState(7);
-
-  const [rewardsHistory, setRewardsHistory] = useState(() => [
-    { id: "r-1", reason: "Daily Learning Streak Bonus", coins: 15, date: "Today" },
-    { id: "r-2", reason: "Weekly Math Quiz Accomplished", coins: 50, date: "Yesterday" },
-    { id: "r-3", reason: "Assignment 1 Submission", coins: 100, date: "2 days ago" },
-    { id: "r-4", reason: "Referral Invite Verified", coins: 150, date: "Last week" },
-  ]);
-
-  // Continue Learning: Every category support
-  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([
-    {
-      id: "course-python",
-      title: "Python Programming Masterclass",
-      tutorName: "Vikram Rathore",
-      thumbnail: "/images/categories/coding-v2.webp",
-      progress: 90,
-      lessonsCount: 10,
-      completedLessons: 9,
-      duration: "8 hours",
-      estimatedCompletion: "1 lesson left",
-      category: "💻 Coding",
-      lastStudied: "1 hour ago",
-    },
-    {
-      id: "course-keyboard",
-      title: "Fundamentals of Keyboard & Chords",
-      tutorName: "Aarav Sharma",
-      thumbnail: getCourseThumbnail({ title: "Fundamentals of Keyboard & Chords", subjectId: "music" }),
-      progress: 40,
-      lessonsCount: 15,
-      completedLessons: 6,
-      duration: "12 hours",
-      estimatedCompletion: "9 lessons left",
-      category: "🎹 Music",
-      lastStudied: "Yesterday",
-    },
-    {
-      id: "course-kuchipudi",
-      title: "Kuchipudi Dance: Mudras & Coordination",
-      tutorName: "Sneha Iyer",
-      thumbnail: getCourseThumbnail({ title: "Kuchipudi Dance: Mudras & Coordination", subjectId: "dance" }),
-      progress: 10,
-      lessonsCount: 10,
-      completedLessons: 1,
-      duration: "10 hours",
-      estimatedCompletion: "9 lessons left",
-      category: "💃 Dance",
-      lastStudied: "Yesterday",
-    },
-    {
-      id: "course-prompt",
-      title: "AI Prompt Engineering 101",
-      tutorName: "Karan Malhotra",
-      thumbnail: getCourseThumbnail({ title: "AI Prompt Engineering 101", subjectId: "ai" }),
-      progress: 60,
-      lessonsCount: 10,
-      completedLessons: 6,
-      duration: "6 hours",
-      estimatedCompletion: "4 lessons left",
-      category: "🤖 Artificial Intelligence",
-      lastStudied: "2 days ago",
-    },
-    {
-      id: "course-drawing",
-      title: "Pencil Sketching & Drawing",
-      tutorName: "Priya Patel",
-      thumbnail: getCourseThumbnail({ title: "Pencil Sketching & Drawing", subjectId: "drawing" }),
-      progress: 85,
-      lessonsCount: 12,
-      completedLessons: 10,
-      duration: "9 hours",
-      estimatedCompletion: "2 lessons left",
-      category: "🎨 Creative Arts",
-      lastStudied: "3 days ago",
-    },
-    {
-      id: "course-photography",
-      title: "Advanced DSLR Photography",
-      tutorName: "Anjali Deshmukh",
-      thumbnail: getCourseThumbnail({ title: "Advanced DSLR Photography", subjectId: "photography" }),
-      progress: 50,
-      lessonsCount: 12,
-      completedLessons: 6,
-      duration: "8 hours",
-      estimatedCompletion: "6 lessons left",
-      category: "📸 Photography",
-      lastStudied: "Last week",
-    },
-  ]);
-
-  // Certificates list
-  const [certificates, setCertificates] = useState<Certificate[]>([
-    {
-      id: "cert-1",
-      courseTitle: "Pencil Sketching & Drawing Masterclass",
-      serialNumber: "EE-CERT-904128",
-      issueDate: "June 14, 2026",
-      qrCode: "EE-QR-904128",
-      courseImage: "/images/courses/arts.png",
-      tutorName: "Priya Patel",
-      blockchainHash: "0x892a...c01f",
-    },
-  ]);
-
-  // Wishlist list
-  const [wishlist, setWishlist] = useState<typeof MOCK_COURSES>([MOCK_COURSES[2], MOCK_COURSES[8]]);
-
-  // Applied Jobs list
-  const [appliedJobs, setAppliedJobs] = useState<any[]>([]);
-
-  // Assignments list
-  const [assignments, setAssignments] = useState<Assignment[]>([
-    {
-      id: "assign-1",
-      courseTitle: "Python Programming Basics",
-      title: "Write a CLI Calculator Script",
-      dueDate: "14 Jul 2026",
-      status: "Pending",
-      prompt: "Write a python script that prompts user for two integers and an operator (+, -, *, /) and outputs the calculated result. Handle division by zero exceptions.",
-    },
-    {
-      id: "assign-2",
-      courseTitle: "Calculus Fundamentals",
-      title: "Calculus Derivatives Worksheet",
-      dueDate: "July 05, 2026",
-      status: "Pending",
-      prompt: "Solve the derivatives question set 2.5 and submit your derivation worksheets in PDF format.",
-    },
-  ]);
-
-  // Notifications list (typed from API)
-  type NotifItem = { id: string | number; title: string; text: string; time: string; read: boolean; type: string; actionUrl?: string };
-  type ActivityItem = { id: string; type: string; title: string; description: string; createdAt: string };
-  const [notifications, setNotifications] = useState<NotifItem[]>([]);
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [notificationsLoading, setNotificationsLoading] = useState(false);
-
-  // Downloads list
-  const [downloads, setDownloads] = useState([
-    { id: 1, title: "Keyboard chords progressions diagram.pdf", size: "4.8 MB", type: "PDF" },
-    { id: 2, title: "Python Advanced Algorithms Handbook.pdf", size: "12 MB", type: "PDF" },
-  ]);
-
-  const addCoins = (amount: number, reason: string) => {
-    setCoins((prev) => {
-      const next = prev + amount;
-      if (typeof window !== "undefined") {
-        localStorage.setItem("eduearn_coins", String(next));
-      }
-      return next;
-    });
-    setXp((prev) => {
-      const next = prev + amount * 3;
-      if (typeof window !== "undefined") {
-        localStorage.setItem("eduearn_xp", String(next));
-      }
-      return next;
-    });
-    setRewardsHistory((prev) => [
-      { id: `r-${Date.now()}`, reason, coins: amount, date: "Just now" },
-      ...prev,
-    ]);
-  };
-
-  const handleMarkAllRead = async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    toast.success("All marked as read.");
-    try {
-      await fetch("/api/student/notifications/read-all", { method: "POST" });
-    } catch (err) {
-      console.warn("Failed to mark all notifications as read:", err);
-    }
-  };
-
-  const handleMarkOneRead = async (id: any) => {
-    setNotifications((p) => p.map((item) => item.id === id ? { ...item, read: true } : item));
-    try {
-      await fetch(`/api/student/notifications/${id}`, { method: "PATCH" });
-    } catch (err) {
-      console.warn("Failed to mark notification as read:", err);
-    }
-  };
-
-  const handleDeleteNotification = async (id: any) => {
-    setNotifications((prev) => prev.filter((item) => item.id !== id));
-    toast.success("Notification deleted.");
-    try {
-      await fetch(`/api/student/notifications/${id}`, { method: "DELETE" });
-    } catch (err) {
-      console.warn("Failed to delete notification:", err);
-    }
-  };
-
-  // Load live Supabase data on mount/user change
-  useEffect(() => {
-    if (!user) return;
-    const userId = user.id;
-
-    async function loadSupabaseData() {
-      try {
-        const { createClient } = await import("../../../lib/supabase");
-        const supabase = createClient();
-        const { lmsDb } = await import("../../../lib/lmsDb");
-
-        // 1. Enrolled Courses
-        const enrolled = await lmsDb.getEnrolledCourses(userId);
-        if (enrolled && enrolled.length > 0) {
-          const mapped = enrolled.map((c: any) => ({
-            id: c.id,
-            title: c.title,
-            tutorName: "Tutor Instructor",
-            thumbnail: c.thumbnail || "/images/courses/coding.png",
-            progress: c.progress || 0,
-            lessonsCount: c.lessons?.length || 10,
-            completedLessons: Math.round(((c.progress || 0) / 100) * (c.lessons?.length || 10)),
-            duration: "8 hours",
-            estimatedCompletion: c.progress === 100 ? "Completed" : "In Progress",
-            category: c.category,
-            lastStudied: "Recently",
-          }));
-          setEnrolledCourses(mapped);
-        }
-
-        // 2. Wishlist
-        const { data: dbWishlist } = await supabase
-          .from("wishlist")
-          .select("*, courses(*)")
-          .eq("user_id", userId);
-        if (dbWishlist && dbWishlist.length > 0) {
-          const mappedWish = dbWishlist.map((w: any) => ({
-            id: w.courses.id,
-            title: w.courses.title,
-            tutorId: w.courses.tutor_id,
-            tutorName: "Tutor Instructor",
-            category: w.courses.category,
-            categoryId: w.courses.category.toLowerCase().replace(/\s+/g, "-"),
-            subjectId: w.courses.category.toLowerCase().replace(/\s+/g, "-"),
-            subjectName: w.courses.category,
-            price: Number(w.courses.price),
-            rating: 4.8,
-            duration: "10 hours",
-            lessonsCount: 10,
-            studentsCount: 150,
-            thumbnail: w.courses.thumbnail || "",
-            level: w.courses.level || "Beginner",
-            language: "English",
-            createdAt: w.courses.created_at,
-            description: w.courses.description || w.courses.subtitle || "",
-            status: w.courses.status || "published",
-          }));
-          setWishlist(mappedWish as any);
-        }
-
-        // 3. Notifications + Activities via Service API
-        try {
-          setNotificationsLoading(true);
-          const notiRes = await fetch("/api/student/notifications");
-          if (notiRes.ok) {
-            const notiData = await notiRes.json();
-            if (notiData.notifications && notiData.notifications.length > 0) {
-              setNotifications(
-                notiData.notifications.map((n: any) => ({
-                  id: n.id,
-                  title: n.title,
-                  text: n.message,
-                  time: new Date(n.createdAt).toLocaleDateString(),
-                  read: n.isRead,
-                  type: n.type || "System",
-                  actionUrl: n.actionUrl,
-                }))
-              );
-            }
-            if (notiData.activities) {
-              setActivities(notiData.activities);
-            }
-          }
-        } finally {
-          setNotificationsLoading(false);
-        }
-
-        // 4. Certificates (derived from enrollments that have certificate_url)
-        const { data: certEnrollments } = await supabase
-          .from("enrollments")
-          .select("*, courses(*)")
-          .eq("learner_id", userId)
-          .not("certificate_url", "is", null);
-        if (certEnrollments && certEnrollments.length > 0) {
-          const mappedCerts = certEnrollments.map((e: any) => ({
-            id: e.id,
-            courseTitle: e.courses.title,
-            serialNumber: `EE-CERT-${e.id.substring(0, 8).toUpperCase()}`,
-            issueDate: new Date(e.created_at).toLocaleDateString(),
-            qrCode: `EE-QR-${e.id.substring(0, 8).toUpperCase()}`,
-            courseImage: e.courses.thumbnail || "/images/courses/arts.png",
-            tutorName: "Tutor Instructor",
-            blockchainHash: `0x${e.id.replace(/-/g, "").substring(0, 16)}`,
-          }));
-          setCertificates(mappedCerts);
-        }
-      } catch (err) {
-        console.warn("Failed to load live student data from Supabase:", err);
-      }
-    }
-
-    loadSupabaseData();
-  }, [user]);
-
-  // ─── LEVEL DERIVATION ──────────────────────────────────────────────────────
-  const learningLevel = useMemo(() => {
-    if (xp < 1000) return "Beginner";
-    if (xp < 2500) return "Intermediate";
-    if (xp < 5000) return "Advanced";
-    if (xp < 10000) return "Expert";
-    return "Master";
-  }, [xp]);
-
-  const nextLevelXp = useMemo(() => {
-    if (xp < 1000) return 1000;
-    if (xp < 2500) return 2500;
-    if (xp < 5000) return 5000;
-    if (xp < 10000) return 10000;
-    return 20000;
-  }, [xp]);
-
-  const levelProgressPercent = useMemo(() => {
-    const prevBoundary = nextLevelXp === 1000 ? 0 : nextLevelXp === 2500 ? 1000 : nextLevelXp === 5000 ? 2500 : nextLevelXp === 10000 ? 5000 : 10000;
-    const progress = xp - prevBoundary;
-    const range = nextLevelXp - prevBoundary;
-    return Math.min(100, Math.max(0, Math.round((progress / range) * 100)));
-  }, [xp, nextLevelXp]);
-
-  // ─── ACTIVE NAVIGATION TABS ────────────────────────────────────────────────
-  const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
-  const [notificationFilter, setNotificationFilter] = useState<string>("All");
-
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab) {
-      setActiveTab(tab);
-    }
-  }, [searchParams]);
-
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
-
-  // Toggle body classes for sidebar state to sync global navbar positioning
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      if (isSidebarCollapsed) {
-        document.body.classList.add("sidebar-collapsed");
-        document.body.classList.remove("sidebar-expanded");
-      } else {
-        document.body.classList.add("sidebar-expanded");
-        document.body.classList.remove("sidebar-collapsed");
-      }
-    }
-    return () => {
-      if (typeof document !== "undefined") {
-        document.body.classList.remove("sidebar-collapsed");
-        document.body.classList.remove("sidebar-expanded");
-      }
-    };
-  }, [isSidebarCollapsed]);
-
-  // ─── CHECKOUT & INVOICE STATES ─────────────────────────────────────────────
-  const [purchaseHistoryState, setPurchaseHistoryState] = useState(() => PaymentService.getPurchaseHistory());
-  const [selectedInvoice, setSelectedInvoice] = useState<PurchaseHistoryItem | null>(null);
-  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
-  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
-  const [refundCourseId, setRefundCourseId] = useState("");
-  const [refundCourseTitle, setRefundCourseTitle] = useState("");
-  const [refundCourseAmount, setRefundCourseAmount] = useState(0);
-  const [refundReason, setRefundReason] = useState("");
-
-  // ─── DYNAMIC TIMING GREETING ───────────────────────────────────────────────
-  const welcomeGreeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 17) return "Good Afternoon";
-    return "Good Evening";
-  }, []);
-
-  // ─── DYNAMIC JOIN COUNTDOWN TIMER ──────────────────────────────────────────
-  const [countdownSeconds, setCountdownSeconds] = useState(4520); // 1h 15m 20s
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdownSeconds((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const formattedCountdown = useMemo(() => {
-    const h = Math.floor(countdownSeconds / 3600);
-    const m = Math.floor((countdownSeconds % 3600) / 60);
-    const s = countdownSeconds % 60;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }, [countdownSeconds]);
-
-  // Selected date for weekly calendar and agenda
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-
-  // Interactive calendar logic - date mapping
-  const dateEventsList = useMemo(() => {
-    const day = selectedDate.getDate();
-    const today = new Date().getDate();
-    if (day === today) {
-      return [
-        { title: "🎹 Keyboard live class with Aarav Sharma", time: "6:00 PM IST", type: "Live Class" },
-        { title: "Weekly Derivatives & Calculus Challenge ends", time: "11:59 PM", type: "Quiz" },
-      ];
-    } else if (day === today + 1) {
-      return [
-        { title: "Calculus Limit assignment deadline", time: "5:00 PM", type: "Assignment" },
-        { title: "💃 Kuchipudi Dance theory discussion", time: "4:00 PM IST", type: "Workshop" },
-      ];
-    }
-    return [{ title: "No scheduled classes or events. Enjoy self-paced study!", time: "Flexible", type: "Free Slot" }];
-  }, [selectedDate]);
-
-  const calendarEvents = useMemo<CalendarEvent[]>(() => {
-    const today = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    return [
-      {
-        id: "live-1",
-        title: "Keyboard Live Practice Session",
-        tutorName: "Aarav Sharma",
-        time: "6:00 PM IST",
-        date: today,
-        type: "live",
-        color: "blue",
-      },
-      {
-        id: "live-2",
-        title: "Kuchipudi Dance Mudras Session",
-        tutorName: "Sneha Iyer",
-        time: "4:00 PM IST",
-        date: tomorrow,
-        type: "live",
-        color: "rose",
-      },
-    ];
-  }, []);
-
-  // Search/Filters states
-  const [courseSearch, setCourseSearch] = useState<string>("");
-  const [courseFilter, setCourseFilter] = useState<string>("all");
-
-  // ─── PLAYABLE QUIZ STATES ──────────────────────────────────────────────────
-  const [activeQuiz, setActiveQuiz] = useState<any | null>(null);
-  const [currentQuestionIdx, setCurrentQuestionIdx] = useState<number>(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, any>>({});
-  const [quizResult, setQuizResult] = useState<any>(null);
-  const [quizzes, setQuizzes] = useState<any[]>([]);
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
-
-  // ─── AI PLAYGROUND HUB DIALOG STATES ───────────────────────────────────────
-  const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
-  const [aiAssistantType, setAiAssistantType] = useState<"study" | "homework" | "quiz" | "roadmap" | "career" | null>(null);
-  const [aiInputText, setAiInputText] = useState("");
-  const [aiResultText, setAiResultText] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-
-  const handleAiAction = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!aiInputText.trim()) return;
-    setAiLoading(true);
-    setAiResultText("");
-
-    try {
-      const response = await AiService.chat(aiInputText, {
-        module: aiAssistantType === "study" ? "study" :
-                aiAssistantType === "homework" ? "doubt" :
-                aiAssistantType === "quiz" ? "quiz" :
-                aiAssistantType === "roadmap" ? "roadmap" : "doubt"
-      });
-      setAiResultText(response);
-    } catch (err) {
-      console.error("AI action query failure:", err);
-      setAiResultText("⚠️ Sparky AI failed to load. Please try again.");
-    } finally {
-      setAiLoading(false);
-    }
-  };;
-
-  // ─── ASSIGNMENT SUBMISSION STATES ──────────────────────────────────────────
-  const [expandedAssignmentId, setExpandedAssignmentId] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<string>("");
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-
-  // ─── REDEEM REWARDS MODAL STATES ───────────────────────────────────────────
-  const [redeemOpen, setRedeemOpen] = useState(false);
-  const [redeemedCodes, setRedeemedCodes] = useState<string[]>([]);
-
-  // ─── PROFILE EDIT FORM STATES ──────────────────────────────────────────────
-  const [profileForm, setProfileForm] = useState({
-    fullName: user?.fullName || "Surya",
-    username: user?.username || "surya_learner",
-    bio: user?.bio || "Enthusiastic developer learning keyboard, coding, and choreography.",
-    country: user?.country || "India",
-    language: user?.language || "English",
-  });
-  const [passwordForm, setPasswordForm] = useState({ old: "", new: "", confirm: "" });
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatarUrl || null);
-
-  useEffect(() => {
-    if (user) {
-      setProfileForm({
-        fullName: user.fullName || "Surya",
-        username: user.username || "surya_learner",
-        bio: user.bio || "Enthusiastic developer learning keyboard, coding, and choreography.",
-        country: user.country || "India",
-        language: user.language || "English",
-      });
-      setAvatarPreview(user.avatarUrl || null);
-    }
-  }, [user]);
-
-  // ─── MOCK DATABASE STRUCTURES ──────────────────────────────────────────────
-
-
-  // Live classes countdown card details
-  const [liveClasses, setLiveClasses] = useState<LiveClass[]>([
-    {
-      id: "live-keyboard",
-      title: "Interactive Practice: Keyboard Mudras & Chords",
-      tutorName: "Aarav Sharma",
-      time: "Today, 6:00 PM IST",
-      countdown: "Starts in 1h 15m",
-      duration: "60 mins",
-      isEnrolled: true,
-      hasLink: true,
-      meetingLink: "https://meet.google.com/abc-defg-hij",
-      platform: "Google Meet",
-    },
-    {
-      id: "live-physics",
-      title: "Class 12 Physics: Electromagnetism Tuition Batch",
-      tutorName: "Aarav Sharma",
-      time: "Today, 7:30 PM IST",
-      countdown: "Starts in 2h 45m",
-      duration: "90 mins",
-      isEnrolled: false,
-      hasLink: true,
-      meetingLink: "https://zoom.us/j/123456789",
-      platform: "Zoom",
-    },
-    {
-      id: "live-maths",
-      title: "IIT-JEE Calculus Advanced Batch",
-      tutorName: "Sneha Iyer",
-      time: "Today, 8:45 PM IST",
-      countdown: "Starts in 4h",
-      duration: "60 mins",
-      isEnrolled: true,
-      hasLink: false,
-      meetingLink: "",
-      platform: "Google Meet",
-    }
-  ]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("eduearn_bookings");
-      if (stored) {
-        try {
-          const booked = JSON.parse(stored);
-          const mapped = booked.map((b: any, idx: number) => ({
-            id: `booked-${idx}-${Date.now()}`,
-            title: `Trial Session: ${b.courseTitle || "1-on-1 Mentorship"}`,
-            tutorName: b.tutorName,
-            time: `${b.date} @ ${b.time}`,
-            countdown: "Scheduled Trial",
-            duration: "60 mins",
-            isEnrolled: true,
-            hasLink: true,
-            meetingLink: "https://meet.google.com/abc-defg-hij",
-            platform: "Google Meet",
-          }));
-          setLiveClasses(prev => {
-            // Filter out any duplicates based on title and time
-            const filteredPrev = prev.filter(p => !mapped.some((m: any) => m.title === p.title && m.time === p.time));
-            return [...mapped, ...filteredPrev];
-          });
-        } catch {}
-      }
-    }
-  }, [user]);
-
-  // ─── ECOSYSTEM CONNECTED WORKFLOW SYNC ───────────────────────────────────────
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const syncEcosystemData = () => {
-      try {
-        const enrollments = EcosystemSync.getEnrollments();
-        const assignmentsList = EcosystemSync.getAssignments();
-        const sessionsList = EcosystemSync.getSessions();
-
-        // 1. Map Enrollments
-        if (enrollments.length > 0) {
-          const mapped = enrollments.map((enr: any) => ({
-            id: enr.courseId,
-            title: enr.courseTitle,
-            tutorName: enr.tutorName || "Rahul Sharma",
-            thumbnail: "/images/categories/coding-v2.webp",
-            progress: enr.progressPercent,
-            lessonsCount: 10,
-            completedLessons: Math.round((enr.progressPercent / 100) * 10),
-            duration: "8 hours",
-            estimatedCompletion: enr.progressPercent === 100 ? "Completed" : "In Progress",
-            category: "💻 Coding",
-            lastStudied: "Recently",
-          }));
-          setEnrolledCourses(mapped);
-        }
-
-        // 2. Map Assignments (Fetch from unified assignment service API)
-        fetch("/api/student/assignments")
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data) => {
-            if (data && data.assignments) {
-              const mapped = data.assignments.map((item: any) => {
-                const sub = item.submission || {};
-                return {
-                  id: item.id,
-                  title: item.title,
-                  courseTitle: item.courseTitle || "Enrolled Course",
-                  dueDate: item.dueDate ? new Date(item.dueDate).toLocaleDateString() : "No deadline",
-                  status: sub.status || "Pending",
-                  grade: sub.grade,
-                  feedback: sub.feedback,
-                  prompt: item.description || "Complete the practice challenge.",
-                };
-              });
-              setAssignments(mapped);
-            }
-          })
-          .catch((err) => console.warn("Failed to sync assignments:", err));
-
-        // Sync Quizzes from API
-        fetch("/api/student/quizzes")
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data) => {
-            if (data && data.quizzes) {
-              const mapped = data.quizzes.map((q: any) => ({
-                id: q.id,
-                title: q.title,
-                subject: q.courseTitle || "General",
-                difficulty: q.level || "Intermediate",
-                questionsCount: q.totalQuestions || q.questions?.length || 3,
-                timeLimit: `${q.duration || 5} mins`,
-                rewardCoins: 50,
-                questions: q.questions,
-                latestAttempt: q.latestAttempt,
-                passingScore: q.passingScore,
-              }));
-              setQuizzes(mapped);
-            }
-          })
-          .catch((err) => console.warn("Failed to sync quizzes:", err));
-
-        // Sync Certificates from API
-        fetch("/api/student/certificates")
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data) => {
-            if (data && data.certificates) {
-              const mapped = data.certificates.map((cert: any) => ({
-                id: cert.id,
-                courseId: cert.courseId,
-                courseTitle: cert.courseTitle || "Course Title",
-                serialNumber: cert.certificateNumber,
-                issueDate: new Date(cert.issuedAt).toLocaleDateString(),
-                qrCode: cert.verificationCode,
-                courseImage: "/images/courses/arts.png",
-                tutorName: cert.instructor || "Tutor Instructor",
-                blockchainHash: cert.pdfUrl,
-              }));
-              setCertificates(mapped);
-            }
-          })
-          .catch((err) => console.warn("Failed to sync certificates:", err));
-
-        // 3. Map Live Sessions
-        if (sessionsList.length > 0) {
-          const mappedSessions = sessionsList.map((ses: any) => ({
-            id: ses.id,
-            title: ses.courseTitle,
-            tutorName: ses.tutorName,
-            time: ses.dateTime,
-            countdown: "Scheduled",
-            duration: "60 mins",
-            isEnrolled: true,
-            hasLink: true,
-            meetingLink: ses.meetingLink,
-            platform: "Google Meet",
-          }));
-          setLiveClasses(mappedSessions);
-        }
-
-        // Sync Profile & Stats from API
-        fetch("/api/student/profile")
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data) => {
-            if (data) {
-              if (data.profile) {
-                setProfileForm({
-                  fullName: data.profile.fullName || "Rahul Sharma",
-                  username: data.profile.username || "rahul_learner",
-                  bio: data.profile.bio || "",
-                  country: data.profile.country || "India",
-                  language: data.profile.language || "English",
-                });
-                if (data.profile.avatarUrl) {
-                  setAvatarPreview(data.profile.avatarUrl);
-                }
-              }
-              if (data.stats) {
-                setStats(data.stats);
-                if (data.stats.currentLearningStreak) {
-                  setStreak(data.stats.currentLearningStreak);
-                }
-              }
-            }
-          })
-          .catch((err) => console.warn("Failed to sync profile and stats:", err));
-
-      } catch (err) {
-        console.warn("Ecosystem sync failed:", err);
-      }
-    };
-
-    syncEcosystemData();
-    window.addEventListener("storage", syncEcosystemData);
-    return () => window.removeEventListener("storage", syncEcosystemData);
-  }, []);
-
-  const upcomingClasses: LiveClass[] = [
-    {
-      id: "live-dance",
-      title: "Kuchipudi Dance: Mudras Coordination",
-      tutorName: "Sneha Iyer",
-      time: "Tomorrow, 4:00 PM IST",
-      countdown: "Starts in 22h 15m",
-      duration: "45 mins",
-    },
-    {
-      id: "live-python",
-      title: "Advanced Python Algorithms & recursion",
-      tutorName: "Vikram Rathore",
-      time: "Friday, 5:00 PM IST",
-      countdown: "Starts in 2 days",
-      duration: "90 mins",
-    },
-  ];
-
-  const pastClasses = [
-    { title: "Calculus Derivatives & Limits Set", tutorName: "Priya Patel", date: "June 28, 2026", status: "Completed" },
-    { title: "Figma Autolayout and responsive grids", tutorName: "Karan Malhotra", date: "June 25, 2026", status: "Completed" },
-  ];
-
-  const recordedSessions = [
-    { title: "Keyboard Session: Minor scale progressions", tutor: "Aarav Sharma", duration: "48 mins", id: "rec-1" },
-    { title: "Photography Session: Mastering Exposure values", tutor: "Anjali Deshmukh", duration: "55 mins", id: "rec-2" },
-    { title: "Python Basics: Dictionaries & comprehension", tutor: "Vikram Rathore", duration: "62 mins", id: "rec-3" },
-  ];
-
-  // Interactive Quiz Start
-  const handleStartQuiz = (quiz: any) => {
-    setActiveQuiz(quiz);
-    setCurrentQuestionIdx(0);
-    setQuizResult(null);
-
-    const saved = localStorage.getItem(`eduearn_quiz_progress_${quiz.id}`);
-    if (saved) {
-      try {
-        setSelectedAnswers(JSON.parse(saved));
-        toast.info(`Resumed ${quiz.title}`);
-      } catch {
-        setSelectedAnswers({});
-        toast.info(`Started ${quiz.title}`);
-      }
-    } else {
-      setSelectedAnswers({});
-      toast.info(`Started ${quiz.title}`);
-    }
-
-    const duration = quiz.duration || (quiz.timeLimit ? parseInt(quiz.timeLimit) : 5);
-    setTimeLeft(duration * 60);
-  };
-
-  const handleSelectAnswer = (optionIdx: number) => {
-    if (!activeQuiz) return;
-    const q = activeQuiz.questions[currentQuestionIdx];
-    let updatedVal: any;
-
-    if (q.type === "multiple") {
-      const current = Array.isArray(selectedAnswers[currentQuestionIdx])
-        ? (selectedAnswers[currentQuestionIdx] as any as number[])
-        : [];
-      if (current.includes(optionIdx)) {
-        updatedVal = current.filter((idx) => idx !== optionIdx);
-      } else {
-        updatedVal = [...current, optionIdx];
-      }
-    } else {
-      updatedVal = optionIdx;
-    }
-
-    const updated = {
-      ...selectedAnswers,
-      [currentQuestionIdx]: updatedVal,
-    };
-    setSelectedAnswers(updated);
-    localStorage.setItem(`eduearn_quiz_progress_${activeQuiz.id}`, JSON.stringify(updated));
-  };
-
-  const handleSubmitQuiz = async () => {
-    if (!activeQuiz) return;
-    setIsUploading(true);
-    try {
-      const res = await fetch(`/api/student/quizzes/${activeQuiz.id}/submit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: selectedAnswers }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to submit quiz.");
-      }
-
-      const data = await res.json();
-      const attempt = data.attempt;
-
-      setQuizResult({
-        score: attempt.score,
-        totalQuestions: activeQuiz.questionsCount || activeQuiz.questions.length,
-        percentage: attempt.percentage,
-        passed: attempt.passed,
-        submitted: true,
-      });
-
-      localStorage.removeItem(`eduearn_quiz_progress_${activeQuiz.id}`);
-
-      if (attempt.passed) {
-        addCoins(50, `Completed Quiz: ${activeQuiz.title}`);
-        toast.success(`Passed! You earned 50 EduEarn Coins and XP!`);
-      } else {
-        toast.info(`Quiz completed. Score: ${attempt.percentage}%. Passing score is ${activeQuiz.passingScore}%.`);
-      }
-
-      const quizRes = await fetch("/api/student/quizzes");
-      if (quizRes.ok) {
-        const quizData = await quizRes.json();
-        const mapped = quizData.quizzes.map((q: any) => ({
-          id: q.id,
-          title: q.title,
-          subject: q.courseTitle || "General",
-          difficulty: q.level || "Intermediate",
-          questionsCount: q.totalQuestions || q.questions?.length || 3,
-          timeLimit: `${q.duration || 5} mins`,
-          rewardCoins: 50,
-          questions: q.questions,
-          latestAttempt: q.latestAttempt,
-          passingScore: q.passingScore,
-        }));
-        setQuizzes(mapped);
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to submit quiz.");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (timeLeft === null || !activeQuiz || quizResult) return;
-    if (timeLeft <= 0) {
-      toast.warning("Time is up! Auto-submitting your quiz.");
-      handleSubmitQuiz();
-      return;
-    }
-    const timer = setTimeout(() => {
-      setTimeLeft(timeLeft - 1);
-    }, 1000);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, activeQuiz, quizResult]);
-
-  const handleUploadAssignment = async (id: string) => {
-    if (!selectedFile) {
-      toast.error("Please enter a file name to submit.");
-      return;
-    }
-    setIsUploading(true);
-    try {
-      const res = await fetch(`/api/student/assignments/${id}/submit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submissionUrl: selectedFile, submissionType: "file" }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to submit assignment.");
-      }
-
-      // Reload assignments list
-      const listRes = await fetch("/api/student/assignments");
-      if (listRes.ok) {
-        const data = await listRes.json();
-        const mapped = (data.assignments || []).map((item: any) => {
-          const sub = item.submission || {};
-          return {
-            id: item.id,
-            title: item.title,
-            courseTitle: item.courseTitle || "Enrolled Course",
-            dueDate: item.dueDate ? new Date(item.dueDate).toLocaleDateString() : "No deadline",
-            status: sub.status || "Pending",
-            grade: sub.grade,
-            feedback: sub.feedback,
-            prompt: item.description || "Complete the practice challenge.",
-          };
-        });
-        setAssignments(mapped);
-      }
-
-      setIsUploading(false);
-      setSelectedFile("");
-      setExpandedAssignmentId(null);
-      addCoins(100, `Assignment Submission: ${id}`);
-      toast.success("Assignment submitted successfully! +100 Coins added.");
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to submit assignment.");
-      setIsUploading(false);
-    }
-  };
-
-  const handleClaimCertificate = async (courseId: string) => {
-    setIsUploading(true);
-    try {
-      const res = await fetch("/api/student/certificates/issue", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to generate certificate.");
-      }
-
-      toast.success("Congratulations! Certificate generated successfully!");
-
-      // Reload certificates list
-      const certRes = await fetch("/api/student/certificates");
-      if (certRes.ok) {
-        const certData = await certRes.json();
-        const mapped = certData.certificates.map((cert: any) => ({
-          id: cert.id,
-          courseId: cert.courseId,
-          courseTitle: cert.courseTitle || "Course Title",
-          serialNumber: cert.certificateNumber,
-          issueDate: new Date(cert.issuedAt).toLocaleDateString(),
-          qrCode: cert.verificationCode,
-          courseImage: "/images/courses/arts.png",
-          tutorName: cert.instructor || "Tutor Instructor",
-          blockchainHash: cert.pdfUrl,
-        }));
-        setCertificates(mapped);
-      }
-      setActiveTab("certificates");
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to claim certificate.");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch("/api/student/profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profileForm),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to update profile.");
-      }
-
-      const data = await res.json();
-      
-      // Update global completeProfile state too
-      await completeProfile(profileForm, avatarFile || undefined);
-      
-      toast.success("Profile details updated successfully!");
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to update profile.");
-    }
-  };
-
-  const handlePasswordChange = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!passwordForm.new || passwordForm.new !== passwordForm.confirm) {
-      toast.error("Passwords do not match.");
-      return;
-    }
-    toast.success("Password updated securely!");
-    setPasswordForm({ old: "", new: "", confirm: "" });
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRedeem = (cost: number, code: string, rewardName: string) => {
-    if (coins < cost) {
-      toast.error("Insufficient EduEarn Coins balance!");
-      return;
-    }
-    setCoins((prev) => {
-      const next = prev - cost;
-      if (typeof window !== "undefined") {
-        localStorage.setItem("eduearn_coins", String(next));
-      }
-      return next;
-    });
-    setRedeemedCodes((prev) => [...prev, code]);
-    toast.success(`Successfully redeemed ${rewardName}! Code: ${code}`);
-  };
-
-  const enrollWishlist = (course: typeof MOCK_COURSES[number]) => {
-    setWishlist((prev) => prev.filter((c) => c.id !== course.id));
-    const newEnrolled: EnrolledCourse = {
-      id: course.id,
-      title: course.title,
-      tutorName: course.tutorName,
-      thumbnail: course.thumbnail,
-      progress: 0,
-      lessonsCount: 12,
-      completedLessons: 0,
-      duration: course.duration || "10 hours",
-      estimatedCompletion: course.duration || "10 hours left",
-      category: course.category,
-      lastStudied: "Just now",
-    };
-    setEnrolledCourses((prev) => [...prev, newEnrolled]);
-    toast.success(`Enrolled in ${course.title}! Welcome to the course.`);
-  };
+    const dashboard = useDashboard(user, logout, completeProfile);
+
+  const {
+    isLoading,
+    setIsLoading,
+    stats,
+    setStats,
+    notificationPrefs,
+    setNotificationPrefs,
+    coins,
+    setCoins,
+    xp,
+    setXp,
+    streak,
+    setStreak,
+    rewardsHistory,
+    setRewardsHistory,
+    enrolledCourses,
+    setEnrolledCourses,
+    certificates,
+    setCertificates,
+    wishlist,
+    setWishlist,
+    appliedJobs,
+    setAppliedJobs,
+    assignments,
+    setAssignments,
+    notifications,
+    setNotifications,
+    activities,
+    setActivities,
+    notificationsLoading,
+    downloads,
+    setDownloads,
+    activeTab,
+    setActiveTab,
+    notificationFilter,
+    setNotificationFilter,
+    isSidebarCollapsed,
+    setIsSidebarCollapsed,
+    isMobileMenuOpen,
+    setIsMobileMenuOpen,
+    purchaseHistoryState,
+    setPurchaseHistoryState,
+    selectedInvoice,
+    setSelectedInvoice,
+    isInvoiceOpen,
+    setIsInvoiceOpen,
+    isRefundModalOpen,
+    setIsRefundModalOpen,
+    refundCourseId,
+    setRefundCourseId,
+    refundCourseTitle,
+    setRefundCourseTitle,
+    refundCourseAmount,
+    setRefundCourseAmount,
+    refundReason,
+    setRefundReason,
+    countdownSeconds,
+    setCountdownSeconds,
+    selectedDate,
+    setSelectedDate,
+    courseSearch,
+    setCourseSearch,
+    courseFilter,
+    setCourseFilter,
+    activeQuiz,
+    setActiveQuiz,
+    currentQuestionIdx,
+    setCurrentQuestionIdx,
+    selectedAnswers,
+    setSelectedAnswers,
+    quizResult,
+    setQuizResult,
+    quizzes,
+    setQuizzes,
+    timeLeft,
+    setTimeLeft,
+    aiAssistantOpen,
+    setAiAssistantOpen,
+    aiAssistantType,
+    setAiAssistantType,
+    aiInputText,
+    setAiInputText,
+    aiResultText,
+    setAiResultText,
+    aiLoading,
+    expandedAssignmentId,
+    setExpandedAssignmentId,
+    selectedFile,
+    setSelectedFile,
+    isUploading,
+    setIsUploading,
+    redeemOpen,
+    setRedeemOpen,
+    redeemedCodes,
+    setRedeemedCodes,
+    profileForm,
+    setProfileForm,
+    passwordForm,
+    setPasswordForm,
+    avatarFile,
+    setAvatarFile,
+    avatarPreview,
+    setAvatarPreview,
+    welcomeGreeting,
+    formattedCountdown,
+    dateEventsList,
+    calendarEvents,
+    handleAiAction,
+    addCoins,
+    handleMarkAllRead,
+    handleMarkOneRead,
+    handleDeleteNotification,
+    enrollWishlist,
+    handleClaimCertificate,
+    handleSubmitQuiz,
+    handleUploadAssignment,
+    handleSaveProfile,
+    handlePasswordChange,
+    handleFileChange,
+    handleRedeem,
+    levelProgressPercent,
+    learningLevel,
+    nextLevelXp,
+    liveClasses,
+    upcomingClasses,
+    pastClasses,
+    recordedSessions,
+    handleStartQuiz,
+    handleSelectAnswer
+  } = dashboard;
 
   // ─── NAV ITEMS ─────────────────────────────────────────────────────────────
   const navItems = [
@@ -1497,591 +528,73 @@ function StudentDashboardContent() {
         isSidebarCollapsed ? "md:pl-20" : "md:pl-64"
       }`}>
         {/* Top dashboard header bar */}
-        <header className="h-16 px-4 sm:px-6 flex items-center justify-between navbar-surface-blur relative z-30 shrink-0 select-none">
-          <div className="flex items-center gap-3 md:gap-0">
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2 hover:bg-muted rounded-button cursor-pointer"
-              aria-label="Open mobile navigation"
-            >
-              <Menu size={20} />
-            </button>
-            <h1 className="text-lg font-heading font-extrabold tracking-tight capitalize">
-              {activeTab.replace("-", " ")}
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* XP Coins Badge info */}
-            <div className="flex items-center gap-1.5 border border-primary/20 bg-primary/5 text-primary rounded-full px-2.5 py-1 text-xs font-bold shadow-soft">
-              <Award size={13} className="text-primary fill-current" />
-              <span>Level {learningLevel === "Beginner" ? "1" : learningLevel === "Intermediate" ? "2" : learningLevel === "Advanced" ? "3" : learningLevel === "Expert" ? "4" : "5"}</span>
-            </div>
-
-            <div className="flex items-center gap-1.5 border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full px-2.5 py-1 text-xs font-bold shadow-soft animate-pulse">
-              <Flame size={13} className="fill-current" />
-              <span>{streak} Day Streak</span>
-            </div>
-
-            <div className="flex items-center gap-1.5 border border-yellow-500/20 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-full px-2.5 py-1 text-xs font-bold shadow-soft">
-              <Wallet size={13} className="fill-current" />
-              <span>{coins} Coins</span>
-            </div>
-          </div>
-        </header>
+        <TopNavigation
+          user={user}
+          avatarPreview={avatarPreview}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isSidebarCollapsed={isSidebarCollapsed}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+          coins={coins}
+          xp={xp}
+          streak={streak}
+          learningLevel={learningLevel}
+          notifications={notifications}
+          handleMarkAllRead={handleMarkAllRead}
+          handleMarkOneRead={handleMarkOneRead}
+          handleDeleteNotification={handleDeleteNotification}
+          setAiAssistantOpen={setAiAssistantOpen}
+          setAiAssistantType={setAiAssistantType}
+          courseSearch={courseSearch}
+          setCourseSearch={setCourseSearch}
+          welcomeGreeting={welcomeGreeting}
+        />
 
         {/* Scrollable Dashboard Body */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-background relative z-10 scroll-smooth">
           <AnimatePresence mode="wait">
             {/* TAB: DASHBOARD HOME (DEFAULT) */}
             {activeTab === "dashboard" && isLoading && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                  <div className="xl:col-span-2 h-44 bg-slate-100 dark:bg-slate-900 rounded-3xl animate-pulse" />
-                  <div className="h-44 bg-slate-100 dark:bg-slate-900 rounded-3xl animate-pulse" />
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
-                  {Array.from({ length: 8 }).map((_, idx) => (
-                    <div key={idx} className="h-20 bg-slate-100 dark:bg-slate-900 rounded-2xl animate-pulse" />
-                  ))}
-                </div>
-                <div className="space-y-3">
-                  <div className="h-5 w-40 bg-slate-100 dark:bg-slate-900 rounded animate-pulse" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="h-36 bg-slate-100 dark:bg-slate-900 rounded-2xl animate-pulse" />
-                    <div className="h-36 bg-slate-100 dark:bg-slate-900 rounded-2xl animate-pulse" />
-                    <div className="h-36 bg-slate-100 dark:bg-slate-900 rounded-2xl animate-pulse" />
-                  </div>
-                </div>
-              </div>
+              <DashboardSkeleton />
             )}
 
             {activeTab === "dashboard" && !isLoading && (
-              <motion.div
-                key="tab-dashboard"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.25 }}
-                className="space-y-6"
-              >
-                {/* 1. PERSONALIZED DASHBOARD */}
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                  <Card variant="glass" className="xl:col-span-2 p-6 welcome-card-surface flex items-center justify-between relative overflow-hidden">
-                    <div className="space-y-3.5 relative z-10">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wide text-primary">
-                        {welcomeGreeting}
-                      </span>
-                      <h2 className="text-2xl font-heading font-extrabold text-foreground tracking-tight">
-                        {welcomeGreeting}, {profileForm.fullName} 👋
-                      </h2>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5 mt-2 border-t border-border/30 pt-4 text-xs font-semibold text-muted-foreground">
-                        <div>
-                          <span className="text-[9px] uppercase tracking-wider text-muted-foreground/80 font-extrabold block">Today&apos;s Goal</span>
-                          <span className="text-foreground font-bold text-xs mt-0.5 block">Complete Python Module 3</span>
-                        </div>
-                        <div>
-                          <span className="text-[9px] uppercase tracking-wider text-muted-foreground/80 font-extrabold block">Next Live Class</span>
-                          <span className="text-foreground font-bold text-xs mt-0.5 block">Today • 6:00 PM (1h 15m left)</span>
-                        </div>
-                        <div>
-                          <span className="text-[9px] uppercase tracking-wider text-muted-foreground/80 font-extrabold block">Next Assignment Due</span>
-                          <span className="text-foreground font-bold text-xs mt-0.5 block">Task 2: Calculus Limits due in 2 days</span>
-                        </div>
-                        <div>
-                          <span className="text-[9px] uppercase tracking-wider text-muted-foreground/80 font-extrabold block">Weekly Progress</span>
-                          <span className="text-foreground font-bold text-xs mt-0.5 block">6 of 8 activities completed</span>
-                        </div>
-                      </div>
-                    </div>
-                    <Sparkles size={48} className="text-primary/20 shrink-0 hidden sm:block relative z-10" />
-                  </Card>
-
-                  {/* Level Progress Gauge */}
-                  <Card variant="glass" className="p-6 border-primary/15 bg-card flex flex-col justify-between shadow-soft">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wide text-primary">
-                        Level Progression
-                      </span>
-                      <span className="text-xs font-extrabold text-foreground">{learningLevel}</span>
-                    </div>
-                    
-                    <div className="space-y-2 mt-4">
-                      <div className="flex items-baseline justify-between text-xs">
-                        <span className="text-[10px] font-bold text-muted-foreground">{xp} / {nextLevelXp} XP</span>
-                        <span className="text-[10px] font-bold text-primary">{levelProgressPercent}%</span>
-                      </div>
-                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all duration-500"
-                          style={{ width: `${levelProgressPercent}%` }}
-                        />
-                      </div>
-                      <p className="text-[9px] text-muted-foreground mt-1">Complete quizzes &amp; view lessons to level up.</p>
-                    </div>
-                  </Card>
-                </div>
-
-                {/* 1.5 STUDENT STATS METRICS GRID */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 select-none">
-                  <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
-                    <span className="text-lg">🏆</span>
-                    <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Completed</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">{stats.completedCourses} Courses</span>
-                  </Card>
-                  <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
-                    <span className="text-lg">📚</span>
-                    <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Active</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">{stats.enrolledCourses} Courses</span>
-                  </Card>
-                  <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
-                    <span className="text-lg">✅</span>
-                    <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Streak</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">{streak} Days</span>
-                  </Card>
-                  <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
-                    <span className="text-lg">⏱️</span>
-                    <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Hours</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">{stats.totalLearningHours} Hrs</span>
-                  </Card>
-                  <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
-                    <span className="text-lg">📝</span>
-                    <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Assignments</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">{assignments.filter(a => a.status !== "Pending").length} Done</span>
-                  </Card>
-                  <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
-                    <span className="text-lg">📜</span>
-                    <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Certificates</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">{stats.certificatesEarned} Earned</span>
-                  </Card>
-                  <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
-                    <span className="text-lg">📅</span>
-                    <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Quizzes</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">{quizzes.filter(q => !!q.latestAttempt).length} Passed</span>
-                  </Card>
-                  <Card variant="glass" className="p-4 flex flex-col items-center justify-center text-center shadow-soft border-border/50 bg-card">
-                    <span className="text-lg">📈</span>
-                    <span className="text-[8px] uppercase font-black text-muted-foreground/80 tracking-wider mt-1.5">Overall Progress</span>
-                    <span className="text-sm font-black text-foreground mt-0.5">{stats.completionRate}%</span>
-                  </Card>
-                </div>
-
-                {/* 2. CONTINUE LEARNING */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-heading font-extrabold uppercase tracking-wide text-foreground">
-                      Continue Learning
-                    </h3>
-                    <Button onClick={() => setActiveTab("my-courses")} variant="ghost" size="sm" className="text-xs text-primary font-bold">
-                      View all courses
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {enrolledCourses.slice(0, 3).map((course) => (
-                      <div
-                        key={course.id}
-                        className="card-surface p-4 rounded-card flex flex-col gap-3 hover:shadow-floating hover:translate-y-[-2px] transition-all duration-300"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-primary shrink-0 relative overflow-hidden select-none">
-                            <BookOpen size={20} />
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-[8px] font-extrabold uppercase bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                              {course.category}
-                            </span>
-                            <h4 className="text-xs font-bold truncate mt-1 text-foreground" title={course.title}>
-                              {course.title}
-                            </h4>
-                            <p className="text-[9px] text-muted-foreground mt-0.5">Tutor: {course.tutorName} · Last Studied: {course.lastStudied}</p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[10px] font-semibold text-muted-foreground">
-                            <span>Progress: {course.progress}%</span>
-                            <span>{course.completedLessons}/{course.lessonsCount} lessons</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-primary rounded-full transition-all duration-500"
-                              style={{ width: `${course.progress}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between border-t border-border/30 pt-3 mt-1">
-                          <span className="text-[9px] font-bold text-muted-foreground/80 bg-muted px-2 py-0.5 rounded">
-                            {course.estimatedCompletion}
-                          </span>
-                          <Button
-                            onClick={() => router.push(`/student/courses/${course.id}/learn`)}
-                            size="sm"
-                            className="h-8 gap-1"
-                          >
-                            <PlayCircle size={13} />
-                            Resume
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 3. SPARKY AI ANALYTICS & INSIGHTS (Phase 11.3 / 11.4) */}
-                <Card variant="glass" className="p-6 border-primary/20 bg-card space-y-4 text-left shadow-soft">
-                  <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                    <div className="flex items-center gap-2">
-                      <Sparkles size={18} className="text-primary animate-pulse" />
-                      <h3 className="text-sm font-heading font-extrabold uppercase tracking-wide text-foreground">
-                        ✨ Sparky AI Learning Analytics & Recommendations
-                      </h3>
-                    </div>
-                    <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-black">
-                      AI Active
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Weekly Study Hours & Attendance Trend */}
-                    <div className="space-y-3">
-                      <h4 className="text-xs font-bold text-foreground">📈 Study Hours & Attendance Trends</h4>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-[10px] text-muted-foreground font-semibold">
-                          <span>Weekly Goal: 15 Hrs</span>
-                          <span>12 Hrs Logged (80%)</span>
-                        </div>
-                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-primary rounded-full" style={{ width: "80%" }} />
-                        </div>
-                        <div className="flex justify-between text-[9px] text-muted-foreground font-semibold pt-1">
-                          <span>Mon: 2h</span>
-                          <span>Tue: 3h</span>
-                          <span>Wed: 4h</span>
-                          <span>Thu: 1h</span>
-                          <span>Fri: 2h</span>
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground italic">Attendance rate is at 91.6% — exceeding class requirements.</p>
-                    </div>
-
-                    {/* Weak Topic Detection */}
-                    <div className="space-y-3 border-t lg:border-t-0 lg:border-x border-border/30 pt-4 lg:pt-0 lg:px-6">
-                      <h4 className="text-xs font-bold text-foreground">⚠️ Weak-Topic Detection & Quiz Performance</h4>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="font-semibold text-foreground">Recursion Base Cases</span>
-                          <span className="text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded text-[8px] font-bold">Needs Focus (45%)</span>
-                        </div>
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="font-semibold text-foreground">React useEffect cleanup</span>
-                          <span className="text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded text-[8px] font-bold">Review (68%)</span>
-                        </div>
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="font-semibold text-foreground">Python Dict comprehensions</span>
-                          <span className="text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[8px] font-bold">Mastered (90%)</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* AI Personalized Recommendation */}
-                    <div className="space-y-3 pt-4 lg:pt-0">
-                      <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        💡 Sparky Recommendations
-                      </h4>
-                      <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 text-[10px] leading-relaxed text-muted-foreground">
-                        <strong className="text-foreground block mb-1">🎯 Action Item:</strong>
-                        Take the 5-minute quiz on <strong>Recursion Base Cases</strong> today to boost your mastery to Intermediate. We recommend scheduling a 1-on-1 session with tutor Sneha Iyer if you need extra guidance.
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Dashboard bottom layout cards split */}
-                <div className="grid grid-cols-1 xl:grid-cols-[1.8fr_1fr] gap-6">
-                  {/* Left block: Live classes countdown & interactive calendar */}
-                  <div className="space-y-6">
-                    {/* Live Countdown & Join card */}
-                    <Card variant="glass" className="p-5 border border-rose-500/25 dark:bg-card/65 bg-card flex flex-col md:flex-row items-center justify-between gap-5 relative overflow-hidden shadow-soft">
-                      <div className="space-y-1.5 text-left">
-                        <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest bg-rose-500/10 px-2 py-0.5 rounded inline-block">
-                          Starts In
-                        </span>
-                        <h4 className="text-xl font-heading font-extrabold text-foreground mt-1">
-                          {formattedCountdown}
-                        </h4>
-                        <p className="text-xs text-muted-foreground font-semibold">
-                          🎹 Keyboard Practice Session with Aarav Sharma
-                        </p>
-                        <div className="flex items-center gap-4 text-[10px] text-muted-foreground mt-2 font-medium">
-                          <span>Teacher: Aarav Sharma</span>
-                          <span>·</span>
-                          <span>Duration: 60 mins</span>
-                        </div>
-                      </div>
-
-                      <div className="shrink-0 flex flex-col gap-2 w-full md:w-auto">
-                        <Button onClick={() => navigateToClassroom(router, "live-keyboard")} className="bg-rose-500 hover:bg-rose-600 border-rose-500 text-white gap-2 text-xs h-10 w-full md:w-auto">
-                          <Calendar size={14} /> Join Live Class
-                        </Button>
-                        <span className="text-[9px] text-muted-foreground text-center flex items-center justify-center gap-1 font-semibold">
-                          <Activity size={10} className="text-emerald-500" /> Hosted on Google Meet classroom
-                        </span>
-                      </div>
-                    </Card>
-
-                    {/* Interactive Calendar view details */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-heading font-extrabold uppercase tracking-wide text-foreground">
-                        Interactive Calendar
-                      </h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <CalendarView 
-                          events={calendarEvents} 
-                          selectedDate={selectedDate} 
-                          onSelectDate={setSelectedDate} 
-                        />
-                        
-                        {/* Custom date events render panel */}
-                        <Card variant="default" className="p-5 flex flex-col gap-4 text-left border-border bg-card">
-                          <h4 className="text-xs font-heading font-extrabold uppercase text-muted-foreground border-b border-border/60 pb-1.5">
-                            Events for {selectedDate.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
-                          </h4>
-                          <div className="flex flex-col gap-3 grow overflow-y-auto">
-                            {dateEventsList.map((evt, idx) => (
-                              <div key={idx} className="p-3 event-row-surface rounded-card flex flex-col gap-1">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-[8px] font-extrabold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                                    {evt.type}
-                                  </span>
-                                  <span className="text-[9px] font-semibold text-muted-foreground">{evt.time}</span>
-                                </div>
-                                <span className="text-xs font-bold text-foreground mt-1 leading-snug">{evt.title}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </Card>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right block: Quick actions & Hackathons */}
-                  <div className="space-y-6">
-                    {/* Quick Actions */}
-                    <Card variant="default" className="p-5 shadow-soft border-border bg-card flex flex-col gap-4">
-                      <h4 className="text-xs font-heading font-extrabold uppercase tracking-wider text-muted-foreground border-b border-border/60 pb-1.5">
-                        Quick Actions
-                      </h4>
-                      <div className="grid grid-cols-1 gap-2">
-                        <Button onClick={() => router.push("/courses")} size="sm" variant="outline" className="w-full justify-between font-bold text-xs h-9">
-                          Explore Skills <ArrowUpRight size={14} />
-                        </Button>
-                        <Button onClick={() => setActiveTab("live-classes")} size="sm" variant="outline" className="w-full justify-between font-bold text-xs h-9">
-                          Join Live Class <ArrowUpRight size={14} />
-                        </Button>
-                        <Button onClick={() => router.push("/tutors")} size="sm" variant="outline" className="w-full justify-between font-bold text-xs h-9">
-                          Browse Tutors <ArrowUpRight size={14} />
-                        </Button>
-                        <Button onClick={() => setActiveTab("quizzes")} size="sm" variant="outline" className="w-full justify-between font-bold text-xs h-9">
-                          Attempt Weekly Quiz <ArrowUpRight size={14} />
-                        </Button>
-                        <Button onClick={() => router.push("/tutor/onboarding")} size="sm" variant="outline" className="w-full justify-between font-bold text-xs h-9">
-                          Become Tutor <ArrowUpRight size={14} />
-                        </Button>
-                        <Button onClick={() => setActiveTab("certificates")} size="sm" variant="outline" className="w-full justify-between font-bold text-xs h-9">
-                          View Certificates <ArrowUpRight size={14} />
-                        </Button>
-                      </div>
-                    </Card>
-
-                    {/* Hackathons & Updates */}
-                    <Card variant="default" className="p-5 shadow-soft border-border bg-card flex flex-col gap-4">
-                      <h4 className="text-xs font-heading font-extrabold uppercase tracking-wider text-muted-foreground border-b border-border/60 pb-1.5">
-                        Hackathons &amp; Updates
-                      </h4>
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <span className="text-[8px] font-extrabold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                            Event
-                          </span>
-                          <h5 className="text-[11px] font-bold text-foreground leading-snug">
-                            EduEarn Hackathon 2026 registration open
-                          </h5>
-                          <p className="text-[9px] text-muted-foreground">Form peer groups of 3 and build coding widgets to win ₹50,000 cash prizes.</p>
-                        </div>
-                        <div className="h-px w-full bg-border/40" />
-                        <div className="space-y-1">
-                          <span className="text-[8px] font-extrabold uppercase bg-accent/10 text-accent px-1.5 py-0.5 rounded">
-                            Reward
-                          </span>
-                          <h5 className="text-[11px] font-bold text-foreground leading-snug">
-                            Leaderboard reset on the 1st of every month
-                          </h5>
-                          <p className="text-[9px] text-muted-foreground">Resets at 00:00 AM IST. Top 3 students receive custom verified badges &amp; 500 Coins.</p>
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
-                </div>
-
-                {/* 10. RECOMMENDED LEARNING */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles size={16} className="text-primary fill-current" />
-                    <h3 className="text-sm font-heading font-extrabold uppercase tracking-wide text-foreground">
-                      Recommended Learning
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[
-                      { title: "DSLR Photography Masterclass", category: "📸 Photography", tutor: "Anjali Deshmukh", reason: "Because you completed Pencil Sketching & Drawing", subjectId: "photography" },
-                      { title: "Advanced Python Algorithms", category: "💻 Python Programming", tutor: "Vikram Rathore", reason: "Because you enrolled in AI Prompt Engineering", subjectId: "python" },
-                      { title: "Kuchipudi Dance: Advanced Mudras", category: "💃 Kuchipudi Dance", tutor: "Sneha Iyer", reason: "Because you viewed Kuchipudi Dance Performance", subjectId: "kuchipudi" },
-                    ].map((item, i) => {
-                      const matchedCourse = MOCK_COURSES.find((c) => c.subjectId === item.subjectId);
-                      const targetId = matchedCourse ? matchedCourse.id : "course-1";
-                      return (
-                        <Card
-                          key={i}
-                          variant="glass"
-                          className="p-4 shadow-soft border hover:border-primary/50 transition-all flex flex-col justify-between gap-3 group relative overflow-hidden cursor-pointer"
-                          onClick={() => router.push(`/courses/${targetId}`)}
-                        >
-                        <div className="absolute -right-6 -top-6 w-24 h-24 bg-primary/5 rounded-full blur-xl group-hover:bg-primary/10 transition-colors" />
-                        <div className="space-y-1">
-                          <span className="text-[8px] font-extrabold uppercase text-primary bg-primary/10 px-2 py-0.5 rounded-full inline-block">
-                            {item.category}
-                          </span>
-                          <h3 className="font-heading font-bold text-xs text-foreground mt-1.5 line-clamp-1">{item.title}</h3>
-                          <p className="text-[10px] text-muted-foreground">Tutor: {item.tutor}</p>
-                        </div>
-                        <p className="text-[9px] text-muted-foreground mt-2 italic font-semibold">{item.reason}</p>
-                        <Button className="w-full text-[10px] h-8 mt-1 z-10 shadow-soft gap-1">
-                          Explore Course <ArrowUpRight size={13} />
-                        </Button>
-                      </Card>
-                    );
-                  })}
-                  </div>
-                </div>
-              </motion.div>
+              <DashboardHome
+                user={user}
+                stats={stats}
+                streak={streak}
+                coins={coins}
+                xp={xp}
+                learningLevel={learningLevel}
+                enrolledCourses={enrolledCourses}
+                calendarEvents={calendarEvents}
+                countdownSeconds={countdownSeconds}
+                formattedCountdown={formattedCountdown}
+                selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate}
+                dateEventsList={dateEventsList}
+                setActiveTab={setActiveTab}
+                setAiAssistantOpen={setAiAssistantOpen}
+                setAiAssistantType={setAiAssistantType}
+                setAiInputText={setAiInputText}
+                enrollWishlist={enrollWishlist}
+                onResume={(courseId) => router.push(`/student/courses/${courseId}/learn`)}
+                welcomeGreeting={welcomeGreeting}
+              />
             )}
 
             {/* TAB: MY COURSES */}
             {activeTab === "my-courses" && (
-              <motion.div
-                key="tab-my-courses"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.25 }}
-                className="space-y-6"
-              >
-                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                  <div className="flex items-center gap-2 border border-border rounded-button bg-card px-3 py-1.5 w-full sm:max-w-xs shadow-soft">
-                    <Search size={16} className="text-muted-foreground shrink-0" />
-                    <input
-                      type="text"
-                      placeholder="Search enrolled courses..."
-                      value={courseSearch}
-                      onChange={(e) => setCourseSearch(e.target.value)}
-                      className="bg-transparent border-none text-xs text-foreground placeholder:text-muted-foreground focus:outline-none w-full"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 select-none">
-                    {[
-                      { id: "all", label: "All" },
-                      { id: "in-progress", label: "In Progress" },
-                      { id: "completed", label: "Completed" },
-                    ].map((btn) => (
-                      <button
-                        key={btn.id}
-                        onClick={() => setCourseFilter(btn.id)}
-                        className={`px-3 py-1.5 border rounded-button text-[10px] font-bold uppercase tracking-wider cursor-pointer ${
-                          courseFilter === btn.id
-                            ? "bg-primary border-primary text-white"
-                            : "border-border text-muted-foreground hover:bg-muted/40"
-                        }`}
-                      >
-                        {btn.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {enrolledCourses
-                    .filter((c) => c.title.toLowerCase().includes(courseSearch.toLowerCase()))
-                    .filter((c) => {
-                      if (courseFilter === "in-progress") return c.progress < 100;
-                      if (courseFilter === "completed") return c.progress === 100;
-                      return true;
-                    })
-                    .map((course) => (
-                      <div
-                        key={course.id}
-                        className="card-surface p-4 rounded-card flex flex-col gap-3 hover:translate-y-[-2px] transition-all duration-300"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-primary shrink-0 relative overflow-hidden">
-                            <BookOpen size={20} />
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-[9px] font-extrabold uppercase bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                              {course.category}
-                            </span>
-                            <h4 className="text-xs font-bold truncate mt-1.5 text-foreground" title={course.title}>
-                              {course.title}
-                            </h4>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">by {course.tutorName}</p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-[10px] font-semibold text-muted-foreground">
-                            <span>Progress: {course.progress}%</span>
-                            <span>{course.completedLessons}/{course.lessonsCount} lessons</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-primary rounded-full transition-all duration-500"
-                              style={{ width: `${course.progress}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between border-t border-border/30 pt-3 mt-1">
-                          <span className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
-                            <Clock size={11} />
-                            {course.duration}
-                          </span>
-                          <div className="flex gap-1.5">
-                            {course.progress === 100 && !certificates.some((cert) => cert.courseId === course.id || cert.id === course.id) && (
-                              <Button
-                                onClick={() => handleClaimCertificate(course.id)}
-                                size="sm"
-                                variant="outline"
-                                className="h-8 text-[10px] border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 font-bold"
-                              >
-                                Claim Cert
-                              </Button>
-                            )}
-                            <Button
-                              onClick={() => router.push(`/student/courses/${course.id}/learn`)}
-                              size="sm"
-                              className="h-8 gap-1 text-[10px]"
-                            >
-                              View Course
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </motion.div>
+              <MyCoursesTab
+                enrolledCourses={enrolledCourses}
+                certificates={certificates}
+                courseSearch={courseSearch}
+                setCourseSearch={setCourseSearch}
+                courseFilter={courseFilter}
+                setCourseFilter={setCourseFilter}
+                handleClaimCertificate={handleClaimCertificate}
+                isUploading={isUploading}
+              />
             )}
 
             {/* TAB: LIVE CLASSES */}
@@ -3230,232 +1743,12 @@ function StudentDashboardContent() {
 
             {/* TAB: NOTIFICATIONS */}
             {activeTab === "notifications" && (
-              <motion.div
-                key="tab-notifications"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.25 }}
-                className="space-y-6"
-              >
-                {/* NOTIFICATIONS SECTION */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-heading font-extrabold uppercase tracking-wide text-foreground flex items-center gap-2">
-                      <span>🔔</span> Notifications
-                      {notifications.filter((n) => !n.read).length > 0 && (
-                        <span className="bg-primary text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-full">
-                          {notifications.filter((n) => !n.read).length}
-                        </span>
-                      )}
-                    </h3>
-                    <button
-                      onClick={handleMarkAllRead}
-                      className="text-[10px] font-bold text-primary hover:underline focus:outline-none"
-                    >
-                      Mark all as read
-                    </button>
-                  </div>
-
-                  {/* Categorized filter tabs */}
-                  <div className="flex flex-wrap gap-1.5 border-b border-border/40 pb-3 select-none">
-                    {["All", "Unread", "Read", "Course", "Assignment", "Quiz", "Certificate", "System", "Live Class", "Tutor", "Admin"].map((f) => (
-                      <button
-                        key={f}
-                        type="button"
-                        onClick={() => setNotificationFilter(f)}
-                        className={cn(
-                          "px-3 py-1 rounded text-[10px] font-bold border transition-colors",
-                          notificationFilter === f
-                            ? "bg-primary border-primary text-white"
-                            : "bg-card border-border hover:bg-muted text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Loading skeleton */}
-                  {notificationsLoading && (
-                    <div className="flex flex-col gap-3">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="border p-4 rounded-card bg-card border-border animate-pulse">
-                          <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-full bg-muted shrink-0" />
-                            <div className="flex-1 space-y-2">
-                              <div className="h-2.5 bg-muted rounded w-2/3" />
-                              <div className="h-2 bg-muted rounded w-full" />
-                              <div className="h-2 bg-muted rounded w-1/3" />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Notification list */}
-                  {!notificationsLoading && (
-                    <div className="flex flex-col gap-3">
-                      {notifications
-                        .filter((n) => {
-                          if (notificationFilter === "All") return true;
-                          if (notificationFilter === "Unread") return !n.read;
-                          if (notificationFilter === "Read") return n.read;
-                          return n.type === notificationFilter;
-                        })
-                        .map((n) => {
-                          const meta = (() => {
-                            switch (n.type) {
-                              case "Live Class":
-                                return { emoji: "🔴", badgeClass: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20" };
-                              case "Assignment":
-                                return { emoji: "📝", badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" };
-                              case "Quiz":
-                                return { emoji: "🧠", badgeClass: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" };
-                              case "Course":
-                                return { emoji: "📚", badgeClass: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20" };
-                              case "Certificate":
-                                return { emoji: "🏆", badgeClass: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" };
-                              case "Payment":
-                                return { emoji: "💳", badgeClass: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20" };
-                              case "Tutor":
-                                return { emoji: "👩‍🏫", badgeClass: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20" };
-                              case "Admin":
-                                return { emoji: "🛡️", badgeClass: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20" };
-                              default:
-                                return { emoji: "🔔", badgeClass: "bg-muted text-muted-foreground border-border" };
-                            }
-                          })();
-                          return (
-                            <div
-                              key={n.id}
-                              className={cn(
-                                "border p-4 rounded-card shadow-soft flex items-start justify-between gap-4 transition-all",
-                                n.read ? "bg-card border-border" : "bg-primary/5 border-primary/20"
-                              )}
-                            >
-                              <div className="flex items-start gap-3 text-left">
-                                <div className={cn(
-                                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm select-none",
-                                  n.read ? "bg-muted text-muted-foreground" : "bg-primary/15 text-primary"
-                                )}>
-                                  <span>{meta.emoji}</span>
-                                </div>
-                                <div>
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <h4 className="text-xs font-bold text-foreground pr-2">{n.title}</h4>
-                                    {n.type && (
-                                      <span className={cn("text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded border select-none", meta.badgeClass)}>
-                                        {n.type}
-                                      </span>
-                                    )}
-                                    {!n.read && (
-                                      <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
-                                    )}
-                                  </div>
-                                  <p className="text-[10px] text-muted-foreground mt-0.5">{n.text}</p>
-                                  <span className="text-[8px] text-muted-foreground/60 block mt-1">{n.time}</span>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 shrink-0">
-                                {!n.read && (
-                                  <button
-                                    onClick={() => handleMarkOneRead(n.id)}
-                                    className="p-1 hover:bg-muted border border-border rounded text-[10px] font-bold hover:text-foreground cursor-pointer focus:outline-none"
-                                  >
-                                    Mark Read
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => handleDeleteNotification(n.id)}
-                                  className="p-1 hover:bg-destructive/10 text-muted-foreground hover:text-destructive border border-border rounded cursor-pointer focus:outline-none"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                      {/* Empty state */}
-                      {notifications.filter((n) => {
-                        if (notificationFilter === "All") return true;
-                        if (notificationFilter === "Unread") return !n.read;
-                        if (notificationFilter === "Read") return n.read;
-                        return n.type === notificationFilter;
-                      }).length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-12 text-center gap-2">
-                          <span className="text-3xl">🔕</span>
-                          <p className="text-xs font-bold text-foreground">No notifications</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {notificationFilter === "Unread" ? "You're all caught up!" : "Nothing to show for this filter."}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* ACTIVITY TIMELINE SECTION */}
-                <div className="space-y-4">
-                  <div className="border-t border-border/40 pt-4">
-                    <h3 className="text-xs font-heading font-extrabold uppercase tracking-wide text-foreground flex items-center gap-2 mb-4">
-                      <span>📋</span> Activity Timeline
-                    </h3>
-
-                    {activities.length === 0 && !notificationsLoading && (
-                      <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
-                        <span className="text-3xl">📭</span>
-                        <p className="text-xs font-bold text-foreground">No activity yet</p>
-                        <p className="text-[10px] text-muted-foreground">Enroll in a course to start tracking your progress.</p>
-                      </div>
-                    )}
-
-                    <div className="relative flex flex-col gap-0">
-                      {activities.map((activity, idx) => {
-                        const activityMeta = (() => {
-                          switch (activity.type) {
-                            case "course_enrolled":
-                              return { emoji: "🎓", dotClass: "bg-indigo-500" };
-                            case "lesson_completed":
-                              return { emoji: "✅", dotClass: "bg-emerald-500" };
-                            case "assignment_submitted":
-                              return { emoji: "📝", dotClass: "bg-amber-500" };
-                            case "quiz_completed":
-                              return { emoji: "🧠", dotClass: "bg-blue-500" };
-                            case "certificate_earned":
-                              return { emoji: "🏆", dotClass: "bg-purple-500" };
-                            default:
-                              return { emoji: "📌", dotClass: "bg-muted-foreground" };
-                          }
-                        })();
-                        return (
-                          <div key={activity.id} className="flex gap-3 pb-4 relative">
-                            {/* Timeline line */}
-                            {idx < activities.length - 1 && (
-                              <div className="absolute left-3 top-7 w-0.5 bottom-0 bg-border/60" />
-                            )}
-                            {/* Dot */}
-                            <div className={cn("w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs mt-0.5 z-10", activityMeta.dotClass)}>
-                              <span>{activityMeta.emoji}</span>
-                            </div>
-                            {/* Content */}
-                            <div className="flex-1 bg-card border border-border rounded-card p-3 shadow-soft text-left">
-                              <p className="text-[11px] font-bold text-foreground">{activity.title}</p>
-                              <p className="text-[10px] text-muted-foreground mt-0.5">{activity.description}</p>
-                              <span className="text-[8px] text-muted-foreground/60 block mt-1">
-                                {new Date(activity.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
+              <NotificationsPanel
+                notifications={notifications}
+                handleMarkAllRead={handleMarkAllRead}
+                handleMarkOneRead={handleMarkOneRead}
+                handleDeleteNotification={handleDeleteNotification}
+              />
             )}
 
             {/* TAB: PURCHASE HISTORY */}

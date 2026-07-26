@@ -5,7 +5,7 @@ import { teachingCategories } from '@/mock/data/categories';
 import { 
   GraduationCap, Search, Code, Palette, Music, Activity, Camera, Brain, 
   Video, MessageSquare, Briefcase, TrendingUp, LineChart, Heart, Coffee, 
-  Sparkles, ChevronRight, ChevronLeft, Check 
+  Sparkles, Check 
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -178,14 +178,14 @@ export default function CategoriesSkillsStep() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start max-w-[1200px] mx-auto">
       {/* FORM CARD */}
-      <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-10 shadow-xl">
-        <div className="mb-8 border-b border-slate-800 pb-6">
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
-            <Palette className="w-8 h-8 text-blue-500" />
+      <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] p-6 md:p-10 transition-all duration-300">
+        <div className="mb-8 border-b border-slate-100 dark:border-slate-800 pb-6">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            <Palette className="w-8 h-8 text-blue-600" />
             Categories & Skills
           </h1>
-          <p className="text-sm text-slate-455 mt-2">
-            Select your core teaching domains and add specific skill proficiencies.
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+            Select your core tutoring domains and add specific skill proficiencies.
           </p>
         </div>
 
@@ -193,13 +193,13 @@ export default function CategoriesSkillsStep() {
           {/* Categories Grid Section */}
           <div className="space-y-4">
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-3.5 text-slate-500" />
+              <Search className="w-4 h-4 absolute left-3 top-3.5 text-slate-550" />
               <input
                 type="text"
-                placeholder="Search teaching categories..."
+                placeholder="Search tutoring categories..."
                 value={searchCategory}
                 onChange={e => setSearchCategory(e.target.value)}
-                className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-800 bg-slate-950/30 text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition text-sm"
+                className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition text-sm"
               />
             </div>
 
@@ -214,11 +214,11 @@ export default function CategoriesSkillsStep() {
                     className={`p-4 rounded-2xl text-left border flex items-center gap-3 transition-all duration-200 hover:scale-[1.01] ${
                       isSelected
                         ? 'bg-blue-600 border-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] ring-2 ring-blue-500'
-                        : 'bg-slate-955 border-slate-800 text-slate-350 hover:bg-slate-900/50'
+                        : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/30'
                     }`}
                   >
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-blue-955/30 text-blue-500'
+                      isSelected ? 'bg-white/20 text-white' : 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-500'
                     }`}>
                       {getCategoryIcon(cat)}
                     </div>
@@ -227,21 +227,19 @@ export default function CategoriesSkillsStep() {
                 );
               })}
             </div>
-          </div>
-
-          {/* Dynamic Skill Suggestions Container */}
-          <div className="space-y-4 border-t border-slate-800 pt-6">
+          </div>          {/* Dynamic Skill Suggestions Container */}
+          <div className="space-y-4 border-t border-slate-100 dark:border-slate-800 pt-6">
             <div>
-              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 mb-1">Dynamic Skill Suggestions</h4>
+              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Dynamic Skill Suggestions</h4>
               <p className="text-[11px] text-slate-500">Add recommended skills based on your selected categories.</p>
             </div>
 
             {selectedCategories.length === 0 ? (
-              <div className="p-4 border border-slate-800 rounded-xl bg-slate-950/10 text-xs text-slate-500 italic text-center">
-                Select one or more teaching categories to view recommended skills.
+              <div className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/30 dark:bg-slate-950/10 text-xs text-slate-550 italic text-center">
+                Select one or more tutoring categories to view recommended skills.
               </div>
             ) : dynamicSuggestedSkills.length === 0 ? (
-              <div className="p-4 border border-slate-800 rounded-xl bg-slate-950/10 text-xs text-slate-500 italic text-center">
+              <div className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/30 dark:bg-slate-950/10 text-xs text-slate-550 italic text-center">
                 No recommended skills found for selected categories.
               </div>
             ) : (
@@ -256,11 +254,11 @@ export default function CategoriesSkillsStep() {
                       disabled={isSelected}
                       className={`px-3 py-1.5 text-[11px] font-bold rounded-full border flex items-center gap-1 transition ${
                         isSelected
-                          ? 'bg-blue-950/30 border-blue-900/50 text-blue-400 cursor-not-allowed'
-                          : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-blue-500 hover:text-blue-400'
+                          ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/50 text-blue-600 dark:text-blue-400 cursor-not-allowed'
+                          : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-blue-500 hover:text-blue-600'
                       }`}
                     >
-                      {isSelected && <Check className="w-3 h-3 text-blue-400" />}
+                      {isSelected && <Check className="w-3 h-3 text-blue-600 dark:text-blue-400" />}
                       <span>{skill}</span>
                     </button>
                   );
@@ -270,8 +268,8 @@ export default function CategoriesSkillsStep() {
           </div>
 
           {/* Custom Skill Badge Form */}
-          <div className="p-5 border border-slate-800 rounded-2xl bg-slate-955/20 space-y-4">
-            <h4 className="font-extrabold text-xs uppercase tracking-wider text-slate-400">Add Custom Skill Badge</h4>
+          <div className="p-5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/30 dark:bg-slate-950/20 space-y-4">
+            <h4 className="font-extrabold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Add Custom Skill Badge</h4>
             
             <div className="flex flex-col sm:flex-row gap-3">
               <input
@@ -279,13 +277,13 @@ export default function CategoriesSkillsStep() {
                 placeholder="Python, Public Speaking, UI Design..."
                 value={newSkill}
                 onChange={e => setNewSkill(e.target.value)}
-                className="flex-1 px-4 py-2.5 text-sm rounded-xl border border-slate-800 bg-slate-950/50 text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="flex-1 px-4 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
               
               <select
                 value={newLevel}
                 onChange={e => setNewLevel(e.target.value)}
-                className="px-4 py-2.5 text-sm rounded-xl border border-slate-800 bg-slate-950/50 text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="px-4 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               >
                 <option>Beginner</option>
                 <option>Intermediate</option>
@@ -309,8 +307,8 @@ export default function CategoriesSkillsStep() {
               <div className="flex flex-wrap gap-1.5 pt-2">
                 {skillProficiencies.map((s, idx) => (
                   <span 
-                    key={idx} 
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-950/40 border border-blue-800 text-blue-300 font-bold rounded-xl text-xs"
+                  key={s.skill} 
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-bold rounded-xl text-xs"
                   >
                     {s.skill} • {s.level}
                     <button
@@ -327,11 +325,11 @@ export default function CategoriesSkillsStep() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex justify-between pt-6 border-t border-slate-800">
+          <div className="flex justify-between pt-6 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={goBack}
-              className="px-6 py-2.5 border border-slate-800 text-slate-400 hover:bg-slate-800/50 font-bold rounded-xl transition"
+              className="px-6 py-2.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 font-bold rounded-xl transition"
             >
               Back
             </button>
@@ -347,12 +345,12 @@ export default function CategoriesSkillsStep() {
 
       {/* RIGHT SIDEBAR */}
       <div className="lg:sticky lg:top-24 space-y-6">
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
-          <h4 className="font-bold text-sm text-blue-400 flex items-center gap-2">
+        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100/80 dark:border-slate-800 rounded-3xl p-6 space-y-4">
+          <h4 className="font-bold text-sm text-blue-700 dark:text-blue-400 flex items-center gap-2">
             <Sparkles className="w-4 h-4" />
             Skills Mapping
           </h4>
-          <ul className="text-xs space-y-3 text-slate-400 leading-relaxed list-disc pl-4">
+          <ul className="text-xs space-y-3 text-slate-600 dark:text-slate-400 leading-relaxed list-disc pl-4">
             <li>
               Pills are rounded exactly to help rank search relevancy.
             </li>

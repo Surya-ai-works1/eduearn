@@ -5,6 +5,7 @@ import { create } from "zustand";
 
 import { createClient } from "../lib/supabase";
 import { normalizeError } from "../utils/errors";
+import { IS_MOCK } from "../lib/config";
 
 export interface UserSession {
   id: string;
@@ -36,7 +37,7 @@ interface AuthStore {
   isAuthenticated: boolean;
   isLoading: boolean;
   initialize: () => Promise<void>;
-  login: (email: string, password: string, remember: boolean) => Promise<AuthResult>;
+  login: (email: string, password: string, remember?: boolean) => Promise<AuthResult>;
   loginWithGoogle: () => Promise<AuthResult>;
   register: (email: string, password: string, fullName: string, role?: string) => Promise<AuthResult>;
   resendVerificationEmail: (email: string) => Promise<AuthResult>;
@@ -160,19 +161,21 @@ export const useAuth = create<AuthStore>((set, get) => ({
 
   initialize: async () => {
     try {
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem("eduearn_mock_user");
-        if (stored) {
-          try {
-            const mockUser = JSON.parse(stored);
-            set({ user: mockUser, isAuthenticated: true, isLoading: false });
-          } catch {}
-        }
-      }
-
       const supabase = getSafeSupabase();
-      if (!supabase) {
-        set((s) => ({ isLoading: false }));
+      const isMockMode = !supabase || IS_MOCK;
+
+      if (isMockMode) {
+        if (typeof window !== "undefined") {
+          const stored = localStorage.getItem("eduearn_mock_user");
+          if (stored) {
+            try {
+              const mockUser = JSON.parse(stored);
+              set({ user: mockUser, isAuthenticated: true, isLoading: false });
+              return;
+            } catch {}
+          }
+        }
+        set({ user: null, isAuthenticated: false, isLoading: false });
         return;
       }
 
@@ -181,14 +184,11 @@ export const useAuth = create<AuthStore>((set, get) => ({
       // ── Register listener FIRST so no events are missed during getSession() ─
       supabase.auth.onAuthStateChange((event: any, newSession: any) => {
         if (newSession?.user) {
-          // Set auth state immediately — do NOT await syncProfile here.
-          // syncProfile runs in the background; role falls back to user_metadata.
           set({
             user: toUserSession(newSession.user),
             isAuthenticated: true,
             isLoading: false,
           });
-          // Background sync — updates role from DB without blocking auth.
           syncProfile(supabase, newSession.user).then((profile) => {
             if (profile?.role) {
               set((s) => ({
@@ -201,19 +201,17 @@ export const useAuth = create<AuthStore>((set, get) => ({
         }
       });
 
-      // ── Now read the existing session (fires synchronously from local storage) ─
+      // ── Now read the existing session ─
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
       if (session?.user) {
-        // Set immediately from session without waiting for DB round-trip.
         set({
           user: toUserSession(session.user),
           isAuthenticated: true,
           isLoading: false,
         });
-        // Background DB sync for accurate role.
         syncProfile(supabase, session.user).then((profile) => {
           if (profile?.role) {
             set((s) => ({
@@ -222,23 +220,30 @@ export const useAuth = create<AuthStore>((set, get) => ({
           }
         }).catch(() => { /* sync failure is non-fatal */ });
       } else {
-        if (typeof window !== "undefined" && localStorage.getItem("eduearn_mock_user")) {
-          // Preserve mock user state when no active Supabase session is found
-        } else {
-          set({ user: null, isAuthenticated: false, isLoading: false });
-        }
+        set({ user: null, isAuthenticated: false, isLoading: false });
       }
     } catch (err) {
       console.error("[useAuth initialize] Auth initialization failed:", err);
-    } finally {
       set({ isLoading: false });
     }
   },
 
-  login: async (email, password) => {
+  login: async (email, password, remember = true) => {
     try {
       const supabase = getSafeSupabase();
-      if (!supabase) {
+      
+      // Remember Me persistence logic
+      if (typeof window !== "undefined") {
+        if (remember) {
+          localStorage.setItem("eduearn_remembered_email", email);
+          localStorage.setItem("eduearn_remember_me", "true");
+        } else {
+          localStorage.removeItem("eduearn_remembered_email");
+          localStorage.removeItem("eduearn_remember_me");
+        }
+      }
+
+      if (!supabase || IS_MOCK) {
         // Offline Mock Mode Login
         const stored = typeof window !== "undefined" ? localStorage.getItem("eduearn_mock_user") : null;
         let mockUser = stored ? JSON.parse(stored) : null;
@@ -365,6 +370,26 @@ export const useAuth = create<AuthStore>((set, get) => ({
 
         if (registerRes.ok && registerData.success) {
           console.log("[useAuth register] Server-side registration succeeded:", registerData);
+          
+          if (registerData.sessionCreated) {
+            // Auto-authenticate client if email verification is disabled
+            const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+              email,
+              password
+            });
+            if (!signInErr && signInData.user) {
+              const profile = await syncProfile(supabase, signInData.user);
+              const userRole = profile?.role || signInData.user.user_metadata?.role || role;
+              set({ user: toUserSession(signInData.user, userRole), isAuthenticated: true, isLoading: false });
+              return {
+                ok: true,
+                sessionCreated: true,
+                role: userRole,
+                message: "Account created and logged in successfully!",
+              };
+            }
+          }
+
           set({ isLoading: false });
           return {
             ok: true,
@@ -813,6 +838,28 @@ export const useAuth = create<AuthStore>((set, get) => ({
         console.warn("Sign out exception:", err);
       }
     }
+
+    // Clear stale auth storage and cookies
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("eduearn_mock_user");
+      localStorage.removeItem("tutor_onboarding_state");
+      
+      const rememberMe = localStorage.getItem("eduearn_remember_me");
+      if (rememberMe !== "true") {
+        localStorage.removeItem("eduearn_remembered_email");
+      }
+
+      // Explicitly delete all Supabase auth cookies to prevent Next.js middleware session restoration
+      document.cookie.split(";").forEach((c) => {
+        const name = c.trim().split("=")[0];
+        if (name.startsWith("sb-")) {
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+          // Also try deleting on domain root just in case
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+        }
+      });
+    }
+
     set({ user: null, isAuthenticated: false, isLoading: false });
   },
 }));
@@ -830,7 +877,29 @@ export async function loginWithGoogle() {
 
 export async function logout() {
   const supabase = createClient();
-  await supabase.auth.signOut();
+  try {
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.warn("Standalone sign out exception:", err);
+  }
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("eduearn_mock_user");
+    localStorage.removeItem("tutor_onboarding_state");
+    const rememberMe = localStorage.getItem("eduearn_remember_me");
+    if (rememberMe !== "true") {
+      localStorage.removeItem("eduearn_remembered_email");
+    }
+
+    // Explicitly delete all Supabase auth cookies to prevent Next.js middleware session restoration
+    document.cookie.split(";").forEach((c) => {
+      const name = c.trim().split("=")[0];
+      if (name.startsWith("sb-")) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        // Also try deleting on domain root just in case
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+      }
+    });
+  }
 }
 
 export async function getCurrentUser() {

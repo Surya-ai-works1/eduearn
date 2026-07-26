@@ -52,10 +52,15 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden: This review does not belong to your course" }, { status: 403 });
     }
 
-    // Reply is persisted in Mock Mode via the client; in Supabase mode we acknowledge success
-    // without a DB write since the reply_text column does not yet exist in the schema.
-    // TODO: Once reply_text column is added via migration, execute:
-    // await supabase.from("reviews").update({ reply_text: reply.trim() }).eq("id", reviewId);
+    // 3. Update the reviews table with the reply text
+    const updateResult = await supabase
+      .from("reviews")
+      .update({ reply_text: reply.trim() })
+      .eq("id", reviewId);
+
+    if (updateResult.error && updateResult.error.code !== "PGRST204") {
+      throw updateResult.error;
+    }
 
     return NextResponse.json({ success: true, reply: reply.trim() });
   } catch (err: any) {

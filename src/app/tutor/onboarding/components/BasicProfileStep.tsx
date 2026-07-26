@@ -1,16 +1,31 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOnboarding, OnboardingState } from '@/context/OnboardingContext';
 import { User, Phone, MapPin, Globe, Sparkles, Upload, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase';
 
 const STATE_CITY_DATA: Record<string, string[]> = {
-  'Telangana': ['Hyderabad', 'Secunderabad', 'Warangal', 'Karimnagar'],
-  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Thane'],
-  'Karnataka': ['Bengaluru', 'Mysuru', 'Hubballi', 'Mangaluru'],
-  'California': ['Los Angeles', 'San Francisco', 'San Diego', 'San Jose'],
-  'New York': ['New York City', 'Buffalo', 'Rochester', 'Yonkers'],
-  'Texas': ['Houston', 'Austin', 'Dallas', 'San Antonio'],
+  'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada', 'Guntur', 'Tirupati', 'Kurnool', 'Nellore'],
+  'Telangana': ['Hyderabad', 'Secunderabad', 'Warangal', 'Karimnagar', 'Khammam', 'Nizamabad'],
+  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem', 'Tiruchirappalli', 'Vellore'],
+  'Karnataka': ['Bengaluru', 'Mysuru', 'Hubballi', 'Mangaluru', 'Belagavi', 'Davangere'],
+  'Kerala': ['Thiruvananthapuram', 'Kochi', 'Kozhikode', 'Thrissur', 'Kollam', 'Palakkad'],
+  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Thane', 'Nashik', 'Aurangabad'],
+  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar'],
+  'Rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur', 'Kota', 'Ajmer', 'Bikaner'],
+  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Agra', 'Varanasi', 'Meerut', 'Allahabad'],
+  'Delhi': ['New Delhi', 'Dwarka', 'Rohini', 'Saket', 'Noida', 'Gurugram'],
+  'West Bengal': ['Kolkata', 'Howrah', 'Asansol', 'Siliguri', 'Durgapur', 'Bardhaman'],
+  'Bihar': ['Patna', 'Gaya', 'Bhagalpur', 'Muzaffarpur', 'Darbhanga', 'Purnia'],
+  'Punjab': ['Chandigarh', 'Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda'],
+  'Haryana': ['Gurugram', 'Faridabad', 'Panipat', 'Ambala', 'Karnal', 'Rohtak'],
+  'Madhya Pradesh': ['Bhopal', 'Indore', 'Gwalior', 'Jabalpur', 'Ujjain', 'Sagar'],
+  'Odisha': ['Bhubaneswar', 'Cuttack', 'Rourkela', 'Berhampur', 'Sambalpur', 'Puri'],
+  'Assam': ['Guwahati', 'Dibrugarh', 'Silchar', 'Jorhat', 'Tezpur', 'Bongaigaon'],
+  'Jharkhand': ['Ranchi', 'Jamshedpur', 'Dhanbad', 'Bokaro', 'Deoghar', 'Hazaribagh'],
+  'Himachal Pradesh': ['Shimla', 'Manali', 'Dharamshala', 'Solan', 'Mandi', 'Kullu'],
+  'Uttarakhand': ['Dehradun', 'Haridwar', 'Roorkee', 'Rishikesh', 'Nainital', 'Haldwani'],
 };
 
 function SearchableDropdown({
@@ -104,6 +119,28 @@ export default function BasicProfileStep() {
   const { personalInfo } = state;
   const [photoUploading, setPhotoUploading] = useState(false);
 
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setState((prev: OnboardingState) => ({
+            ...prev,
+            personalInfo: {
+              ...prev.personalInfo,
+              email: prev.personalInfo.email || session.user.email || '',
+              fullName: prev.personalInfo.fullName || session.user.user_metadata?.fullName || session.user.user_metadata?.full_name || '',
+            }
+          }));
+        }
+      } catch (err) {
+        console.warn("Could not pre-populate profile fields from session:", err);
+      }
+    };
+    fetchSession();
+  }, [setState]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setState((prev: OnboardingState) => ({
@@ -160,6 +197,26 @@ export default function BasicProfileStep() {
       return;
     }
 
+    const dob = personalInfo.dob;
+    if (!dob) {
+      toast.error('Please enter your Date of Birth.');
+      return;
+    }
+
+    // Age validation
+    const dobDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - dobDate.getFullYear();
+    const m = today.getMonth() - dobDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+      age--;
+    }
+
+    if (age < 15 || age > 24) {
+      toast.error(`You must be between 15 and 24 years old to become a Student Tutor on EduEarn. Your current age is ${age}.`);
+      return;
+    }
+
     // Atomic state update: Save and proceed in a single tick
     setState((prev: OnboardingState) => ({
       ...prev,
@@ -211,7 +268,7 @@ export default function BasicProfileStep() {
                 type="text"
                 value={personalInfo.displayName}
                 onChange={handleChange}
-                placeholder="Dr. John"
+                placeholder="Rahul S."
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
               />
             </div>
@@ -219,14 +276,14 @@ export default function BasicProfileStep() {
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-              Professional Headline
+              Student Tutor Headline
             </label>
             <input
               name="headline"
               type="text"
               value={personalInfo.headline}
               onChange={handleChange}
-              placeholder="Senior AI Researcher & Mathematics Educator"
+              placeholder="B.Tech 3rd Year | DSA & Web Dev Peer Mentor"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
             />
           </div>
@@ -286,6 +343,40 @@ export default function BasicProfileStep() {
             />
           </div>
 
+          {/* DOB & Gender */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                Date of Birth (Eligible Age: 15–24 Years)
+              </label>
+              <input
+                name="dob"
+                type="date"
+                value={personalInfo.dob || ""}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                Gender
+              </label>
+              <select
+                name="gender"
+                value={personalInfo.gender || "Male"}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
+                required
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
           {/* Languages */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
@@ -296,7 +387,7 @@ export default function BasicProfileStep() {
               type="text"
               value={personalInfo.language}
               onChange={handleChange}
-              placeholder="English, Spanish, Hindi"
+              placeholder="English, Hindi, Telugu, Tamil"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-200"
             />
           </div>
@@ -305,7 +396,7 @@ export default function BasicProfileStep() {
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Professional Biography (Optional)
+                Student Tutor Bio (Optional)
               </label>
               <span className="text-[10px] text-slate-400 font-semibold">
                 {(personalInfo.bio || '').length} / 500
@@ -392,7 +483,7 @@ export default function BasicProfileStep() {
               {personalInfo.displayName || personalInfo.fullName || 'Your Name'}
             </h3>
             <p className="text-xs text-blue-400 mt-1 font-semibold max-w-[200px] line-clamp-1">
-              {personalInfo.headline || 'Professional Headline'}
+              {personalInfo.headline || 'Student Tutor Headline'}
             </p>
           </div>
 
@@ -414,21 +505,40 @@ export default function BasicProfileStep() {
           </p>
         </div>
 
+        {/* Tutor Eligibility Panel */}
+        <div className="bg-emerald-50/50 dark:bg-emerald-950/15 border border-emerald-100/60 dark:border-emerald-900/30 rounded-3xl p-6 space-y-4">
+          <h4 className="font-bold text-sm text-emerald-800 dark:text-emerald-450 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            Who Can Become a Tutor?
+          </h4>
+          <div className="text-xs text-slate-650 dark:text-slate-350">
+            Eligible Age Range: <span className="font-bold text-emerald-600 dark:text-emerald-400">15–24 Years</span>
+          </div>
+          <ul className="text-xs space-y-2 text-slate-600 dark:text-slate-400 leading-relaxed list-none pl-0">
+            <li className="flex items-center gap-2"><span className="text-emerald-500 font-bold">✓</span> Class 10 Student</li>
+            <li className="flex items-center gap-2"><span className="text-emerald-500 font-bold">✓</span> Intermediate Student</li>
+            <li className="flex items-center gap-2"><span className="text-emerald-500 font-bold">✓</span> Diploma / Polytechnic Student</li>
+            <li className="flex items-center gap-2"><span className="text-emerald-500 font-bold">✓</span> Undergraduate Student (B.Tech, B.Sc, BCA, etc.)</li>
+            <li className="flex items-center gap-2"><span className="text-emerald-500 font-bold">✓</span> Postgraduate Student (M.Tech, MCA, M.Sc, etc.)</li>
+            <li className="flex items-center gap-2"><span className="text-emerald-500 font-bold">✓</span> Fresh Graduate (within age limit)</li>
+          </ul>
+        </div>
+
         {/* Guidance Panel */}
         <div className="bg-blue-50/50 dark:bg-blue-950/15 border border-blue-100/60 dark:border-blue-900/30 rounded-3xl p-6 space-y-4">
           <h4 className="font-bold text-sm text-blue-800 dark:text-blue-400 flex items-center gap-2">
             <Sparkles className="w-4 h-4" />
-            Instructor Guidance
+            Student Tutor Guidance
           </h4>
           <ul className="text-xs space-y-3 text-slate-600 dark:text-slate-400 leading-relaxed list-disc pl-4">
             <li>
-              Use your <strong>real name</strong> or professional moniker for display.
+              Use your <strong>real name</strong> or public nickname for display.
             </li>
             <li>
-              A short, punchy <strong>professional headline</strong> attracts 40% more student clicks.
+              A short, punchy <strong>peer-tutor headline</strong> (e.g. B.Tech 3rd Year) attracts 40% more student enrollees.
             </li>
             <li>
-              Keep your bio conversational and highlight your passion for teaching.
+              Keep your bio conversational and highlight your hobby projects or hackathon accomplishments.
             </li>
           </ul>
         </div>

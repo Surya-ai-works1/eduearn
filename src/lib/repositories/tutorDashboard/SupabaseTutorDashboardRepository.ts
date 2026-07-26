@@ -35,125 +35,132 @@ export class SupabaseTutorDashboardRepository implements ITutorDashboardReposito
 
     const courseIds = courses.map((c: any) => c.id);
 
-    // 2. Fetch Enrollments
-    const { data: enrollments } = await supabase
-      .from("enrollments")
-      .select("*, profiles:learner_id(full_name), courses(title)")
-      .in("course_id", courseIds)
-      .order("created_at", { ascending: false });
-
-    const totalStudents = enrollments ? enrollments.length : 0;
-    const activeStudents = enrollments
-      ? enrollments.filter((e: any) => Number(e.progress || 0) > 0).length
-      : 0;
-
-    const recentEnrollments: RecentEnrollment[] = enrollments
-      ? enrollments.slice(0, 10).map((e: any) => ({
-          id: e.id,
-          studentName: e.profiles?.full_name || "Enrolled Student",
-          courseName: e.courses?.title || "Course Module",
-          enrolledAt: e.created_at,
-        }))
-      : [];
-
-    // 3. Fetch Revenue
-    const { data: earnings } = await supabase
-      .from("tutor_earnings")
-      .select("total_earnings")
-      .eq("tutor_id", tutorId)
-      .maybeSingle();
-
-    const totalRevenue = earnings ? Number(earnings.total_earnings) : 0;
-
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const { data: payments } = await supabase
-      .from("payments")
-      .select("amount")
-      .in("course_id", courseIds)
-      .eq("status", "success")
-      .gte("created_at", startOfMonth.toISOString());
+    // 2. Fetch all dependent metrics in parallel to improve load performance
+    const [
+      enrollmentsRes,
+      earningsRes,
+      paymentsRes,
+      assignmentsRes,
+      reviewsRes
+    ] = await Promise.all([
+      supabase
+        .from("enrollments")
+        .select("*, profiles:learner_id(full_name), courses(title)")
+        .in("course_id", courseIds)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("tutor_earnings")
+        .select("total_earnings")
+        .eq("tutor_id", tutorId)
+        .maybeSingle(),
+      supabase
+        .from("payments")
+        .select("amount")
+        .in("course_id", courseIds)
+        .eq("status", "success")
+        .gte("created_at", startOfMonth.toISOString()),
+      supabase
+        .from("assignments")
+        .select("id")
+        .in("course_id", courseIds),
+      supabase
+        .from("reviews")
+        .select("id, rating, comment, created_at, profiles:user_id(full_name), courses(title)")
+        .in("course_id", courseIds)
+        .order("created_at", { ascending: false })
+    ]);
 
-    const monthlyRevenue = payments
-      ? payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0) * 0.70
-      : 0;
+    if (enrollmentsRes.error) console.error("TutorDashboard fetchEnrollments error:", enrollmentsRes.error);
+    if (earningsRes.error) console.error("TutorDashboard fetchEarnings error:", earningsRes.error);
+    if (paymentsRes.error) console.error("TutorDashboard fetchPayments error:", paymentsRes.error);
+    if (assignmentsRes.error) console.error("TutorDashboard fetchAssignments error:", assignmentsRes.error);
+    if (reviewsRes.error) console.error("TutorDashboard fetchReviews error:", reviewsRes.error);
 
-    // 4. Fetch Pending Assignments
+    const enrollments = enrollmentsRes.data || [];
+    const earnings = earningsRes.data;
+    const payments = paymentsRes.data || [];
+    const assignments = assignmentsRes.data || [];
+    const reviews = reviewsRes.data || [];
+
+    const totalStudents = enrollments.length;
+    const activeStudents = enrollments.filter((e: any) => Number(e.progress || 0) > 0).length;
+
+    const recentEnrollments: RecentEnrollment[] = enrollments.slice(0, 10).map((e: any) => ({
+      id: e.id,
+      studentName: e.profiles?.full_name || "Enrolled Student",
+      courseName: e.courses?.title || "Course Module",
+      enrolledAt: e.created_at,
+    }));
+
+    // 3. Process Revenue
+    const totalRevenue = earnings ? Number(earnings.total_earnings) : 0;
+    const monthlyRevenue = payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0) * 0.70;
+
+    // 4. Fetch Pending Assignments and Recent Submissions in parallel
     let pendingAssignments = 0;
-    let assignmentIds: string[] = [];
-    const { data: assignments } = await supabase
-      .from("assignments")
-      .select("id")
-      .in("course_id", courseIds);
+    let submissions: any[] = [];
+    const assignmentIds: string[] = assignments.map((a: any) => a.id);
 
-    if (assignments && assignments.length > 0) {
-      assignmentIds = assignments.map((a: any) => a.id);
-      const { count } = await supabase
-        .from("assignment_submissions")
-        .select("id", { count: "exact", head: true })
-        .in("assignment_id", assignmentIds)
-        .is("grade", null);
-      pendingAssignments = count || 0;
+    if (assignmentIds.length > 0) {
+      const [submissionsCountRes, submissionsListRes] = await Promise.all([
+        supabase
+          .from("assignment_submissions")
+          .select("id", { count: "exact", head: true })
+          .in("assignment_id", assignmentIds)
+          .is("grade", null),
+        supabase
+          .from("assignment_submissions")
+          .select("id, created_at, student_id, profiles:student_id(full_name), assignments(title, courses(title))")
+          .in("assignment_id", assignmentIds)
+          .order("created_at", { ascending: false })
+          .limit(5)
+      ]);
+
+      if (submissionsCountRes.error) console.error("TutorDashboard submissionsCount error:", submissionsCountRes.error);
+      if (submissionsListRes.error) console.error("TutorDashboard submissionsList error:", submissionsListRes.error);
+
+      pendingAssignments = submissionsCountRes.count || 0;
+      submissions = submissionsListRes.data || [];
     }
 
-    // 5. Fetch Pending Reviews
-    const { data: reviews } = await supabase
-      .from("reviews")
-      .select("id, rating, comment, created_at, profiles:user_id(full_name), courses(title)")
-      .in("course_id", courseIds)
-      .order("created_at", { ascending: false });
+    const pendingReviews = reviews.length;
 
-    const pendingReviews = reviews ? reviews.length : 0;
-
-    // 6. Build Recent Activities Timeline Dynamically
+    // 5. Build Recent Activities Timeline Dynamically
     const recentActivities: RecentActivity[] = [];
 
     // Add recent enrollments to activities
-    if (enrollments) {
-      enrollments.slice(0, 5).forEach((e: any) => {
-        recentActivities.push({
-          id: `act-enr-${e.id}`,
-          type: "enrollment",
-          title: `${e.profiles?.full_name || "A student"} enrolled in ${e.courses?.title || "your course"}`,
-          createdAt: e.created_at,
-        });
+    enrollments.slice(0, 5).forEach((e: any) => {
+      recentActivities.push({
+        id: `act-enr-${e.id}`,
+        type: "enrollment",
+        title: `${e.profiles?.full_name || "A student"} enrolled in ${e.courses?.title || "your course"}`,
+        createdAt: e.created_at,
       });
-    }
+    });
 
     // Add recent reviews to activities
-    if (reviews) {
-      reviews.slice(0, 5).forEach((r: any) => {
-        recentActivities.push({
-          id: `act-rev-${r.id}`,
-          type: "review",
-          title: `${r.profiles?.full_name || "A student"} added a ${r.rating}★ review to ${r.courses?.title || "your course"}`,
-          createdAt: r.created_at,
-        });
+    reviews.slice(0, 5).forEach((r: any) => {
+      recentActivities.push({
+        id: `act-rev-${r.id}`,
+        type: "review",
+        title: `${r.profiles?.full_name || "A student"} added a ${r.rating}★ review to ${r.courses?.title || "your course"}`,
+        createdAt: r.created_at,
       });
-    }
+    });
 
     // Add recent assignment submissions to activities
-    if (assignmentIds.length > 0) {
-      const { data: submissions } = await supabase
-        .from("assignment_submissions")
-        .select("id, created_at, student_id, profiles:student_id(full_name), assignments(title, courses(title))")
-        .in("assignment_id", assignmentIds)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      if (submissions) {
-        submissions.forEach((s: any) => {
-          recentActivities.push({
-            id: `act-sub-${s.id}`,
-            type: "submission",
-            title: `${s.profiles?.full_name || "A student"} submitted assignment for ${s.assignments?.courses?.title || "your course"}`,
-            createdAt: s.created_at,
-          });
-        });
-      }
-    }
+    submissions.forEach((s: any) => {
+      recentActivities.push({
+        id: `act-sub-${s.id}`,
+        type: "submission",
+        title: `${s.profiles?.full_name || "A student"} submitted assignment for ${s.assignments?.courses?.title || "your course"}`,
+        createdAt: s.created_at,
+      });
+    });
 
     // Sort all activities by date descending and limit to top 10
     recentActivities.sort(

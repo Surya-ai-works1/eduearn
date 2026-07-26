@@ -76,30 +76,50 @@ export class SupabaseFinanceManagementRepository implements IFinanceManagementRe
       throw new Error("Insufficient balance");
     }
 
-    // 2. Insert withdrawal request
-    // TODO: Add payment_method and bank_details columns to public.withdrawal_requests table in future database migration
-    const { data: wthData, error: wthErr } = await supabase
+    // 2. Insert withdrawal request with backward-compatible fallback
+    let wthResult = await supabase
       .from("withdrawal_requests")
       .insert({
         tutor_id: tutorId,
         amount: amount,
         status: "pending",
+        payment_method: method,
+        bank_details: bankDetails,
       })
       .select()
       .single();
 
-    if (wthErr || !wthData) {
-      throw wthErr || new Error("Failed to insert withdrawal request");
+    if (wthResult.error && wthResult.error.code === "PGRST204") {
+      // Fallback for older database schemas without payment_method/bank_details columns
+      wthResult = await supabase
+        .from("withdrawal_requests")
+        .insert({
+          tutor_id: tutorId,
+          amount: amount,
+          status: "pending",
+        })
+        .select()
+        .single();
     }
+
+    if (wthResult.error || !wthResult.data) {
+      throw wthResult.error || new Error("Failed to insert withdrawal request");
+    }
+
+    const wthData = wthResult.data;
 
     // 3. Deduct available balance
     const newAvailable = Math.max(0, currentAvailable - amount);
-    await supabase
+    const { error: deductErr } = await supabase
       .from("tutor_earnings")
       .update({
         available_balance: newAvailable,
       })
       .eq("tutor_id", tutorId);
+
+    if (deductErr) {
+      throw new Error(`Failed to deduct balance: ${deductErr.message}`);
+    }
 
     return {
       id: wthData.id,

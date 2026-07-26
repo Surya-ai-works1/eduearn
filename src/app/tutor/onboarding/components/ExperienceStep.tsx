@@ -47,7 +47,7 @@ function SearchableMultiSelect({
 
   return (
     <div className="relative w-full" ref={dropdownRef}>
-      <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
         {label}
       </label>
       
@@ -59,7 +59,7 @@ function SearchableMultiSelect({
           selected.map(opt => (
             <span
               key={opt}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-950/40 text-blue-300 text-xs font-bold border border-blue-800"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800"
             >
               {opt}
               <button
@@ -77,21 +77,21 @@ function SearchableMultiSelect({
       <button
         type="button"
         onClick={() => { setIsOpen(!isOpen); setSearch(''); }}
-        className="w-full px-4 py-3 rounded-xl border border-slate-800 bg-slate-950/30 text-left text-slate-300 flex items-center justify-between focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition text-sm"
+        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-left text-slate-700 dark:text-slate-300 flex items-center justify-between focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition text-sm"
       >
-        <span className="text-slate-500">Add languages...</span>
-        <span className="text-slate-550 text-xs">▼</span>
+        <span className="text-slate-400 dark:text-slate-500">Add languages...</span>
+        <span className="text-slate-400 text-xs">▼</span>
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1.5 w-full bg-slate-900 border border-slate-800 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-          <div className="p-2 bg-slate-900 border-b border-slate-800 sticky top-0 z-10">
+        <div className="absolute z-50 mt-1.5 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+          <div className="p-2 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
             <input
               type="text"
               placeholder="Search languages..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-800 bg-slate-950/30 text-slate-100 focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500"
             />
           </div>
           <div className="py-1">
@@ -106,7 +106,7 @@ function SearchableMultiSelect({
                     toggleOption(opt);
                     setSearch('');
                   }}
-                  className="w-full px-4 py-2 text-left text-xs text-slate-300 hover:bg-slate-800 transition-colors"
+                  className="w-full px-4 py-2 text-left text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   + {opt}
                 </button>
@@ -163,15 +163,15 @@ function DragDropUploadZone({
 
   return (
     <div className="space-y-1.5 w-full">
-      <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
         {label}
       </label>
       
       {fileName ? (
-        <div className="p-4 border border-slate-800 rounded-xl bg-slate-950/40 flex items-center justify-between gap-4">
+        <div className="p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950/40 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="text-emerald-500 font-bold text-sm">✓</span>
-            <span className="text-xs font-semibold text-slate-300 max-w-[200px] truncate">{fileName}</span>
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 max-w-[200px] truncate">{fileName}</span>
             {progress !== undefined && progress < 100 && (
               <span className="text-[10px] text-slate-500">({progress}%)</span>
             )}
@@ -208,14 +208,14 @@ function DragDropUploadZone({
           onClick={() => inputRef.current?.click()}
           className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all duration-200 ${
             isDragOver 
-              ? 'border-blue-500 bg-blue-950/20' 
-              : 'border-slate-800 bg-slate-950/10 hover:border-blue-500/50'
+              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20' 
+              : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/10 hover:border-blue-500/50'
           }`}
         >
           <div className="flex flex-col items-center gap-1.5 text-slate-500">
-            <Upload className="w-5 h-5 text-blue-500" />
-            <span className="text-xs font-semibold text-slate-350">
-              Drag & Drop file or <span className="text-blue-500 hover:underline">browse</span>
+            <Upload className="w-5 h-5 text-blue-600 dark:text-blue-500" />
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+              Drag &amp; Drop file or <span className="text-blue-600 dark:text-blue-500 hover:underline">browse</span>
             </span>
             <span className="text-[10px] text-slate-500">Supports: PDF, Image, DOC</span>
           </div>
@@ -278,46 +278,46 @@ export default function ExperienceStep() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start max-w-[1200px] mx-auto">
       {/* FORM CARD */}
-      <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-10 shadow-xl">
-        <div className="mb-8 border-b border-slate-800 pb-6">
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
-            <Briefcase className="w-8 h-8 text-blue-500" />
-            Experience & Teaching
+      <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] p-6 md:p-10 transition-all duration-300">
+        <div className="mb-8 border-b border-slate-100 dark:border-slate-800 pb-6">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            <Briefcase className="w-8 h-8 text-blue-600" />
+            Experience & Mentoring
           </h1>
-          <p className="text-sm text-slate-455 mt-2">
-            Outline your professional experience and spoken languages.
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+            Outline your peer tutoring or academic mentoring accomplishments and spoken languages.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Teaching Experience (Years)</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Mentoring Experience (Years)</label>
               <input
                 type="number"
                 min={0}
                 value={teachingExpYears}
                 onChange={e => setTeachingExpYears(e.target.value)}
-                placeholder="e.g. 3"
-                className="w-full px-4 py-3 rounded-xl border border-slate-800 bg-slate-950/30 text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition text-sm"
+                placeholder="e.g. 1"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition text-sm"
                 required
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Key Accomplishments</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Key Accomplishments</label>
               <textarea
                 rows={2}
                 value={achievements}
                 onChange={e => setAchievements(e.target.value)}
-                placeholder="e.g., Co-authored AI research papers, taught over 500+ successful software engineering bootcamp graduates."
-                className="w-full px-4 py-3 rounded-xl border border-slate-800 bg-slate-950/30 text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition text-sm"
+                placeholder="e.g., Led peer study groups in Calculus, active coding club member, hackathon participant, mentored Class 10 students."
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition text-sm"
               />
             </div>
           </div>
 
           <DragDropUploadZone
-            label="Teaching Experience Proof"
+            label="Activity Proof / Recommendation Letter (Optional)"
             fileName={experienceDocName}
             progress={experienceDocProgress}
             onUpload={(name) => {
@@ -348,17 +348,17 @@ export default function ExperienceStep() {
           />
 
           {/* Action buttons */}
-          <div className="flex justify-between pt-6 border-t border-slate-800">
+          <div className="flex justify-between pt-6 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={goBack}
-              className="px-6 py-2.5 border border-slate-800 text-slate-400 hover:bg-slate-800/50 font-bold rounded-xl transition"
+              className="px-6 py-2.5 border border-slate-200 dark:border-slate-800 text-slate-650 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 font-bold rounded-xl transition"
             >
               Back
             </button>
             <button
               type="submit"
-              className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg transition"
+              className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-700 hover:to-indigo-750 text-white font-bold rounded-xl shadow-lg transition"
             >
               Save & Proceed
             </button>
@@ -368,20 +368,20 @@ export default function ExperienceStep() {
 
       {/* RIGHT SIDEBAR */}
       <div className="lg:sticky lg:top-24 space-y-6">
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
-          <h4 className="font-bold text-sm text-blue-400 flex items-center gap-2">
+        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100/80 dark:border-slate-800 rounded-3xl p-6 space-y-4">
+          <h4 className="font-bold text-sm text-blue-700 dark:text-blue-400 flex items-center gap-2">
             <Sparkles className="w-4 h-4" />
-            Instructor Guidance
+            Student Tutor Guidance
           </h4>
-          <ul className="text-xs space-y-3 text-slate-400 leading-relaxed list-disc pl-4">
+          <ul className="text-xs space-y-3 text-slate-600 dark:text-slate-400 leading-relaxed list-disc pl-4">
             <li>
-              Outline your career accomplishments in details.
+              Outline your student tutoring, mentoring, or school/college project leadership accomplishments.
             </li>
             <li>
-              Attach certificates or letters of active teaching employment.
+              Optional: Attach recommendation letters, club participation certificates, or volunteer proofs.
             </li>
             <li>
-              Pick multiple languages to reach students worldwide.
+              Pick multiple languages to connect with student peers across diverse regions in India.
             </li>
           </ul>
         </div>

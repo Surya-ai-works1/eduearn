@@ -13,7 +13,9 @@ export async function POST(request: Request) {
 
     console.log(`[Register API] Processing registration for email: ${email}, role: ${role}`);
 
-    const isDisableVerification = process.env.NEXT_PUBLIC_DISABLE_EMAIL_VERIFICATION === "true";
+    const isDisableVerification =
+      process.env.NEXT_PUBLIC_DISABLE_EMAIL_VERIFICATION === "true" ||
+      process.env.DEV_DISABLE_EMAIL_VERIFICATION === "true";
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const brevoApiKey = process.env.BREVO_API_KEY;
 

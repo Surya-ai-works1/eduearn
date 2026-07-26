@@ -7,7 +7,7 @@ import React, {
   useMemo,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 
 // ─── Auth & Infrastructure ────────────────────────────────────────────────────
@@ -64,11 +64,15 @@ export default function TutorDashboardPage() {
   const { user, logout, completeProfile } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const supabase = createClient();
 
   // ─── Navigation ────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+
+  
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -98,17 +102,34 @@ export default function TutorDashboardPage() {
     };
   }, [isSidebarCollapsed]);
 
-  // ─── App Status ────────────────────────────────────────────────────────────
+  // ─── App Status (authoritatively fetched from Supabase) ──────────────────────────────────
   const [appStatus, setAppStatus] = useState<
     "approved" | "pending" | "rejected" | "suspended" | "blacklisted"
-  >("approved");
+  >("pending");
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("tutor_application_status");
-      if (saved) setAppStatus(saved as "approved" | "pending" | "rejected" | "suspended" | "blacklisted");
-    }
-  }, []);
+    if (!user) return;
+    const fetchAppStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("tutor_verifications")
+          .select("status")
+          .eq("tutor_id", user.id)
+          .maybeSingle();
+        if (error) throw error;
+        if (data?.status) {
+          const rawStatus = (data.status as string).toLowerCase();
+          const validStatuses = ["approved", "pending", "rejected", "suspended", "blacklisted"];
+          if (validStatuses.includes(rawStatus)) {
+            setAppStatus(rawStatus as typeof appStatus);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch tutor application status from database:", err);
+      }
+    };
+    fetchAppStatus();
+  }, [user, supabase]);
 
   // ─── Course Management ─────────────────────────────────────────────────────
   const [myCourses, setMyCourses] = useState<TutorCourse[]>([]);
@@ -136,40 +157,32 @@ export default function TutorDashboardPage() {
   const [coursePage, setCoursePage] = useState(1);
   const [courseTotalPages, setCourseTotalPages] = useState(1);
 
+  // Auto-suggest price based on level/category (suggestion only — does not override user edits)
+  const [priceAutoSet, setPriceAutoSet] = useState(false);
   useEffect(() => {
+    if (priceAutoSet) return; // Only auto-suggest on initial category/level selection
     let calculatedPrice = 999;
     if (courseForm.level === "intermediate") calculatedPrice = 1299;
     if (courseForm.level === "advanced") calculatedPrice = 1499;
     if (courseForm.category?.toLowerCase().includes("ai")) calculatedPrice = 1999;
-    if (courseForm.price !== calculatedPrice) {
-      setCourseForm((prev) => ({ ...prev, price: calculatedPrice }));
-    }
-  }, [courseForm.category, courseForm.level, courseForm.price]);
+    setCourseForm((prev) => ({ ...prev, price: calculatedPrice }));
+    setPriceAutoSet(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseForm.category, courseForm.level]);
 
   // ─── Curriculum Builder ────────────────────────────────────────────────────
   const [activeBuilderCourseId, setActiveBuilderCourseId] = useState<string | null>(null);
-  const [curriculumModules, setCurriculumModules] = useState<CurriculumModule[]>([
-    { id: "module-t1", title: "Module 1: Sandbox Workspace Configuration", lessons: [
-      { id: "les-t1", title: "Overview of Syllabus Milestones", type: "Video", duration: "10 mins", preview: true },
-      { id: "les-t2", title: "Downloading Core Worksheets", type: "PDF", duration: "2 mins", preview: false },
-    ]},
-  ]);
+  const [curriculumModules, setCurriculumModules] = useState<CurriculumModule[]>([]);
   const [newModuleName, setNewModuleName] = useState("");
   const [activeModuleIdForLesson, setActiveModuleIdForLesson] = useState<string | null>(null);
   const [lessonForm, setLessonForm] = useState({ title: "", type: "Video" as "Video" | "PDF" | "Quiz" | "Assignment", duration: "5 mins" });
   const [isAutoSaving, setIsAutoSaving] = useState(false);
 
   // ─── Media / Resources ─────────────────────────────────────────────────────
-  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([
-    { id: "media-1", name: "calculus-syllabus-outline.pdf", size: "2.4 MB", type: "PDF" },
-    { id: "media-2", name: "figma-grids-preview.zip", size: "12.8 MB", type: "Zip" },
-  ]);
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
 
   // ─── Students ──────────────────────────────────────────────────────────────
-  const [students, setStudents] = useState<StudentProgress[]>([
-    { id: "stud-1", name: "Rahul Verma", courseTitle: "Introduction to Calculus & Geometry Applications", progress: 68, assignmentStatus: "Submitted", submittedFile: "derivatives-worksheet.pdf", attendance: 88, quizScore: "B+", certificateEarned: false },
-    { id: "stud-2", name: "Sneha Roy", courseTitle: "UI/UX Figma Design: Layouts & Grids Essentials", progress: 100, assignmentStatus: "Graded", submittedFile: "figma-navigation-sidebar.zip", grade: "A", feedback: "Spectacular layouts!", attendance: 98, quizScore: "A+", certificateEarned: true },
-  ]);
+  const [students, setStudents] = useState<StudentProgress[]>([]);
   const [activeGradingStudentId, setActiveGradingStudentId] = useState<string | null>(null);
   const [gradingForm, setGradingForm] = useState({ grade: "A", feedback: "", score: "" });
   const [studentSearch, setStudentSearch] = useState("");
@@ -178,14 +191,7 @@ export default function TutorDashboardPage() {
   const [studentSortBy, setStudentSortBy] = useState("name-asc");
 
   // ─── Live Classes ──────────────────────────────────────────────────────────
-  const [liveSessions, setLiveSessions] = useState<LiveSession[]>(() => {
-    if (typeof window === "undefined") return [{ id: "live-t1", title: "Interactive Q&A Session: Linear Algebra Doubts", time: "Today, 5:00 PM IST", countdown: "Starts in 2 hours", meetingLink: "https://meet.eduearn.com/tutor-algebra", platform: "Google Meet", status: "Scheduled", studentsCount: 3, attendanceCount: 3 }];
-    try {
-      const saved = localStorage.getItem("eduearn_live_classes");
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [{ id: "live-t1", title: "Interactive Q&A Session: Linear Algebra Doubts", time: "Today, 5:00 PM IST", countdown: "Starts in 2 hours", meetingLink: "https://meet.eduearn.com/tutor-algebra", platform: "Google Meet", status: "Scheduled", studentsCount: 3, attendanceCount: 3 }];
-  });
+  const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
   const [isSchedulingLive, setIsSchedulingLive] = useState(false);
   const [liveForm, setLiveForm] = useState<{ title: string; time: string; platform: "Google Meet" | "Zoom" | "Microsoft Teams"; link: string; password?: string; recordingUrl?: string; attachments?: string; notes?: string; }>({ title: "", time: "", link: "", platform: "Google Meet", password: "", recordingUrl: "", attachments: "", notes: "" });
 
@@ -223,9 +229,7 @@ export default function TutorDashboardPage() {
   );
 
   // ─── Reviews ───────────────────────────────────────────────────────────────
-  const [reviews, setReviews] = useState<Review[]>([
-    { id: "rev-1", courseTitle: "Introduction to Calculus & Geometry Applications", authorName: "Rahul Verma", rating: 5.0, comment: "Outstanding lessons! Explained difficult derivations very simply." },
-  ]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [activeReplyReviewId, setActiveReplyReviewId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
 
@@ -689,8 +693,14 @@ export default function TutorDashboardPage() {
     try {
       const courseId = myCourses[0].id;
       
-      const scheduledAt = new Date();
-      scheduledAt.setHours(scheduledAt.getHours() + 2);
+      // Use the user-provided time, or fall back to 2 hours from now if none given
+      let scheduledAt: Date;
+      if (liveForm.time) {
+        const parsed = new Date(liveForm.time);
+        scheduledAt = isNaN(parsed.getTime()) ? new Date(Date.now() + 2 * 60 * 60 * 1000) : parsed;
+      } else {
+        scheduledAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+      }
       
       const dbSession = await lmsDb.addLiveClass(courseId, user.id, {
         title: liveForm.title,
@@ -821,6 +831,7 @@ export default function TutorDashboardPage() {
               <AnimatePresence mode="wait">
                 {/* Dashboard */}
                 {activeTab === "dashboard" && (
+                  <motion.div key="dashboard" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                   <DashboardOverview
                     user={user ? { fullName: user.fullName || "Tutor" } : null}
                     myCourses={myCourses}
@@ -838,10 +849,12 @@ export default function TutorDashboardPage() {
                     recentEnrollments={recentEnrollments}
                     recentActivities={recentActivities}
                   />
+                  </motion.div>
                 )}
 
                 {/* Courses */}
                 {activeTab === "courses" && (
+                  <motion.div key="courses" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                   <CourseManager
                     myCourses={myCourses}
                     setMyCourses={setMyCourses}
@@ -881,10 +894,12 @@ export default function TutorDashboardPage() {
                     setLessons={setLessons}
                     lessonsLoading={lessonsLoading}
                   />
+                  </motion.div>
                 )}
 
                 {/* Students */}
                 {activeTab === "students" && (
+                  <motion.div key="students" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                   <StudentManager
                     students={students}
                     myCourses={myCourses}
@@ -898,10 +913,12 @@ export default function TutorDashboardPage() {
                     setStudentSortBy={setStudentSortBy}
                     onIssueCertificate={handleIssueCertificate}
                   />
+                  </motion.div>
                 )}
 
                 {/* Live Classes */}
                 {activeTab === "live-classes" && (
+                  <motion.div key="live-classes" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                   <LiveClasses
                     liveSessions={liveSessions}
                     setLiveSessions={setLiveSessions}
@@ -912,10 +929,12 @@ export default function TutorDashboardPage() {
                     handleScheduleLive={handleScheduleLive}
                     isGateTriggered={isGateTriggered}
                   />
+                  </motion.div>
                 )}
 
                 {/* Assignments */}
                 {activeTab === "assignments" && (
+                  <motion.div key="assignments" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                   <Assignments
                     students={students}
                     activeGradingStudentId={activeGradingStudentId}
@@ -924,28 +943,34 @@ export default function TutorDashboardPage() {
                     setGradingForm={setGradingForm}
                     handleSubmitGrade={handleSubmitGrade}
                   />
+                  </motion.div>
                 )}
 
                 {/* Calendar */}
                 {activeTab === "calendar" && (
+                  <motion.div key="calendar" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                   <CalendarView
                     onScheduleLive={() => { handleTabChange("live-classes"); setIsSchedulingLive(true); }}
                     liveSessions={liveSessions}
                   />
+                  </motion.div>
                 )}
 
                 {/* Resources */}
                 {activeTab === "resources" && (
+                  <motion.div key="resources" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                   <Resources
                     mediaFiles={mediaFiles}
                     setMediaFiles={setMediaFiles}
                     platformConfig={platformConfig}
                     calculateTotalMediaSizeMB={calculateTotalMediaSizeMB}
                   />
+                  </motion.div>
                 )}
 
                 {/* AI Studio */}
                 {activeTab === "ai-studio" && (
+                  <motion.div key="ai-studio" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                   <AIStudio
                     myCourses={myCourses}
                     aiTokensUsed={aiTokensUsed}
@@ -953,19 +978,23 @@ export default function TutorDashboardPage() {
                     setIsAiModalOpen={setIsAiModalOpen}
                     setAiModalConfig={setAiModalConfig}
                   />
+                  </motion.div>
                 )}
 
                 {/* Analytics */}
                 {activeTab === "analytics" && (
+                  <motion.div key="analytics" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                   <Analytics
                     myCourses={myCourses}
                     students={students}
                     earningsBalance={earningsBalanceState}
                   />
+                  </motion.div>
                 )}
 
-                {/* Finance (replaces wallet + earnings) */}
+                {/* Finance */}
                 {activeTab === "finance" && (
+                  <motion.div key="finance" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                   <Finance
                     earningsBalance={earningsBalanceState}
                     withdrawalsState={withdrawalsState}
@@ -973,10 +1002,12 @@ export default function TutorDashboardPage() {
                     setWithdrawForm={setWithdrawForm}
                     handleWithdrawalRequest={handleWithdrawalRequest}
                   />
+                  </motion.div>
                 )}
 
                 {/* Reviews */}
                 {activeTab === "reviews" && (
+                  <motion.div key="reviews" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                   <Reviews
                     reviews={reviews}
                     setReviews={setReviews}
@@ -985,20 +1016,33 @@ export default function TutorDashboardPage() {
                     replyText={replyText}
                     setReplyText={setReplyText}
                   />
+                  </motion.div>
                 )}
 
-
                 {/* Notifications */}
-                {activeTab === "notifications" && <TutorNotifications />}
+                {activeTab === "notifications" && (
+                  <motion.div key="notifications" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+                  <TutorNotifications />
+                  </motion.div>
+                )}
 
                 {/* Messages */}
-                {activeTab === "messages" && <Messages />}
+                {activeTab === "messages" && (
+                  <motion.div key="messages" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+                  <Messages />
+                  </motion.div>
+                )}
 
                 {/* Community */}
-                {activeTab === "community" && <Community />}
+                {activeTab === "community" && (
+                  <motion.div key="community" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+                  <Community />
+                  </motion.div>
+                )}
 
                 {/* Settings */}
                 {activeTab === "settings" && (
+                  <motion.div key="settings" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
                   <Settings
                     tutorProfileForm={tutorProfileForm}
                     setTutorProfileForm={setTutorProfileForm}
@@ -1011,8 +1055,12 @@ export default function TutorDashboardPage() {
                     setIsIdUploaded={setIsIdUploaded}
                     appStatus={appStatus}
                   />
+                  </motion.div>
                 )}
               </AnimatePresence>
+
+
+
             </main>
           </div>
         </div>

@@ -333,25 +333,25 @@ export default function AIAssessmentStep() {
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8 items-start max-w-[1100px] mx-auto">
 
       {/* ── MAIN PANEL ── */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-xl overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] overflow-hidden transition-all duration-300">
 
         {/* Header */}
-        <div className="px-8 pt-8 pb-5 border-b border-slate-800">
+        <div className="px-8 pt-8 pb-5 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-9 h-9 rounded-xl bg-blue-600/10 border border-blue-600/20 flex items-center justify-center">
-              <Brain className="w-5 h-5 text-blue-500" />
+            <div className="w-9 h-9 rounded-xl bg-blue-600/10 border border-blue-650/20 flex items-center justify-center">
+              <Brain className="w-5 h-5 text-blue-600 dark:text-blue-500" />
             </div>
             <div>
-              <h1 className="text-xl font-extrabold text-white tracking-tight">AI Competency Assessment</h1>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                Our AI evaluates your teaching expertise, subject knowledge, and instructional quality before your profile is reviewed.
+              <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">AI Competency Assessment</h1>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                Our AI evaluates your tutoring expertise, subject knowledge, and peer-teaching quality before your profile is reviewed.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Body */}
-        <div className="px-8 py-8 min-h-[400px] flex flex-col">
+        {/* Body — wrapped in dark class so code-editor / terminal-style dark UI renders correctly in all system themes */}
+        <div className="dark px-8 py-8 min-h-[400px] flex flex-col bg-slate-900 rounded-b-3xl">
           <AnimatePresence mode="wait">
 
             {/* ── WELCOME ── */}
@@ -365,13 +365,13 @@ export default function AIAssessmentStep() {
                       { icon: <Target className="w-5 h-5" />, label: 'Passing Score', value: '70%' },
                       { icon: <ShieldCheck className="w-5 h-5" />, label: 'Privacy', value: 'Answers private' },
                     ].map(card => (
-                      <div key={card.label} className="bg-slate-950/40 border border-slate-800 rounded-2xl p-4 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-blue-600/10 text-blue-400 flex items-center justify-center flex-shrink-0">
+                      <div key={card.label} className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-3 transition">
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
                           {card.icon}
                         </div>
                         <div>
-                          <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{card.label}</p>
-                          <p className="text-xs font-bold text-slate-200">{card.value}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-455 uppercase font-bold tracking-wider">{card.label}</p>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{card.value}</p>
                         </div>
                       </div>
                     ))}
@@ -830,8 +830,8 @@ export default function AIAssessmentStep() {
 
       {/* ── RIGHT SIDEBAR ── */}
       <div className="lg:sticky lg:top-24 space-y-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4">
-          <h4 className="font-bold text-xs text-blue-400 flex items-center gap-1.5 uppercase tracking-wider">
+        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100/80 dark:border-slate-800 rounded-3xl p-5 space-y-4">
+          <h4 className="font-bold text-xs text-blue-700 dark:text-blue-400 flex items-center gap-1.5 uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
             {sidebarTitle}
           </h4>
@@ -846,9 +846,9 @@ export default function AIAssessmentStep() {
                 { icon: <AlertCircle className="w-3.5 h-3.5" />, label: 'Attempts', value: 'One attempt per submission' },
               ].map((item, i) => (
                 <li key={i} className="space-y-0.5">
-                  <p className="text-[9px] uppercase font-bold text-slate-600 tracking-wider">{item.label}</p>
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                    <span className="text-blue-500">{item.icon}</span>
+                  <p className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-650 tracking-wider">{item.label}</p>
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400">
+                    <span className="text-blue-600 dark:text-blue-500">{item.icon}</span>
                     {item.value}
                   </div>
                 </li>
@@ -862,8 +862,8 @@ export default function AIAssessmentStep() {
                 'Profile queued for manual review',
                 'Decision within 24–48 hours',
               ].map((item, i) => (
-                <li key={i} className="flex items-center gap-2 text-[11px] text-slate-400">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                <li key={i} className="flex items-center gap-2 text-[11px] text-slate-650 dark:text-slate-400">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-650 dark:text-emerald-500 flex-shrink-0" />
                   {item}
                 </li>
               ))}
@@ -871,8 +871,8 @@ export default function AIAssessmentStep() {
           )}
 
           {/* Phase indicator */}
-          <div className="pt-3 border-t border-slate-800 space-y-1.5">
-            <p className="text-[9px] uppercase font-bold text-slate-600 tracking-wider">Assessment Progress</p>
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
+            <p className="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-600 tracking-wider">Assessment Progress</p>
             {[
               { label: 'MCQ', done: ['scenario', 'code', 'evaluating', 'results'].includes(phase) || (phase === 'mcq' && qIndex > 0) },
               { label: 'Teaching Scenario', done: ['code', 'evaluating', 'results'].includes(phase) },
@@ -881,11 +881,11 @@ export default function AIAssessmentStep() {
             ].filter(s => !s.hidden).map((s, i) => (
               <div key={i} className="flex items-center gap-2 text-[10px]">
                 <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${
-                  s.done ? 'border-emerald-500 bg-emerald-500/20' : 'border-slate-700'
+                  s.done ? 'border-emerald-500 bg-emerald-500/20' : 'border-slate-300 dark:border-slate-700'
                 }`}>
-                  {s.done && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                  {s.done && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-450" />}
                 </div>
-                <span className={s.done ? 'text-emerald-400' : 'text-slate-600'}>{s.label}</span>
+                <span className={s.done ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-500 dark:text-slate-650'}>{s.label}</span>
               </div>
             ))}
           </div>

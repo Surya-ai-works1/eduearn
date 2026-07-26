@@ -1,0 +1,119 @@
+"use client";
+
+import React from "react";
+import { BookOpen, PlayCircle, Clock } from "lucide-react";
+import { Button } from "../../../../components/ui/button";
+import { DashboardCard } from "./DashboardCard";
+
+interface EnrolledCourse {
+  id: string;
+  title: string;
+  tutorName: string;
+  thumbnail: string;
+  progress: number;
+  lessonsCount: number;
+  completedLessons: number;
+  duration: string;
+  estimatedCompletion: string;
+  category: string;
+  lastStudied: string;
+}
+
+interface ContinueLearningProps {
+  enrolledCourses: EnrolledCourse[];
+  onResume: (courseId: string) => void;
+  setActiveTab: (tab: string) => void;
+}
+
+export function ContinueLearning({
+  enrolledCourses,
+  onResume,
+  setActiveTab,
+}: ContinueLearningProps) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/60 pb-2">
+        <h3 className="text-xs font-heading font-extrabold uppercase tracking-widest text-slate-800 dark:text-slate-200">
+          Continue Learning
+        </h3>
+        <button
+          onClick={() => setActiveTab("my-courses")}
+          className="text-xs text-primary hover:underline font-bold focus:outline-none"
+        >
+          View all courses
+        </button>
+      </div>
+
+      {enrolledCourses.length === 0 ? (
+        <DashboardCard variant="glass" className="p-8 text-center text-slate-400">
+          You are not enrolled in any courses yet.
+        </DashboardCard>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {enrolledCourses.slice(0, 3).map((course, idx) => (
+            <DashboardCard
+              key={course.id}
+              variant="default"
+              hoverEffect="lift"
+              animateDelay={idx * 0.05}
+              className="p-4 flex flex-col justify-between min-h-[190px] border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900/60"
+            >
+              <div className="flex items-start gap-3.5">
+                {/* Course Thumbnail */}
+                <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-primary shrink-0 relative overflow-hidden select-none">
+                  {course.thumbnail ? (
+                    <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <BookOpen size={20} />
+                  )}
+                </div>
+                
+                <div className="min-w-0 flex-1">
+                  <span className="text-[9px] font-black uppercase bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-lg inline-block">
+                    {course.category}
+                  </span>
+                  <h4 className="text-xs font-bold truncate mt-1 text-slate-800 dark:text-slate-100" title={course.title}>
+                    {course.title}
+                  </h4>
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-0.5 truncate">
+                    Tutor: {course.tutorName} · Last studied: {course.lastStudied}
+                  </p>
+                </div>
+              </div>
+
+              {/* Progress and status indicators */}
+              <div className="space-y-1.5 mt-5">
+                <div className="flex items-center justify-between text-[10px] font-bold text-slate-450 dark:text-slate-400">
+                  <span>Progress: {course.progress}%</span>
+                  <span>{course.completedLessons}/{course.lessonsCount} lessons</span>
+                </div>
+                <div className="h-2 w-full bg-slate-100 dark:bg-slate-800/60 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-500"
+                    style={{ width: `${course.progress}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/40 pt-3 mt-4">
+                <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-slate-400" /> {course.estimatedCompletion}
+                </span>
+                
+                <Button
+                  onClick={() => onResume(course.id)}
+                  size="sm"
+                  className="h-8 gap-1 font-bold text-xs shadow-soft"
+                >
+                  <PlayCircle size={13} />
+                  Resume
+                </Button>
+              </div>
+            </DashboardCard>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+export default ContinueLearning;
