@@ -50,6 +50,11 @@ interface AuthStore {
 
 function getSafeSupabase() {
   try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !anon || url.includes("placeholder")) {
+      return null;
+    }
     return createClient();
   } catch {
     return null;
