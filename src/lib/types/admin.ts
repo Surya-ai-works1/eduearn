@@ -55,11 +55,28 @@ export interface TutorVerificationApp {
   tutorName: string;
   expertise: string;
   education: string;
-  status: "Pending" | "Approved" | "Rejected";
+  status: "Pending" | "Documents Submitted" | "AI Test Scheduled" | "AI Test Completed" | "Under Review" | "Approved" | "Rejected";
   govIdFile: string;
   studentIdFile: string;
   email: string;
   created_at: string;
+  isDynamic?: boolean;
+
+  // Extended properties for production review console
+  personalInfo?: any;
+  academicQualifications?: any;
+  teachingExperience?: any;
+  subjectSelection?: any;
+  govIdUrl?: string;
+  degreeUrl?: string;
+  certificatesUrl?: string;
+  resumeUrl?: string;
+  videoDemoUrl?: string;
+  aiEvaluation?: any;
+  adminNotes?: string;
+  adminFeedback?: string;
+  rejectionReason?: string;
+  liveInterviewDetails?: any;
 }
 
 export interface AdminCategory {

@@ -9,15 +9,13 @@ interface ProgressStepperProps {
 
 export default function ProgressStepper({ currentStep, goToStep }: ProgressStepperProps) {
   const steps = [
-    { number: 1, label: 'Profile' },
-    { number: 2, label: 'Education' },
+    { number: 1, label: 'Personal' },
+    { number: 2, label: 'Academics' },
     { number: 3, label: 'Experience' },
-    { number: 4, label: 'Skills' },
-    { number: 5, label: 'Portfolio' },
-    { number: 6, label: 'Schedule' },
-    { number: 7, label: 'Pricing' },
-    { number: 8, label: 'Assessment' },
-    { number: 9, label: 'Review' },
+    { number: 4, label: 'Subjects' },
+    { number: 5, label: 'Documents' },
+    { number: 6, label: 'Assessment' },
+    { number: 7, label: 'Review' },
   ];
 
   return (

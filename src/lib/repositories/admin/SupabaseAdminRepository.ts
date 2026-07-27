@@ -349,7 +349,7 @@ export class SupabaseAdminRepository implements IAdminRepository {
     const supabase = await this.getSupabase();
     const { data, error } = await supabase
       .from("tutor_verifications")
-      .select("*");
+      .select("*, profiles:tutor_id(email)");
 
     if (error) throw error;
 
@@ -357,23 +357,53 @@ export class SupabaseAdminRepository implements IAdminRepository {
       id: v.id,
       tutorId: v.tutor_id,
       tutorName: v.tutor_name || "Tutor",
-      expertise: v.expertise,
-      education: v.education,
+      expertise: v.subject_selection?.selectedSkills ? v.subject_selection.selectedSkills.join(", ") : (v.expertise || "General"),
+      education: v.academic_qualifications && v.academic_qualifications.length > 0 ? `${v.academic_qualifications[0].degree} at ${v.academic_qualifications[0].school}` : (v.education || "Not Specified"),
       status: v.status as any,
-      govIdFile: v.gov_id_url || "",
-      studentIdFile: v.degree_url || "",
-      email: "tutor@example.com",
-      created_at: v.created_at
+      govIdFile: v.gov_id_url ? v.gov_id_url.split("/").pop() || "gov-id.pdf" : "",
+      studentIdFile: v.degree_url ? v.degree_url.split("/").pop() || "degree.pdf" : "",
+      email: v.profiles?.email || "tutor@example.com",
+      created_at: v.created_at,
+      
+      // Extended fields
+      personalInfo: v.personal_info,
+      academicQualifications: v.academic_qualifications,
+      teachingExperience: v.teaching_experience,
+      subjectSelection: v.subject_selection,
+      govIdUrl: v.gov_id_url,
+      degreeUrl: v.degree_url,
+      certificatesUrl: v.certificates_url,
+      resumeUrl: v.resume_url,
+      videoDemoUrl: v.video_demo_url,
+      aiEvaluation: v.ai_evaluation,
+      adminNotes: v.admin_notes,
+      adminFeedback: v.admin_feedback,
+      rejectionReason: v.rejection_reason,
+      liveInterviewDetails: v.live_interview_details
     }));
   }
 
-  async updateVerificationStatus(verificationId: string, status: TutorVerificationApp["status"]): Promise<TutorVerificationApp> {
+  async updateVerificationStatus(
+    verificationId: string, 
+    status: TutorVerificationApp["status"], 
+    updates?: Partial<TutorVerificationApp>
+  ): Promise<TutorVerificationApp> {
     const supabase = await this.getSupabase();
+    
+    // Build update payload
+    const payload: any = { status, updated_at: new Date().toISOString() };
+    if (updates) {
+      if (updates.adminNotes !== undefined) payload.admin_notes = updates.adminNotes;
+      if (updates.adminFeedback !== undefined) payload.admin_feedback = updates.adminFeedback;
+      if (updates.rejectionReason !== undefined) payload.rejection_reason = updates.rejectionReason;
+      if (updates.liveInterviewDetails !== undefined) payload.live_interview_details = updates.liveInterviewDetails;
+    }
+
     const { data, error } = await supabase
       .from("tutor_verifications")
-      .update({ status, updated_at: new Date().toISOString() })
+      .update(payload)
       .eq("id", verificationId)
-      .select()
+      .select("*, profiles:tutor_id(email)")
       .single();
 
     if (error) throw error;
@@ -382,7 +412,7 @@ export class SupabaseAdminRepository implements IAdminRepository {
     if (status === "Approved") {
       await supabase
         .from("profiles")
-        .update({ role: "tutor" })
+        .update({ role: "tutor", complete: true })
         .eq("id", data.tutor_id);
     }
 
@@ -390,13 +420,29 @@ export class SupabaseAdminRepository implements IAdminRepository {
       id: data.id,
       tutorId: data.tutor_id,
       tutorName: data.tutor_name || "Tutor",
-      expertise: data.expertise,
-      education: data.education,
+      expertise: data.subject_selection?.selectedSkills ? data.subject_selection.selectedSkills.join(", ") : (data.expertise || "General"),
+      education: data.academic_qualifications && data.academic_qualifications.length > 0 ? `${data.academic_qualifications[0].degree} at ${data.academic_qualifications[0].school}` : (data.education || "Not Specified"),
       status: data.status as any,
-      govIdFile: data.gov_id_url || "",
-      studentIdFile: data.degree_url || "",
-      email: "tutor@example.com",
-      created_at: data.created_at
+      govIdFile: data.gov_id_url ? data.gov_id_url.split("/").pop() || "gov-id.pdf" : "",
+      studentIdFile: data.degree_url ? data.degree_url.split("/").pop() || "degree.pdf" : "",
+      email: data.profiles?.email || "tutor@example.com",
+      created_at: data.created_at,
+      
+      // Extended fields
+      personalInfo: data.personal_info,
+      academicQualifications: data.academic_qualifications,
+      teachingExperience: data.teaching_experience,
+      subjectSelection: data.subject_selection,
+      govIdUrl: data.gov_id_url,
+      degreeUrl: data.degree_url,
+      certificatesUrl: data.certificates_url,
+      resumeUrl: data.resume_url,
+      videoDemoUrl: data.video_demo_url,
+      aiEvaluation: data.ai_evaluation,
+      adminNotes: data.admin_notes,
+      adminFeedback: data.admin_feedback,
+      rejectionReason: data.rejection_reason,
+      liveInterviewDetails: data.live_interview_details
     };
   }
 

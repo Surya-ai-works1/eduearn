@@ -68,7 +68,7 @@ export const aiInterviewService: AIInterviewService = {
     };
   },
 
-  async getEvaluation(sessionId: string): Promise<AIInterviewEvaluation> {
+  async getEvaluation(sessionId: string): Promise<any> {
     let onboardingState: any = null;
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('tutor_onboarding_state');
@@ -95,15 +95,12 @@ export const aiInterviewService: AIInterviewService = {
     };
 
     try {
-      const response = await fetch('/api/ai', {
+      const response = await fetch('/api/tutor/evaluate-assessment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          prompt: JSON.stringify(payload),
-          module: 'tutor-assessment',
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -111,41 +108,11 @@ export const aiInterviewService: AIInterviewService = {
       }
 
       const data = await response.json();
-      
-      // Persist the evaluation results dynamically to localStorage for admin review sync
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('tutor_application_status', data.decision === 'PASS' ? 'Approved' : 'Rejected');
-        localStorage.setItem('tutor_application_details', JSON.stringify(data));
-      }
-
-      return {
-        score: data.score || data.overall_score || 85,
-        strengths: data.strengths || ['Clear communication style'],
-        improvements: data.weaknesses || data.learning_plan || ['Incorporate more visual illustrations'],
-        transcript: MOCK_QUESTIONS.map(q => ({
-          question: q.text,
-          answer: onboardingState?.aiInterview?.aiQuizAnswers?.[q.id] || '[No response provided]',
-        })),
-      };
-    } catch (err) {
-      console.warn('Real AI evaluation failed, using simulated fallback:', err);
-      await new Promise(res => setTimeout(res, 1200));
-      return {
-        score: 87,
-        strengths: [
-          'Clear explanations and structured communication style.',
-          'Effective use of relatable analogies (e.g. restaurant kitchen for async js).',
-          'Strong student empathy and supportive mentoring tone.',
-        ],
-        improvements: [
-          'Could include more concrete examples of actual projects in explainers.',
-          'Watch pacing – try to keep basic concept descriptions slightly more concise.',
-        ],
-        transcript: MOCK_QUESTIONS.map(q => ({
-          question: q.text,
-          answer: onboardingState?.aiInterview?.aiQuizAnswers?.[q.id] || '[No response provided]',
-        })),
-      };
+      return data.evaluation;
+    } catch (err: any) {
+      console.warn('Real AI evaluation failed:', err);
+      // Throw actual backend error instead of falling back silently to fake data
+      throw new Error(err.message || 'Failed to fetch AI Evaluation from Gemini');
     }
   },
 };

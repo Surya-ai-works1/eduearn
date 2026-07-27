@@ -170,23 +170,58 @@ export default function BasicProfileStep() {
     }));
   };
 
-  // Mock Avatar Upload
-  const handlePhotoUpload = () => {
+  // Real Avatar Upload
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+    const allowed = ['png', 'jpg', 'jpeg', 'webp'];
+    if (!allowed.includes(fileExt)) {
+      toast.error('Invalid image type. Supported: PNG, JPG, WEBP');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image size must be less than 2MB');
+      return;
+    }
+
     setPhotoUploading(true);
-    setTimeout(() => {
+
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id || 'anonymous';
+      const filePath = `${userId}-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
       setState((prev: OnboardingState) => ({
         ...prev,
         personalInfo: {
           ...prev.personalInfo,
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&h=250&fit=crop',
+          avatarUrl: publicUrl,
         },
       }));
-      setPhotoUploading(false);
+
       toast.success('Profile photo uploaded successfully!');
-    }, 1200);
+    } catch (err: any) {
+      console.error('Avatar upload failed:', err);
+      toast.error(`Upload failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setPhotoUploading(false);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!personalInfo.state) {
       toast.error('Please select a State.');
@@ -217,12 +252,29 @@ export default function BasicProfileStep() {
       return;
     }
 
-    // Atomic state update: Save and proceed in a single tick
-    setState((prev: OnboardingState) => ({
-      ...prev,
-      currentStep: prev.currentStep + 1
-    }));
-    toast.success('Profile saved successfully ✓');
+    try {
+      const res = await fetch('/api/tutor/submit-step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stepName: 'personal_info',
+          data: personalInfo
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to save profile draft");
+      }
+
+      setState((prev: OnboardingState) => ({
+        ...prev,
+        currentStep: prev.currentStep + 1
+      }));
+      toast.success('Profile saved successfully ✓');
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save profile draft.");
+    }
   };
 
   const availableCities = personalInfo.state ? STATE_CITY_DATA[personalInfo.state] || [] : [];
@@ -421,10 +473,16 @@ export default function BasicProfileStep() {
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
               Profile Photo
             </label>
-            <div
-              onClick={handlePhotoUpload}
-              className="border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-blue-500/50 dark:hover:border-blue-500/50 rounded-2xl p-6 text-center cursor-pointer transition-all duration-200 bg-slate-50/30 dark:bg-slate-950/10"
+            <label
+              className="border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-blue-500/50 dark:hover:border-blue-500/50 rounded-2xl p-6 text-center cursor-pointer transition-all duration-200 bg-slate-50/30 dark:bg-slate-950/10 block"
             >
+              <input
+                type="file"
+                className="hidden"
+                onChange={handlePhotoUpload}
+                disabled={photoUploading}
+                accept="image/*"
+              />
               {personalInfo.avatarUrl ? (
                 <div className="flex flex-col items-center gap-2">
                   <div className="w-16 h-16 rounded-full overflow-hidden border border-slate-200">
@@ -441,12 +499,12 @@ export default function BasicProfileStep() {
                     <Upload className="w-5 h-5" />
                   </div>
                   <span className="text-sm font-semibold text-slate-700 dark:text-slate-350">
-                    {photoUploading ? 'Simulating upload...' : 'Upload your photo'}
+                    {photoUploading ? 'Uploading file...' : 'Upload your photo'}
                   </span>
-                  <span className="text-xs text-slate-400">Drag & drop or click to choose headshot</span>
+                  <span className="text-xs text-slate-400">Click to choose headshot</span>
                 </div>
               )}
-            </div>
+            </label>
           </div>
 
           {/* Action buttons */}

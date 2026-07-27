@@ -10,17 +10,13 @@ import BasicProfileStep from '@/app/tutor/onboarding/components/BasicProfileStep
 import EducationStep from '@/app/tutor/onboarding/components/EducationStep';
 import ExperienceStep from '@/app/tutor/onboarding/components/ExperienceStep';
 import CategoriesSkillsStep from '@/app/tutor/onboarding/components/CategoriesSkillsStep';
-import PortfolioStep from '@/app/tutor/onboarding/components/PortfolioStep';
-import SchedulingStep from '@/app/tutor/onboarding/components/SchedulingStep';
-import PricingStep from '@/app/tutor/onboarding/components/PricingStep';
+import DocumentUploadStep from '@/app/tutor/onboarding/components/DocumentUploadStep';
 import AIAssessmentStep from '@/app/tutor/onboarding/components/AIAssessmentStep';
 import ReviewSubmitStep from '@/app/tutor/onboarding/components/ReviewSubmitStep';
-import CompletionStep from '@/app/tutor/onboarding/components/CompletionStep';
 
 // Step flow:
-// 1: Basic Profile → 2: Education → 3: Experience → 4: Categories & Skills
-// 5: Portfolio → 6: Scheduling → 7: Pricing → 8: AI Assessment
-// 9: Review & Submit → 10: Completion
+// 1: Personal Info → 2: Academic Qualifications → 3: Teaching Experience → 4: Subject Selection
+// 5: Document Upload → 6: AI Assessment → 7: Review & Submit
 
 export default function TutorOnboardingPage() {
   return (
@@ -45,12 +41,8 @@ function OnboardingContent() {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
         if (!session) {
-          // Fallback to mock session check (dev mode only)
-          const mockUser = typeof window !== 'undefined' ? localStorage.getItem('eduearn_mock_user') : null;
-          if (!mockUser) {
-            router.replace('/tutor/login?redirect=' + encodeURIComponent('/tutor/onboarding'));
-            return;
-          }
+          router.replace('/tutor/login?redirect=' + encodeURIComponent('/tutor/onboarding'));
+          return;
         } else {
           // If already complete, redirect to dashboard
           const isComplete = session.user.user_metadata?.complete === true;
@@ -93,7 +85,7 @@ function OnboardingContent() {
     );
   }
 
-  const TOTAL_STEPS = 9; // Steps 1–9; step 10 is the completion screen
+  const TOTAL_STEPS = 7;
 
   const renderStep = () => {
     switch (state.currentStep) {
@@ -101,12 +93,9 @@ function OnboardingContent() {
       case 2:  return <EducationStep />;
       case 3:  return <ExperienceStep />;
       case 4:  return <CategoriesSkillsStep />;
-      case 5:  return <PortfolioStep />;
-      case 6:  return <SchedulingStep />;
-      case 7:  return <PricingStep />;
-      case 8:  return <AIAssessmentStep />;
-      case 9:  return <ReviewSubmitStep />;
-      case 10: return <CompletionStep />;
+      case 5:  return <DocumentUploadStep />;
+      case 6:  return <AIAssessmentStep />;
+      case 7:  return <ReviewSubmitStep />;
       default: return <BasicProfileStep />;
     }
   };

@@ -109,14 +109,14 @@ export class AdminService {
     return AdminRepository.getVerifications();
   }
 
-  async updateVerificationStatus(adminName: string, verificationId: string, status: TutorVerificationApp["status"]): Promise<TutorVerificationApp> {
-    const verification = await AdminRepository.updateVerificationStatus(verificationId, status);
+  async updateVerificationStatus(adminName: string, verificationId: string, status: TutorVerificationApp["status"], updates?: Partial<TutorVerificationApp>): Promise<TutorVerificationApp> {
+    const verification = await AdminRepository.updateVerificationStatus(verificationId, status, updates);
     
     // Audit Logging
     await AdminRepository.logAuditAction(
       adminName,
       `Tutor Verification Request ${status}`,
-      `Applicant: ${verification.tutorName}`
+      `Applicant: ${verification.tutorName}${updates?.adminNotes ? `. Notes: ${updates.adminNotes}` : ""}`
     );
 
     // Notify applicant tutor
@@ -127,7 +127,9 @@ export class AdminService {
         title: `Verification Application: ${status}`,
         description: status === "Approved" 
           ? "Congratulations! Your tutor application was approved. You can now access the Tutor Studio dashboard."
-          : "We reviewed your application details and rejected the credentials. Please verify your submitted documents and re-apply.",
+          : status === "Rejected"
+            ? `Your application has been rejected. Reason: ${updates?.rejectionReason || "Credentials review failed."}`
+            : `Your application status was changed to: ${status}.`,
         type: "certificate_earned",
         createdAt: new Date().toISOString()
       });

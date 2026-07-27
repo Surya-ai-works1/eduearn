@@ -195,12 +195,12 @@ export class MockAdminRepository implements IAdminRepository {
     ]);
   }
 
-  async updateVerificationStatus(verificationId: string, status: TutorVerificationApp["status"]): Promise<TutorVerificationApp> {
+  async updateVerificationStatus(verificationId: string, status: TutorVerificationApp["status"], updates?: Partial<TutorVerificationApp>): Promise<TutorVerificationApp> {
     const list = await this.getVerifications();
     let updated: TutorVerificationApp | null = null;
     const newList = list.map((v) => {
       if (v.id === verificationId) {
-        updated = { ...v, status };
+        updated = { ...v, status, ...updates };
         return updated;
       }
       return v;

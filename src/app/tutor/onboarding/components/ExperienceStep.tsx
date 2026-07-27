@@ -249,7 +249,7 @@ export default function ExperienceStep() {
     setExperienceDocProgress(professionalDetails.experienceDocProgress || undefined);
   }, [professionalDetails]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teachingExpYears.trim()) {
       toast.warning('Please enter your teaching experience.');
@@ -260,19 +260,41 @@ export default function ExperienceStep() {
       return;
     }
 
-    setState((prev: OnboardingState) => ({
-      ...prev,
-      professionalDetails: {
-        ...prev.professionalDetails,
-        teachingExpYears,
-        achievements,
-        languages,
-        experienceDocName: experienceDocName || undefined,
-        experienceDocProgress: experienceDocProgress || undefined
-      },
-      currentStep: prev.currentStep + 1
-    }));
-    toast.success('Experience details saved ✓');
+    const payload = {
+      teachingExpYears,
+      achievements,
+      languages,
+      experienceDocName: experienceDocName || undefined,
+      experienceDocProgress: experienceDocProgress || undefined
+    };
+
+    try {
+      const res = await fetch('/api/tutor/submit-step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stepName: 'teaching_experience',
+          data: payload
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to save experience draft");
+      }
+
+      setState((prev: OnboardingState) => ({
+        ...prev,
+        professionalDetails: {
+          ...prev.professionalDetails,
+          ...payload
+        },
+        currentStep: prev.currentStep + 1
+      }));
+      toast.success('Experience details saved ✓');
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save experience draft.");
+    }
   };
 
   return (

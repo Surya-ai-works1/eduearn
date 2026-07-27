@@ -98,6 +98,8 @@ export function RequireLearner({ children }: RouteGuardProps) {
 export function RequireTutor({ children }: RouteGuardProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const [checkingStatus, setCheckingStatus] = React.useState(true);
+  const [appStatus, setAppStatus] = React.useState<string | null>(null);
 
   useEffect(() => {
     if (isLoading) return;
@@ -117,15 +119,38 @@ export function RequireTutor({ children }: RouteGuardProps) {
         router.replace("/tutor/onboarding");
         return;
       }
+
+      if (user.role === "tutor") {
+        fetch("/api/tutor/application-status")
+          .then((res) => {
+            if (res.ok) return res.json();
+            throw new Error("Failed to fetch application status");
+          })
+          .then((data) => {
+            setAppStatus(data.status);
+            setCheckingStatus(false);
+            if (data.status !== "Approved") {
+              router.replace("/tutor/application-status");
+            }
+          })
+          .catch((err) => {
+            console.error("Error in RequireTutor status check:", err);
+            setCheckingStatus(false);
+            router.replace("/tutor/application-status");
+          });
+      } else {
+        setCheckingStatus(false);
+      }
     }
   }, [isLoading, isAuthenticated, user, router]);
 
   const isBlocked =
     !isAuthenticated ||
     (user && user.role !== "tutor" && user.role !== "admin") ||
-    (user && user.role === "tutor" && !user.complete);
+    (user && user.role === "tutor" && !user.complete) ||
+    (user && user.role === "tutor" && appStatus !== "Approved" && !checkingStatus);
 
-  if (isLoading || isBlocked) {
+  if (isLoading || checkingStatus || isBlocked) {
     return (
       <div className="flex min-h-[70vh] w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

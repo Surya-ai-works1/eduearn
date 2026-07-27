@@ -26,66 +26,38 @@ export default function ReviewSubmitStep() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        const userId = session.user.id;
-        
         // 1. Update Auth user metadata — mark onboarding complete
         const { error: authErr } = await supabase.auth.updateUser({
           data: { complete: true }
         });
-        
-        if (authErr) {
-          console.error("Auth metadata update failed:", authErr);
-        }
+        if (authErr) throw authErr;
 
-        // 2. Insert/Upsert Tutor Verification request
-        const { error: verifyErr } = await supabase.from("tutor_verifications").upsert({
-          tutor_id: userId,
-          tutor_name: personalInfo.fullName || session.user.user_metadata?.fullName || session.user.user_metadata?.full_name || "Tutor",
-          expertise: professionalDetails.selectedCategories.join(", ") || "General",
-          education: professionalDetails.educationList.map(e => `${e.degree} at ${e.college}`).join("; ") || "N/A",
-          status: "Pending",
-          gov_id_url: verification.documents?.[0] || null,
-          degree_url: verification.documents?.[1] || null,
-          updated_at: new Date().toISOString()
+        // 2. Submit application via backend API
+        const res = await fetch('/api/tutor/submit-application', {
+          method: 'POST'
         });
 
-        if (verifyErr) {
-          console.error("Failed to insert tutor verification:", verifyErr);
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Failed to submit application");
         }
 
-        // 3. Update profiles table
-        const { error: profileErr } = await supabase.from("profiles").upsert({
-          id: userId,
-          role: "tutor",
-          display_name: personalInfo.displayName || personalInfo.fullName || null,
-          bio: personalInfo.bio || null,
-          avatar_url: personalInfo.avatarUrl || null,
-          country: personalInfo.country || null,
-          language: personalInfo.language || null,
-          updated_at: new Date().toISOString()
-        });
+        // 3. Clear local onboarding state
+        localStorage.removeItem('tutor_onboarding_state');
 
-        if (profileErr) {
-          console.error("Failed to update profile:", profileErr);
-        }
-
-        // 4. Refresh the Supabase session so useAuth store reads complete=true
-        //    This prevents the RequireTutor guard from bouncing the tutor back to onboarding.
+        // 4. Refresh session
         await supabase.auth.refreshSession();
+
+        toast.success('Onboarding Application Submitted ✓');
+        
+        // 5. Redirect to status page
+        window.location.href = '/tutor/application-status';
       }
-    } catch (err) {
-      console.error("Error submitting onboarding details to database:", err);
-      toast.error('Submission failed. Please check your connection and try again.');
+    } catch (err: any) {
+      console.error("Error submitting onboarding details:", err);
+      toast.error(err.message || 'Submission failed. Please check your connection and try again.');
       setIsSubmitting(false);
-      return; // Do NOT advance — user must retry
     }
-    setIsSubmitting(false);
-    toast.success('Onboarding Application Submitted ✓');
-    // Advance to step 10 (CompletionStep)
-    setState((prev: OnboardingState) => ({
-      ...prev,
-      currentStep: 10
-    }));
   };
 
   return (

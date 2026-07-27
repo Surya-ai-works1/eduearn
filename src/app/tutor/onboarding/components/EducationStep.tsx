@@ -166,7 +166,7 @@ export default function EducationStep() {
     }, 150);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (educationList.length === 0) {
       toast.warning('Please add at least one education record.');
@@ -177,15 +177,33 @@ export default function EducationStep() {
       return;
     }
 
-    setState((prev: OnboardingState) => ({
-      ...prev,
-      professionalDetails: {
-        ...prev.professionalDetails,
-        educationList
-      },
-      currentStep: prev.currentStep + 1
-    }));
-    toast.success('Education credentials saved ✓');
+    try {
+      const res = await fetch('/api/tutor/submit-step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stepName: 'academic_qualifications',
+          data: educationList
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to save academics draft");
+      }
+
+      setState((prev: OnboardingState) => ({
+        ...prev,
+        professionalDetails: {
+          ...prev.professionalDetails,
+          educationList
+        },
+        currentStep: prev.currentStep + 1
+      }));
+      toast.success('Education credentials saved ✓');
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save academics draft.");
+    }
   };
 
   return (

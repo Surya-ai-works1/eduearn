@@ -33,7 +33,7 @@ export interface IAdminRepository {
   
   // Verifications
   getVerifications(): Promise<TutorVerificationApp[]>;
-  updateVerificationStatus(verificationId: string, status: TutorVerificationApp["status"]): Promise<TutorVerificationApp>;
+  updateVerificationStatus(verificationId: string, status: TutorVerificationApp["status"], updates?: Partial<TutorVerificationApp>): Promise<TutorVerificationApp>;
   
   // Categories
   getCategories(): Promise<AdminCategory[]>;

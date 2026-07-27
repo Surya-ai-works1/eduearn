@@ -49,16 +49,12 @@ interface AuthStore {
 }
 
 function getSafeSupabase() {
-  try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!url || !anon || url.includes("placeholder")) {
-      return null;
-    }
-    return createClient();
-  } catch {
-    return null;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon || url.includes("placeholder")) {
+    throw new Error("Supabase integration keys are not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your environment variables.");
   }
+  return createClient();
 }
 
 function getAppOrigin() {
@@ -167,23 +163,6 @@ export const useAuth = create<AuthStore>((set, get) => ({
   initialize: async () => {
     try {
       const supabase = getSafeSupabase();
-      const isMockMode = !supabase || IS_MOCK;
-
-      if (isMockMode) {
-        if (typeof window !== "undefined") {
-          const stored = localStorage.getItem("eduearn_mock_user");
-          if (stored) {
-            try {
-              const mockUser = JSON.parse(stored);
-              set({ user: mockUser, isAuthenticated: true, isLoading: false });
-              return;
-            } catch {}
-          }
-        }
-        set({ user: null, isAuthenticated: false, isLoading: false });
-        return;
-      }
-
       set({ isLoading: true });
 
       // ── Register listener FIRST so no events are missed during getSession() ─
@@ -246,31 +225,6 @@ export const useAuth = create<AuthStore>((set, get) => ({
           localStorage.removeItem("eduearn_remembered_email");
           localStorage.removeItem("eduearn_remember_me");
         }
-      }
-
-      if (!supabase || IS_MOCK) {
-        // Offline Mock Mode Login
-        const stored = typeof window !== "undefined" ? localStorage.getItem("eduearn_mock_user") : null;
-        let mockUser = stored ? JSON.parse(stored) : null;
-        if (!mockUser || mockUser.email !== email) {
-          mockUser = {
-            id: `mock-user-${Date.now()}`,
-            email,
-            fullName: "Mock User",
-            role: email.includes("tutor") || email.includes("teacher") ? "tutor" : "student",
-            complete: true,
-          };
-        }
-        set({ user: mockUser, isAuthenticated: true, isLoading: false });
-        if (typeof window !== "undefined") {
-          localStorage.setItem("eduearn_mock_user", JSON.stringify(mockUser));
-        }
-        return {
-          ok: true,
-          message: "Welcome back to EduEarn (Mock Mode).",
-          role: mockUser.role,
-          complete: mockUser.complete,
-        };
       }
 
       set({ isLoading: true });
@@ -338,29 +292,6 @@ export const useAuth = create<AuthStore>((set, get) => ({
   register: async (email, password, fullName, role = "student") => {
     try {
       const supabase = getSafeSupabase();
-      if (!supabase) {
-        // Offline Mock Mode Register
-        const mockUser = {
-          id: `mock-user-${Date.now()}`,
-          email,
-          fullName,
-          role: role as "student" | "tutor" | "admin",
-          complete: false,
-          accepted_terms: true,
-          accepted_privacy: true,
-        };
-        set({ user: mockUser, isAuthenticated: true, isLoading: false });
-        if (typeof window !== "undefined") {
-          localStorage.setItem("eduearn_mock_user", JSON.stringify(mockUser));
-        }
-        return {
-          ok: true,
-          sessionCreated: true,
-          role,
-          message: "Account created (Mock Mode). Welcome to EduEarn!",
-        };
-      }
-
       set({ isLoading: true });
 
       // Call our custom server-side register API route
@@ -608,15 +539,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
       // Optimistic update
       set({ user: updatedUser, isAuthenticated: true });
 
-      // Save to mock storage
-      if (typeof window !== "undefined") {
-        localStorage.setItem("eduearn_mock_user", JSON.stringify(updatedUser));
-      }
-
       const supabase = getSafeSupabase();
-      if (!supabase) {
-        return { success: true };
-      }
 
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "NOT SET";
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "NOT SET";
@@ -782,17 +705,6 @@ export const useAuth = create<AuthStore>((set, get) => ({
   chooseRole: async (role) => {
     try {
       const supabase = getSafeSupabase();
-      if (!supabase) {
-        const currentUser = get().user;
-        if (currentUser) {
-          const updatedUser = { ...currentUser, role };
-          set({ user: updatedUser, isAuthenticated: true });
-          if (typeof window !== "undefined") {
-            localStorage.setItem("eduearn_mock_user", JSON.stringify(updatedUser));
-          }
-        }
-        return true;
-      }
 
       // ─── Authoritative session fetch/refresh ───────────────────────────
       const { data: { session: initialSession }, error: sessionErr } = await supabase.auth.getSession();

@@ -115,7 +115,7 @@ export default function CategoriesSkillsStep() {
     setSkillProficiencies(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedCategories.length === 0) {
       toast.warning('Please select at least one teaching category.');
@@ -126,16 +126,38 @@ export default function CategoriesSkillsStep() {
       return;
     }
 
-    setState((prev: OnboardingState) => ({
-      ...prev,
-      professionalDetails: {
-        ...prev.professionalDetails,
-        selectedCategories,
-        skillProficiencies
-      },
-      currentStep: prev.currentStep + 1
-    }));
-    toast.success('Categories & skills saved ✓');
+    const payload = {
+      selectedCategories,
+      skillProficiencies
+    };
+
+    try {
+      const res = await fetch('/api/tutor/submit-step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stepName: 'subject_selection',
+          data: payload
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to save subjects draft");
+      }
+
+      setState((prev: OnboardingState) => ({
+        ...prev,
+        professionalDetails: {
+          ...prev.professionalDetails,
+          ...payload
+        },
+        currentStep: prev.currentStep + 1
+      }));
+      toast.success('Categories & skills saved ✓');
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save subjects draft.");
+    }
   };
 
   // Get icons for categories

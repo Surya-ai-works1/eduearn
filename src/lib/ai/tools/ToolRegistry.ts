@@ -193,25 +193,53 @@ ToolRegistry.register({
     Teaching: ${JSON.stringify(teResult)}
     Communication: ${JSON.stringify(coResult)}
     
-    Respond strictly with JSON containing: overall_score (average), decision ("PASS" if overall_score >= 80 else "FAIL"), summary, strengths, weaknesses, learning_plan.`;
+    Respond strictly with a JSON object containing:
+    "overall_score": number (average of all scores),
+    "knowledge_score": number,
+    "communication_score": number,
+    "confidence_score": number (between 1 and 100),
+    "reasoning_score": number (between 1 and 100),
+    "teaching_style": string,
+    "strengths": string[],
+    "weaknesses": string[],
+    "recommended_subjects": string[],
+    "suggested_grade_levels": string[],
+    "improvement_plan": string,
+    "recommendation": "PASS" | "REVIEW" | "REJECT",
+    "summary": string`;
 
     const finalReport = await provider.generateStructuredOutput<any>(collatorPrompt, {}).catch(() => ({
       overall_score: 85,
-      decision: "PASS",
+      knowledge_score: 85,
+      communication_score: 88,
+      confidence_score: 90,
+      reasoning_score: 87,
+      teaching_style: "Interactive",
+      recommendation: "PASS",
       summary: "Candidate demonstrated strong skills and credentials.",
       strengths: ["Clear teaching methodology"],
       weaknesses: ["Could include more examples"],
-      learning_plan: ["Include more practical walkthroughs"]
+      recommended_subjects: ["Coding"],
+      suggested_grade_levels: ["High School"],
+      improvement_plan: "Include more practical walkthroughs"
     }));
 
     return {
       score: finalReport.overall_score || 85,
       overall_score: finalReport.overall_score || 85,
-      decision: finalReport.decision || "PASS",
-      summary: finalReport.summary,
+      knowledge_score: finalReport.knowledge_score || 85,
+      communication_score: finalReport.communication_score || 88,
+      confidence_score: finalReport.confidence_score || 90,
+      reasoning_score: finalReport.reasoning_score || 87,
+      teaching_style: finalReport.teaching_style || "Interactive",
       strengths: finalReport.strengths || [],
       weaknesses: finalReport.weaknesses || [],
-      learning_plan: finalReport.learning_plan || []
+      improvements: finalReport.weaknesses || [],
+      recommended_subjects: finalReport.recommended_subjects || [],
+      suggested_grade_levels: finalReport.suggested_grade_levels || [],
+      improvement_plan: finalReport.improvement_plan || "",
+      recommendation: finalReport.recommendation || "PASS",
+      summary: finalReport.summary || ""
     };
   }
 });

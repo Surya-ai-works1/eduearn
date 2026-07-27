@@ -27,60 +27,7 @@ import RoleTab from "./components/roles/RoleTab";
 import AuditLogsTab from "./components/audit/AuditLogsTab";
 
 // TYPES & INTERFACES
-interface AdminUser {
-  id: string;
-  name: string;
-  email: string;
-  role: "learner" | "tutor" | "admin";
-  status: "Active" | "Suspended";
-  createdAt: string;
-  walletCoins: number;
-}
-
-interface VerificationApp {
-  id: string;
-  tutorName: string;
-  expertise: string;
-  education: string;
-  status: "Pending" | "Approved" | "Rejected";
-  govIdFile: string;
-  studentIdFile: string;
-  isDynamic?: boolean;
-  email?: string;
-}
-
-interface AdminCourse {
-  id: string;
-  title: string;
-  tutorName: string;
-  category: string;
-  price: number;
-  tutorEarnings: number;
-  platformEarnings: number;
-  status: "Pending" | "Approved" | "Rejected" | "Draft" | "Need Changes" | "Archived";
-  featured: boolean;
-  hidden: boolean;
-  assignedSkill: string;
-  isDynamic?: boolean;
-  
-  // Visibility Extensions
-  trending?: boolean;
-  popular?: boolean;
-  recommended?: boolean;
-  newest?: boolean;
-  bestSeller?: boolean;
-  homepageHero?: boolean;
-  homepageCarousel?: boolean;
-  categoryHero?: boolean;
-  landingPageFeatured?: boolean;
-}
-
-interface AuditLog {
-  id: string;
-  timestamp: string;
-  adminName: string;
-  action: string;
-}
+import { AdminUser, TutorVerificationApp as VerificationApp, AdminCourse, AdminActivityLog as AuditLog } from "@/lib/types/admin";
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
@@ -126,8 +73,8 @@ export default function AdminDashboardPage() {
   // 3. Tutor Applications (Verification)
   const [verifications, setVerifications] = useState<VerificationApp[]>(() => {
     const defaults: VerificationApp[] = [
-      { id: "v-1", tutorName: "Rohan Das", expertise: "Mathematics & Geometry", education: "IIT Bombay, Math undergrad", status: "Pending", govIdFile: "rohan-aadhaar.jpg", studentIdFile: "rohan-college-id.jpg", email: "rohan@example.com" },
-      { id: "v-2", tutorName: "Sneha Iyer", expertise: "UI/UX Figma Layouts", education: "NID Design undergrad", status: "Pending", govIdFile: "sneha-passport.jpg", studentIdFile: "sneha-college-id.jpg", email: "sneha@example.com" }
+      { id: "v-1", tutorId: "mock-1", tutorName: "Rohan Das", expertise: "Mathematics & Geometry", education: "IIT Bombay, Math undergrad", status: "Pending", govIdFile: "rohan-aadhaar.jpg", studentIdFile: "rohan-college-id.jpg", email: "rohan@example.com", created_at: new Date().toISOString() },
+      { id: "v-2", tutorId: "mock-2", tutorName: "Sneha Iyer", expertise: "UI/UX Figma Layouts", education: "NID Design undergrad", status: "Pending", govIdFile: "sneha-passport.jpg", studentIdFile: "sneha-college-id.jpg", email: "sneha@example.com", created_at: new Date().toISOString() }
     ];
     if (typeof window === "undefined") return defaults;
     const savedStatus = localStorage.getItem("tutor_application_status");
@@ -141,14 +88,16 @@ export default function AdminDashboardPage() {
 
         const dynamicApp: VerificationApp = {
           id: details.code || "v-user",
+          tutorId: details.tutorId || "mock-user-id",
           tutorName: details.fullName || "Applied User",
           expertise: expertiseStr,
           education: educationStr,
-          status: savedStatus === "pending" ? "Pending" : savedStatus === "approved" ? "Approved" : savedStatus === "rejected" ? "Rejected" : "Pending",
+          status: (savedStatus === "pending" || savedStatus === "Under Review" ? "Under Review" : savedStatus === "approved" ? "Approved" : savedStatus === "rejected" ? "Rejected" : "Pending") as any,
           govIdFile: details.govIdFile || "aadhaar.jpg",
           studentIdFile: details.profileImage || "avatar.png",
           isDynamic: true,
-          email: details.email || "tutor@example.com"
+          email: details.email || "tutor@example.com",
+          created_at: new Date().toISOString()
         };
         return [dynamicApp, ...defaults];
       } catch (e) {
@@ -161,9 +110,9 @@ export default function AdminDashboardPage() {
   // 4. Course Moderation states
   const [courses, setCourses] = useState<AdminCourse[]>(() => {
     const defaults: AdminCourse[] = [
-      { id: "c-1", title: "Mastering React Native Hooks & Layouts", tutorName: "Amit Verma", category: "Coding", price: 1200, tutorEarnings: 960, platformEarnings: 240, status: "Approved", featured: true, hidden: false, assignedSkill: "React" },
-      { id: "c-2", title: "Kuchipudi Mudras & Coordination Masterclass", tutorName: "Priya Patel", category: "Dance", price: 1500, tutorEarnings: 1200, platformEarnings: 300, status: "Approved", featured: false, hidden: false, assignedSkill: "Kuchipudi" },
-      { id: "c-3", title: "Double-Entry Accounting & Taxation Basics", tutorName: "Priya Patel", category: "Academics", price: 999, tutorEarnings: 799, platformEarnings: 200, status: "Pending", featured: false, hidden: true, assignedSkill: "Accounting" }
+      { id: "c-1", title: "Mastering React Native Hooks & Layouts", tutorName: "Amit Verma", tutorId: "mock-t1", category: "Coding", price: 1200, tutorEarnings: 960, platformEarnings: 240, status: "Approved", featured: true, hidden: false, assignedSkill: "React", created_at: new Date().toISOString() },
+      { id: "c-2", title: "Kuchipudi Mudras & Coordination Masterclass", tutorName: "Priya Patel", tutorId: "mock-t2", category: "Dance", price: 1500, tutorEarnings: 1200, platformEarnings: 300, status: "Approved", featured: false, hidden: false, assignedSkill: "Kuchipudi", created_at: new Date().toISOString() },
+      { id: "c-3", title: "Double-Entry Accounting & Taxation Basics", tutorName: "Priya Patel", tutorId: "mock-t2", category: "Academics", price: 999, tutorEarnings: 799, platformEarnings: 200, status: "Pending", featured: false, hidden: true, assignedSkill: "Accounting", created_at: new Date().toISOString() }
     ];
     if (typeof window === "undefined") return defaults;
     
@@ -181,6 +130,7 @@ export default function AdminDashboardPage() {
           id: c.id,
           title: c.title,
           tutorName: "Applied Tutor",
+          tutorId: c.tutor_id || "mock-user-id",
           category: c.category,
           price: c.price,
           tutorEarnings: tutorShare,
@@ -189,7 +139,8 @@ export default function AdminDashboardPage() {
           featured: false,
           hidden: c.status === "draft" || c.status === "archived",
           assignedSkill: c.category,
-          isDynamic: true
+          isDynamic: true,
+          created_at: new Date().toISOString()
         };
       });
       
@@ -491,7 +442,7 @@ export default function AdminDashboardPage() {
         {activeTab === "courses" && (
           <CoursesTab
             courses={courses}
-            setCourses={setCourses}
+            setCourses={setCourses as any}
             logAuditAction={logAuditAction}
           />
         )}

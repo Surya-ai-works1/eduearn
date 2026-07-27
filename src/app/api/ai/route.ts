@@ -6,13 +6,12 @@ import { getApiUser } from "@/lib/apiAuth";
 
 export async function POST(req: NextRequest) {
   try {
-    // Authenticate AI calls
-    const auth = await getApiUser("student");
-    // Fallback/Mock mode check (if unauthenticated in mock mode, bypass)
-    let activeUserId = "anonymous-user";
-    if (!("error" in auth)) {
-      activeUserId = auth.user.id;
+    // Authenticate AI calls - allow any authenticated user
+    const auth = await getApiUser();
+    if ("error" in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+    const activeUserId = auth.user.id;
 
     const body = await req.json();
     const { prompt, module, courseContext, systemPrompt } = body;

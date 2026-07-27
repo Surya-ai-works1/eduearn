@@ -230,9 +230,9 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('tutor_onboarding_state', JSON.stringify(state));
   }, [state, isHydrated]);
 
-  const goNext = () => setState((prev: OnboardingState) => ({ ...prev, currentStep: Math.min(10, prev.currentStep + 1) }));
+  const goNext = () => setState((prev: OnboardingState) => ({ ...prev, currentStep: Math.min(7, prev.currentStep + 1) }));
   const goBack = () => setState((prev: OnboardingState) => ({ ...prev, currentStep: Math.max(1, prev.currentStep - 1) }));
-  const goToStep = (step: number) => setState((prev: OnboardingState) => ({ ...prev, currentStep: Math.max(1, Math.min(10, step)) }));
+  const goToStep = (step: number) => setState((prev: OnboardingState) => ({ ...prev, currentStep: Math.max(1, Math.min(7, step)) }));
   const saveDraft = () => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('tutor_onboarding_state', JSON.stringify(state));

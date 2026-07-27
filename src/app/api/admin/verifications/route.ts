@@ -29,11 +29,16 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
-    const { verificationId, status } = body;
+    const { verificationId, status, adminNotes, adminFeedback, rejectionReason, liveInterviewDetails } = body;
     if (!verificationId || !status) {
       return NextResponse.json({ error: "Missing required fields: verificationId, status" }, { status: 400 });
     }
-    const updated = await adminService.updateVerificationStatus(adminName, verificationId, status);
+    const updated = await adminService.updateVerificationStatus(adminName, verificationId, status, {
+      adminNotes,
+      adminFeedback,
+      rejectionReason,
+      liveInterviewDetails
+    });
     return NextResponse.json(updated);
   } catch (err: any) {
     console.error("Admin verification app approval failure:", err);
