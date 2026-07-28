@@ -15,6 +15,11 @@ interface UploadedFiles {
   video_demo_url?: string;
 }
 
+function generateUniqueFilePath(userId: string, docType: string, fileExt: string): string {
+  const timestamp = Date.now();
+  return `tutor-files/${userId}/${docType}_${timestamp}.${fileExt}`;
+}
+
 export default function DocumentUploadStep() {
   const { state, setState, goNext, goBack } = useOnboarding();
   const [isUploading, setIsUploading] = useState<Record<string, boolean>>({});
@@ -80,7 +85,7 @@ export default function DocumentUploadStep() {
 
     try {
       const supabase = createClient();
-      const filePath = `tutor-files/${userId}/${docType}_${Date.now()}.${fileExt}`;
+      const filePath = generateUniqueFilePath(userId, docType, fileExt);
 
       const { data, error } = await supabase.storage
         .from(bucket)

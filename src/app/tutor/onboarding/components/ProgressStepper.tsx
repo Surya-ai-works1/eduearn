@@ -34,7 +34,7 @@ export default function ProgressStepper({ currentStep, goToStep }: ProgressStepp
                 <div className="flex flex-col items-center relative z-10">
                   <button
                     type="button"
-                    disabled={isPending || !goToStep}
+                    disabled={!goToStep || (process.env.NEXT_PUBLIC_DEV_MODE !== "true" && isPending)}
                     onClick={() => goToStep?.(step.number)}
                     title={step.label}
                     aria-label={`Step ${step.number}: ${step.label}${isCompleted ? ' (completed)' : isActive ? ' (current)' : ''}`}
@@ -43,6 +43,8 @@ export default function ProgressStepper({ currentStep, goToStep }: ProgressStepp
                         ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                         : isActive
                         ? 'bg-primary text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] ring-4 ring-primary/20'
+                        : process.env.NEXT_PUBLIC_DEV_MODE === "true"
+                        ? 'bg-muted text-muted-foreground border border-border hover:bg-muted/80 cursor-pointer'
                         : 'bg-muted text-muted-foreground border border-border cursor-not-allowed'
                     }`}
                   >
