@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import Link from "next/link";
 import {
   Menu,
   Bell,
@@ -12,6 +13,7 @@ import {
   Upload,
   FileText,
   DollarSign,
+  GraduationCap,
 } from "lucide-react";
 import { ThemeToggle } from "../theme-toggle";
 
@@ -99,6 +101,15 @@ export const TutorHeader = React.memo(function TutorHeader({
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
+        {/* Tutor Studio top navigation link */}
+        <Link
+          href="/tutor/studio"
+          className="flex items-center gap-1.5 h-8 px-3 border border-border/60 hover:bg-muted text-foreground text-xs font-semibold rounded-button transition-colors cursor-pointer"
+        >
+          <GraduationCap size={14} className="text-primary animate-pulse" />
+          <span>Tutor Studio</span>
+        </Link>
+
         {/* Quick Create */}
         <div className="relative">
           <button

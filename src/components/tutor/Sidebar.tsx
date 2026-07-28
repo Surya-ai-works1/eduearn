@@ -56,46 +56,13 @@ const NAV_GROUPS: NavGroup[] = [
     label: "",
     items: [
       { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { id: "studio", label: "Tutor Studio", icon: GraduationCap },
-    ],
-  },
-  {
-    label: "Teaching",
-    items: [
       { id: "courses", label: "Courses", icon: BookOpen },
       { id: "students", label: "Students", icon: Users },
       { id: "live-classes", label: "Live Classes", icon: Video },
       { id: "assignments", label: "Assignments", icon: FileText },
       { id: "calendar", label: "Calendar", icon: CalendarDays },
-    ],
-  },
-  {
-    label: "Content",
-    items: [
       { id: "resources", label: "Resources", icon: FolderOpen },
       { id: "ai-studio", label: "AI Studio", icon: Sparkles },
-    ],
-  },
-  {
-    label: "Business",
-    items: [
-      { id: "analytics", label: "Analytics", icon: TrendingUp },
-      { id: "finance", label: "Finance", icon: DollarSign },
-      { id: "reviews", label: "Reviews", icon: Star },
-    ],
-  },
-  {
-    label: "Communication",
-    items: [
-      { id: "notifications", label: "Notifications", icon: Bell },
-      { id: "messages", label: "Messages", icon: MessageSquare },
-      { id: "community", label: "Community", icon: Globe2 },
-    ],
-  },
-  {
-    label: "",
-    items: [
-      { id: "settings", label: "Settings", icon: Settings },
     ],
   },
 ];
