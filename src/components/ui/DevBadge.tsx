@@ -315,7 +315,7 @@ export function DevBadge() {
             >
               <div className="flex items-center gap-2">
                 <Sparkles size={11} className="text-purple-500" />
-                <span>Development Admin</span>
+                <span>Open Admin Dashboard</span>
               </div>
             </button>
           </div>

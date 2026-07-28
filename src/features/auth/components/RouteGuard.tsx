@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "../../../hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { createClient } from "../../../lib/supabase";
 
 interface RouteGuardProps {
   children: React.ReactNode;
@@ -170,11 +171,71 @@ export function RequireTutor({ children }: RouteGuardProps) {
 export function RequireAdmin({ children }: RouteGuardProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const [isLoggingInDev, setIsLoggingInDev] = React.useState(false);
 
   useEffect(() => {
     if (isLoading) return;
 
     if (!isAuthenticated) {
+      if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
+        setIsLoggingInDev(true);
+        const email = "dev-admin@eduearn.com";
+        const password = "Password123!";
+        const fullName = "Admin Demo";
+        const role = "admin";
+        
+        const supabase = createClient();
+        supabase.auth.signInWithPassword({ email, password }).then(async (signInRes: any) => {
+          let activeSession = signInRes.data?.session;
+          
+          if (signInRes.error) {
+            // Sign up first via dev auth endpoint
+            try {
+              const res = await fetch("/api/dev/auth", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password, fullName, role }),
+              });
+              const regData = await res.json();
+              if (regData.success) {
+                const signRes = await supabase.auth.signInWithPassword({ email, password });
+                activeSession = signRes.data?.session;
+              }
+            } catch (err) {
+              console.error("[RequireAdmin Dev Bypass] Registration failed:", err);
+            }
+          }
+          
+          if (activeSession) {
+            await supabase.auth.updateUser({
+              data: { complete: true, role: "admin", fullName, full_name: fullName }
+            });
+            await supabase.from("profiles").upsert({
+              id: activeSession.user.id,
+              email,
+              full_name: fullName,
+              role: "admin",
+              updated_at: new Date().toISOString()
+            });
+            await supabase.auth.refreshSession();
+            
+            const mockUser = {
+              id: activeSession.user.id,
+              email,
+              fullName,
+              role: "admin" as const,
+              complete: true,
+            };
+            useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
+            window.location.reload();
+          } else {
+            setIsLoggingInDev(false);
+            router.replace("/login");
+          }
+        });
+        return;
+      }
+      
       router.replace("/login");
       return;
     }
@@ -184,7 +245,7 @@ export function RequireAdmin({ children }: RouteGuardProps) {
     }
   }, [isLoading, isAuthenticated, user, router]);
 
-  if (isLoading || !isAuthenticated || (user && user.role !== "admin")) {
+  if (isLoading || isLoggingInDev || !isAuthenticated || (user && user.role !== "admin")) {
     return (
       <div className="flex min-h-[70vh] w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
