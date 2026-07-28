@@ -56,6 +56,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "",
     items: [
       { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { id: "studio", label: "Tutor Studio", icon: GraduationCap },
     ],
   },
   {

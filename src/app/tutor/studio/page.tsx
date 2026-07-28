@@ -91,7 +91,7 @@ export default function TutorStudioDashboard() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-background text-foreground pt-32 pb-12 px-6 lg:px-10 flex items-center justify-center">
+      <div className="py-6 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
@@ -99,7 +99,7 @@ export default function TutorStudioDashboard() {
 
   if (!user || user.role !== "tutor") {
     return (
-      <div className="min-h-screen bg-background text-foreground pt-32 pb-12 px-6 lg:px-10 flex items-center justify-center">
+      <div className="py-12 flex items-center justify-center">
         <div className="max-w-md w-full text-center space-y-4 bg-card p-8 border border-border rounded-3xl shadow-sm">
           <FaGraduationCap className="text-5xl text-slate-700 mx-auto" />
           <h2 className="text-lg font-bold text-foreground">Tutor Studio Locked</h2>
@@ -123,7 +123,7 @@ export default function TutorStudioDashboard() {
   const balance = earnings?.available_balance || 0;
 
   return (
-    <div className="min-h-screen bg-background text-foreground pt-32 pb-12 px-6 lg:px-10 flex justify-center">
+    <div className="py-6 flex justify-center">
       <div className="max-w-6xl w-full space-y-8">
         
         {/* Header Title */}

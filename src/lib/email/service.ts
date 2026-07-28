@@ -124,7 +124,7 @@ if (typeof process !== "undefined" && process.env) {
   const apiKey = process.env.BREVO_API_KEY;
   const senderEmail = process.env.BREVO_SENDER_EMAIL;
   
-  const exists = !!apiKey;
+  const exists = !!(apiKey && apiKey.trim() !== "" && apiKey !== "undefined");
   const length = apiKey ? apiKey.length : 0;
   const initialized = exists && !!senderEmail;
 
@@ -142,7 +142,7 @@ export const emailService = {
     const senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@eduearn.com";
     const senderName = process.env.BREVO_SENDER_NAME || "EduSpark";
 
-    if (!apiKey) {
+    if (!apiKey || apiKey.trim() === "" || apiKey === "undefined") {
       throw new Error("BREVO_API_KEY is not configured.");
     }
 

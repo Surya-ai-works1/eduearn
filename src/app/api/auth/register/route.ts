@@ -121,14 +121,18 @@ export async function POST(request: Request) {
       if (!emailResult.success) {
         console.error(`[Register API] Failed to send verification email via Brevo to: ${email}. Error:`, emailResult.error);
         return NextResponse.json({ 
-          error: "Verification email could not be sent. Please try resending or contact support." 
-        }, { status: 400 });
+          success: true,
+          sessionCreated: false,
+          message: "Account created. Verification email could not be sent." 
+        });
       }
     } catch (emailErr: any) {
       console.error(`[Register API] Exception thrown while sending verification email:`, emailErr);
       return NextResponse.json({ 
-        error: `Verification email sending failed: ${emailErr.message || emailErr}` 
-      }, { status: 400 });
+        success: true,
+        sessionCreated: false,
+        message: "Account created. Verification email could not be sent." 
+      });
     }
 
     console.log(`[Register API] Registration completed for ${email}.`);
