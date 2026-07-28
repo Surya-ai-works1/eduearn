@@ -36,6 +36,48 @@ function getSafeSupabase() {
   }
 }
 
+/**
+ * Dev-only: ensure a pre-confirmed Supabase user exists via the /api/dev/auth
+ * admin route (never triggers email verification), then sign in with password.
+ * Returns the authenticated user data or throws.
+ */
+async function devSignIn(
+  email: string,
+  password: string,
+  fullName: string,
+  role: string
+) {
+  const supabase = getSafeSupabase();
+  if (!supabase) throw new Error("Supabase client unavailable.");
+
+  // Step 1 — try sign in directly (user may already exist)
+  const { data: signInData, error: signInError } =
+    await supabase.auth.signInWithPassword({ email, password });
+
+  if (!signInError && signInData?.user) {
+    return { supabase, data: signInData };
+  }
+
+  // Step 2 — user doesn't exist; create via admin-only dev route (no email)
+  const res = await fetch("/api/dev/auth", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, fullName, role }),
+  });
+  const json = await res.json();
+  if (!json.success) {
+    throw new Error(json.error || "Dev user provision failed");
+  }
+
+  // Step 3 — sign in now that the account is confirmed
+  const { data: signInData2, error: signInError2 } =
+    await supabase.auth.signInWithPassword({ email, password });
+  if (signInError2 || !signInData2?.user) {
+    throw new Error(signInError2?.message || "Sign-in after account creation failed");
+  }
+  return { supabase, data: signInData2 };
+}
+
 export function DevBadge() {
   const { user, isAuthenticated } = useAuth();
   const [mounted, setMounted] = useState(false);
@@ -127,66 +169,32 @@ export function DevBadge() {
     const role = "tutor";
 
     toast.loading("Setting up Development Tutor Session...", { id: "dev-auth" });
-    const supabase = getSafeSupabase();
-    if (!supabase) {
-      toast.error("Supabase client is not available.", { id: "dev-auth" });
-      return;
+    try {
+      const { supabase, data } = await devSignIn(email, password, fullName, role);
+
+      // Force metadata: complete=false so onboarding starts from step 1
+      await supabase.auth.updateUser({
+        data: { complete: false, role: "tutor", fullName, full_name: fullName }
+      });
+      await supabase.from("profiles").upsert({
+        id: data.user!.id,
+        email,
+        full_name: fullName,
+        role: "tutor",
+        updated_at: new Date().toISOString()
+      });
+      await supabase.auth.refreshSession();
+      localStorage.removeItem("tutor_onboarding_state");
+
+      const mockUser = { id: data.user!.id, email, fullName, role: "tutor" as const, complete: false };
+      useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
+
+      toast.success("Development Tutor Session initialized! Starting Onboarding.", { id: "dev-auth" });
+      setIsOpen(false);
+      window.location.href = "/tutor/onboarding";
+    } catch (err: any) {
+      toast.error("Dev Tutor login failed: " + (err?.message || "Unknown error"), { id: "dev-auth" });
     }
-
-    let { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      try {
-        const res = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, fullName, role }),
-        });
-        const regData = await res.json();
-        if (regData.success) {
-          const signRes = await supabase.auth.signInWithPassword({ email, password });
-          data = signRes.data;
-          error = signRes.error;
-        } else {
-          error = { message: regData.error || "Dev registration failed" } as any;
-        }
-      } catch (err: any) {
-        error = { message: err.message || "Dev registration request failed" } as any;
-      }
-    }
-
-    if (error || !data?.user) {
-      toast.error("Dev login failed: " + (error?.message || "Unknown error"), { id: "dev-auth" });
-      return;
-    }
-
-    // Force user metadata to role=tutor, complete=false
-    await supabase.auth.updateUser({
-      data: { complete: false, role: "tutor", fullName, full_name: fullName }
-    });
-
-    await supabase.from("profiles").upsert({
-      id: data.user.id,
-      email,
-      full_name: fullName,
-      role: "tutor",
-      updated_at: new Date().toISOString()
-    });
-
-    await supabase.auth.refreshSession();
-    localStorage.removeItem("tutor_onboarding_state");
-
-    const mockUser = {
-      id: data.user.id,
-      email,
-      fullName,
-      role: "tutor" as const,
-      complete: false,
-    };
-    useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
-
-    toast.success("Development Tutor Session initialized! Starting Onboarding.", { id: "dev-auth" });
-    setIsOpen(false);
-    window.location.href = "/tutor/onboarding";
   };
 
   const handleBecomeStudent = async () => {
@@ -196,64 +204,30 @@ export function DevBadge() {
     const role = "student";
 
     toast.loading("Setting up Development Student Session...", { id: "dev-auth" });
-    const supabase = getSafeSupabase();
-    if (!supabase) {
-      toast.error("Supabase client is not available.", { id: "dev-auth" });
-      return;
+    try {
+      const { supabase, data } = await devSignIn(email, password, fullName, role);
+
+      await supabase.auth.updateUser({
+        data: { complete: true, role: "student", fullName, full_name: fullName }
+      });
+      await supabase.from("profiles").upsert({
+        id: data.user!.id,
+        email,
+        full_name: fullName,
+        role: "student",
+        updated_at: new Date().toISOString()
+      });
+      await supabase.auth.refreshSession();
+
+      const mockUser = { id: data.user!.id, email, fullName, role: "student" as const, complete: true };
+      useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
+
+      toast.success("Development Student Session initialized!", { id: "dev-auth" });
+      setIsOpen(false);
+      window.location.href = "/student/dashboard";
+    } catch (err: any) {
+      toast.error("Dev Student login failed: " + (err?.message || "Unknown error"), { id: "dev-auth" });
     }
-
-    let { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      try {
-        const res = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, fullName, role }),
-        });
-        const regData = await res.json();
-        if (regData.success) {
-          const signRes = await supabase.auth.signInWithPassword({ email, password });
-          data = signRes.data;
-          error = signRes.error;
-        } else {
-          error = { message: regData.error || "Dev registration failed" } as any;
-        }
-      } catch (err: any) {
-        error = { message: err.message || "Dev registration request failed" } as any;
-      }
-    }
-
-    if (error || !data?.user) {
-      toast.error("Dev login failed: " + (error?.message || "Unknown error"), { id: "dev-auth" });
-      return;
-    }
-
-    await supabase.auth.updateUser({
-      data: { complete: true, role: "student", fullName, full_name: fullName }
-    });
-
-    await supabase.from("profiles").upsert({
-      id: data.user.id,
-      email,
-      full_name: fullName,
-      role: "student",
-      updated_at: new Date().toISOString()
-    });
-
-    await supabase.auth.refreshSession();
-
-    const mockUser = {
-      id: data.user.id,
-      email,
-      fullName,
-      role: "student" as const,
-      complete: true,
-    };
-    useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
-
-    toast.success("Development Student Session initialized!", { id: "dev-auth" });
-    setIsOpen(false);
-    window.location.href = "/student/dashboard";
   };
 
   const handleBecomeAdmin = async () => {
@@ -263,64 +237,30 @@ export function DevBadge() {
     const role = "admin";
 
     toast.loading("Setting up Development Admin Session...", { id: "dev-auth" });
-    const supabase = getSafeSupabase();
-    if (!supabase) {
-      toast.error("Supabase client is not available.", { id: "dev-auth" });
-      return;
+    try {
+      const { supabase, data } = await devSignIn(email, password, fullName, role);
+
+      await supabase.auth.updateUser({
+        data: { complete: true, role: "admin", fullName, full_name: fullName }
+      });
+      await supabase.from("profiles").upsert({
+        id: data.user!.id,
+        email,
+        full_name: fullName,
+        role: "admin",
+        updated_at: new Date().toISOString()
+      });
+      await supabase.auth.refreshSession();
+
+      const mockUser = { id: data.user!.id, email, fullName, role: "admin" as const, complete: true };
+      useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
+
+      toast.success("Development Admin Session initialized!", { id: "dev-auth" });
+      setIsOpen(false);
+      window.location.href = "/admin/dashboard";
+    } catch (err: any) {
+      toast.error("Dev Admin login failed: " + (err?.message || "Unknown error"), { id: "dev-auth" });
     }
-
-    let { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      try {
-        const res = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, fullName, role }),
-        });
-        const regData = await res.json();
-        if (regData.success) {
-          const signRes = await supabase.auth.signInWithPassword({ email, password });
-          data = signRes.data;
-          error = signRes.error;
-        } else {
-          error = { message: regData.error || "Dev registration failed" } as any;
-        }
-      } catch (err: any) {
-        error = { message: err.message || "Dev registration request failed" } as any;
-      }
-    }
-
-    if (error || !data?.user) {
-      toast.error("Dev login failed: " + (error?.message || "Unknown error"), { id: "dev-auth" });
-      return;
-    }
-
-    await supabase.auth.updateUser({
-      data: { complete: true, role: "admin", fullName, full_name: fullName }
-    });
-
-    await supabase.from("profiles").upsert({
-      id: data.user.id,
-      email,
-      full_name: fullName,
-      role: "admin",
-      updated_at: new Date().toISOString()
-    });
-
-    await supabase.auth.refreshSession();
-
-    const mockUser = {
-      id: data.user.id,
-      email,
-      fullName,
-      role: "admin" as const,
-      complete: true,
-    };
-    useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
-
-    toast.success("Development Admin Session initialized!", { id: "dev-auth" });
-    setIsOpen(false);
-    window.location.href = "/admin/dashboard";
   };
 
   const handleSwitchRole = (roleKey: "student" | "tutor" | "admin") => {
