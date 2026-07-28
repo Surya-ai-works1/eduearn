@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText,
@@ -8,14 +8,19 @@ import {
   Plus,
   Search,
   Calendar,
-  Award,
   BookOpen,
   Send,
   Download,
-  Info,
-  ChevronRight,
+  Trash2,
+  Edit2,
+  Bold,
+  Italic,
+  Code,
+  Paperclip,
+  Save,
+  X,
   User,
-  X
+  Filter
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
@@ -41,6 +46,7 @@ interface AssignmentItem {
   dueDate: string;
   maxScore: string;
   description: string;
+  attachments?: string[];
   submissionsCount: number;
 }
 
@@ -52,7 +58,7 @@ export const Assignments = React.memo(function Assignments({
   setGradingForm,
   handleSubmitGrade,
 }: AssignmentsProps) {
-  // Local list of assignments
+  // Local list of assignments templates
   const [assignments, setAssignments] = useState<AssignmentItem[]>([
     {
       id: "asg-1",
@@ -61,6 +67,7 @@ export const Assignments = React.memo(function Assignments({
       dueDate: "2026-08-05",
       maxScore: "100",
       description: "Prove the 8 axioms of vector spaces for the set of polynomial functions of degree n.",
+      attachments: ["axiom_cheatsheet.pdf", "sample_proofs.pdf"],
       submissionsCount: students.filter(s => s.courseTitle.includes("Algebra")).length
     },
     {
@@ -70,6 +77,7 @@ export const Assignments = React.memo(function Assignments({
       dueDate: "2026-08-10",
       maxScore: "100",
       description: "Setup custom layout routes in Next.js App Router and handle client-side context updates.",
+      attachments: ["routing_spec.docx"],
       submissionsCount: students.filter(s => s.courseTitle.includes("Web")).length
     }
   ]);
@@ -77,19 +85,25 @@ export const Assignments = React.memo(function Assignments({
   // Tab: "submissions" | "assignments"
   const [activeTab, setActiveTab] = useState<"submissions" | "assignments">("submissions");
 
-  // Create Assignment Modal
+  // Create Assignment State
   const [isCreatingAsg, setIsCreatingAsg] = useState(false);
   const [asgForm, setAsgForm] = useState({
     title: "",
     courseTitle: "",
     dueDate: "",
     maxScore: "100",
-    description: ""
+    description: "",
+    attachments: [] as string[]
   });
+
+  // Edit Assignment State
+  const [editingAsg, setEditingAsg] = useState<AssignmentItem | null>(null);
+  const [editAsgForm, setEditAsgForm] = useState<Partial<AssignmentItem>>({});
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState("");
   const [courseFilter, setCourseFilter] = useState("All");
+  const [submissionFilter, setSubmissionFilter] = useState("All"); // "All" | "Submitted" | "Graded"
 
   const courseOptions = useMemo(() => {
     return Array.from(new Set(students.map((s) => s.courseTitle)));
@@ -123,6 +137,7 @@ export const Assignments = React.memo(function Assignments({
       dueDate: asgForm.dueDate,
       maxScore: asgForm.maxScore,
       description: asgForm.description,
+      attachments: asgForm.attachments,
       submissionsCount: 0
     };
 
@@ -133,20 +148,70 @@ export const Assignments = React.memo(function Assignments({
       courseTitle: "",
       dueDate: "",
       maxScore: "100",
-      description: ""
+      description: "",
+      attachments: []
     });
     toast.success("Assignment created and shared with students!");
   };
 
+  const handleStartEdit = (asg: AssignmentItem) => {
+    setEditingAsg(asg);
+    setEditAsgForm({
+      title: asg.title,
+      courseTitle: asg.courseTitle,
+      dueDate: asg.dueDate,
+      maxScore: asg.maxScore,
+      description: asg.description,
+      attachments: asg.attachments || []
+    });
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAsg) return;
+
+    setAssignments((prev) =>
+      prev.map((a) =>
+        a.id === editingAsg.id
+          ? {
+              ...a,
+              title: editAsgForm.title || a.title,
+              courseTitle: editAsgForm.courseTitle || a.courseTitle,
+              dueDate: editAsgForm.dueDate || a.dueDate,
+              maxScore: editAsgForm.maxScore || a.maxScore,
+              description: editAsgForm.description || a.description,
+              attachments: editAsgForm.attachments,
+            }
+          : a
+      )
+    );
+
+    setEditingAsg(null);
+    toast.success("Assignment template updated successfully!");
+  };
+
+  const handleDeleteAssignment = (id: string) => {
+    setAssignments((prev) => prev.filter((a) => a.id !== id));
+    toast.success("Assignment template deleted successfully.");
+  };
+
   // Filtered submissions
   const filteredSubmissions = useMemo(() => {
-    return submitted.filter((s) => {
+    return students.filter((s) => {
       const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.courseTitle.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCourse = courseFilter === "All" || s.courseTitle === courseFilter;
-      return matchesSearch && matchesCourse;
+      
+      const matchesStatus =
+        submissionFilter === "All"
+          ? true
+          : submissionFilter === "Submitted"
+          ? s.assignmentStatus === "Submitted"
+          : s.assignmentStatus === "Graded";
+
+      return matchesSearch && matchesCourse && matchesStatus;
     });
-  }, [submitted, searchQuery, courseFilter]);
+  }, [students, searchQuery, courseFilter, submissionFilter]);
 
   // Filtered assignments list
   const filteredAssignments = useMemo(() => {
@@ -157,6 +222,11 @@ export const Assignments = React.memo(function Assignments({
       return matchesSearch && matchesCourse;
     });
   }, [assignments, searchQuery, courseFilter]);
+
+  // Rich Text Editor mock toolbar triggers
+  const handleToolbarClick = (action: string) => {
+    toast.info(`Rich text styling [${action}] applied to cursor selection.`);
+  };
 
   return (
     <motion.div
@@ -171,7 +241,7 @@ export const Assignments = React.memo(function Assignments({
         <div>
           <h2 className="text-xl font-heading font-extrabold text-foreground">Assignments Portal</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {submitted.length} pending review &bull; {graded.length} graded &bull; {assignments.length} templates
+            Create, distribute, and grade assignments with feedback scores.
           </p>
         </div>
         <Button
@@ -192,7 +262,7 @@ export const Assignments = React.memo(function Assignments({
             color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
           },
           {
-            label: "Total Graded",
+            label: "Graded Submissions",
             count: graded.length,
             color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
           },
@@ -238,6 +308,18 @@ export const Assignments = React.memo(function Assignments({
           ))}
         </select>
 
+        {activeTab === "submissions" && (
+          <select
+            value={submissionFilter}
+            onChange={(e) => setSubmissionFilter(e.target.value)}
+            className="h-9 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+          >
+            <option value="All">All Submissions</option>
+            <option value="Submitted">Awaiting Review</option>
+            <option value="Graded">Graded</option>
+          </select>
+        )}
+
         {/* Tab Toggle */}
         <div className="flex bg-muted/40 p-0.5 rounded-button ml-auto">
           <button
@@ -248,7 +330,7 @@ export const Assignments = React.memo(function Assignments({
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Student Submissions ({submitted.length})
+            Submissions ({students.filter(s => s.assignmentStatus !== "Pending").length})
           </button>
           <button
             onClick={() => setActiveTab("assignments")}
@@ -263,13 +345,13 @@ export const Assignments = React.memo(function Assignments({
         </div>
       </Card>
 
-      {/* TAB CONTENT: Submissions */}
+      {/* TAB CONTENT: Submissions List */}
       {activeTab === "submissions" && (
         <div className="space-y-4">
           {filteredSubmissions.length === 0 ? (
             <EmptyState
               icon={<FileText size={28} />}
-              title="No submissions found"
+              title="No submissions matching filter"
               description="Awaiting student uploads or filter is matching 0 records."
             />
           ) : (
@@ -286,8 +368,14 @@ export const Assignments = React.memo(function Assignments({
                         <p className="text-[10px] text-muted-foreground">{student.courseTitle}</p>
                       </div>
                     </div>
-                    <span className="text-[8px] font-extrabold uppercase px-2 py-0.5 rounded border bg-amber-500/10 border-amber-500/20 text-amber-500">
-                      Awaiting Grading
+                    <span className={`text-[8px] font-extrabold uppercase px-2.5 py-0.5 rounded border ${
+                      student.assignmentStatus === "Graded"
+                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                        : student.assignmentStatus === "Submitted"
+                        ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
+                        : "bg-muted border-border text-muted-foreground"
+                    }`}>
+                      {student.assignmentStatus}
                     </span>
                   </div>
 
@@ -300,7 +388,7 @@ export const Assignments = React.memo(function Assignments({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toast.info(`Downloading ${student.name}'s assignment...`)}
+                        onClick={() => toast.info(`Downloading: ${student.submittedFile}`)}
                         className="h-6 text-[9px] px-2 font-bold gap-1 text-primary hover:bg-primary/5"
                       >
                         <Download size={11} /> Download
@@ -308,11 +396,24 @@ export const Assignments = React.memo(function Assignments({
                     </div>
                   )}
 
+                  {/* Display graded statistics if already graded */}
+                  {student.assignmentStatus === "Graded" && (
+                    <div className="p-3 bg-muted/20 border border-border/40 rounded text-xs space-y-1">
+                      <div className="flex justify-between font-bold text-foreground">
+                        <span>Score Assigned: {student.grade}</span>
+                        <span>Date Reviewed: Just now</span>
+                      </div>
+                      {student.feedback && (
+                        <p className="text-muted-foreground mt-1">Feedback: &quot;{student.feedback}&quot;</p>
+                      )}
+                    </div>
+                  )}
+
                   {activeGradingStudentId === student.id ? (
                     <div className="space-y-3 border-t border-border/40 pt-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1 text-xs">
-                          <label className="font-bold text-foreground">Grade *</label>
+                          <label className="font-bold text-foreground">Grade Mark *</label>
                           <select
                             value={gradingForm.grade}
                             onChange={(e) => setGradingForm((f) => ({ ...f, grade: e.target.value }))}
@@ -336,12 +437,12 @@ export const Assignments = React.memo(function Assignments({
                         </div>
                       </div>
                       <div className="space-y-1 text-xs">
-                        <label className="font-bold text-foreground">Constructive Feedback *</label>
+                        <label className="font-bold text-foreground">Reviewer Feedback *</label>
                         <textarea
                           rows={3}
                           value={gradingForm.feedback}
                           onChange={(e) => setGradingForm((f) => ({ ...f, feedback: e.target.value }))}
-                          placeholder="Provide specific, instructional remarks..."
+                          placeholder="Provide specific, constructive remarks..."
                           className="w-full bg-card border border-border rounded p-2 focus:outline-none text-xs font-semibold text-foreground resize-none"
                         />
                       </div>
@@ -365,47 +466,21 @@ export const Assignments = React.memo(function Assignments({
                       </div>
                     </div>
                   ) : (
-                    <Button
-                      onClick={() => {
-                        setGradingForm({ grade: "", feedback: "", score: "" });
-                        setActiveGradingStudentId(student.id);
-                      }}
-                      size="sm"
-                      className="h-8 text-xs font-bold bg-primary hover:bg-primary/95 text-white"
-                    >
-                      Grade Submission
-                    </Button>
+                    student.assignmentStatus === "Submitted" && (
+                      <Button
+                        onClick={() => {
+                          setGradingForm({ grade: "", feedback: "", score: "" });
+                          setActiveGradingStudentId(student.id);
+                        }}
+                        size="sm"
+                        className="h-8 text-xs font-bold bg-primary hover:bg-primary/95 text-white"
+                      >
+                        Grade Submission
+                      </Button>
+                    )
                   )}
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* Graded Log */}
-          {graded.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-heading font-extrabold uppercase text-foreground flex items-center gap-1.5">
-                <CheckCircle size={12} className="text-emerald-500" />
-                Graded Submissions Log ({graded.length})
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {graded.map((student) => (
-                  <Card key={student.id} className="p-3 flex items-center justify-between border-border/60">
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-foreground truncate">{student.name}</h4>
-                      <p className="text-[9px] text-muted-foreground truncate">{student.courseTitle}</p>
-                      {student.feedback && (
-                        <p className="text-[9px] text-muted-foreground italic truncate mt-1">Feedback: &quot;{student.feedback}&quot;</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                        {student.grade}
-                      </span>
-                    </div>
-                  </Card>
-                ))}
-              </div>
             </div>
           )}
         </div>
@@ -427,13 +502,39 @@ export const Assignments = React.memo(function Assignments({
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <h4 className="text-xs font-bold text-foreground leading-tight">{asg.title}</h4>
-                      <span className="text-[9px] font-extrabold bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20 shrink-0">
-                        {asg.maxScore} pts
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => handleStartEdit(asg)}
+                          className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground cursor-pointer"
+                          title="Edit Template"
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAssignment(asg.id)}
+                          className="p-1 hover:bg-rose-500/10 rounded text-rose-500 cursor-pointer"
+                          title="Delete Template"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                        <span className="text-[9px] font-extrabold bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20">
+                          {asg.maxScore} pts
+                        </span>
+                      </div>
                     </div>
                     <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
                       {asg.description}
                     </p>
+
+                    {asg.attachments && asg.attachments.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {asg.attachments.map((file, idx) => (
+                          <span key={idx} className="flex items-center gap-1 text-[8px] bg-muted/40 border border-border/40 rounded px-1.5 py-0.5 text-muted-foreground font-bold">
+                            <Paperclip size={8} /> {file}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between text-[9px] font-bold text-muted-foreground border-t border-border/40 pt-2.5">
@@ -532,14 +633,21 @@ export const Assignments = React.memo(function Assignments({
                   />
                 </div>
 
+                {/* Rich text instructions placeholder toolbar */}
                 <div className="space-y-1 text-xs">
-                  <label className="font-bold text-foreground">Instructions & Description</label>
+                  <label className="font-bold text-foreground">Instructions & Description *</label>
+                  <div className="flex gap-1 bg-muted p-1 border border-b-0 border-border rounded-t">
+                    <button type="button" onClick={() => handleToolbarClick("bold")} className="p-1 hover:bg-card rounded text-muted-foreground"><Bold size={11} /></button>
+                    <button type="button" onClick={() => handleToolbarClick("italic")} className="p-1 hover:bg-card rounded text-muted-foreground"><Italic size={11} /></button>
+                    <button type="button" onClick={() => handleToolbarClick("code")} className="p-1 hover:bg-card rounded text-muted-foreground"><Code size={11} /></button>
+                  </div>
                   <textarea
                     rows={3}
+                    required
                     value={asgForm.description}
                     onChange={(e) => setAsgForm((f) => ({ ...f, description: e.target.value }))}
-                    placeholder="Write details of the assignment, requirements, etc..."
-                    className="w-full bg-card border border-border rounded p-2 focus:outline-none text-xs font-semibold text-foreground resize-none"
+                    placeholder="Write details of the assignment..."
+                    className="w-full bg-card border border-border border-t-0 rounded-b p-2 focus:outline-none text-xs font-semibold text-foreground resize-none"
                   />
                 </div>
 
@@ -558,6 +666,120 @@ export const Assignments = React.memo(function Assignments({
                   >
                     <Send size={13} />
                     Publish Assignment
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Assignment Dialog */}
+      <AnimatePresence>
+        {editingAsg && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm"
+              onClick={() => setEditingAsg(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 15 }}
+              className="fixed inset-0 m-auto z-50 h-fit max-h-[85vh] w-[90%] max-w-md bg-card border border-border rounded-card p-5 shadow-floating overflow-y-auto"
+            >
+              <form onSubmit={handleSaveEdit} className="space-y-4">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                  <h4 className="text-sm font-heading font-extrabold uppercase text-foreground">
+                    Edit Assignment Template
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setEditingAsg(null)}
+                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="space-y-1 text-xs">
+                  <label className="font-bold text-foreground">Assignment Title *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editAsgForm.title || ""}
+                    onChange={(e) => setEditAsgForm((f) => ({ ...f, title: e.target.value }))}
+                    className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1 text-xs">
+                    <label className="font-bold text-foreground">Target Course *</label>
+                    <select
+                      required
+                      value={editAsgForm.courseTitle || ""}
+                      onChange={(e) => setEditAsgForm((f) => ({ ...f, courseTitle: e.target.value }))}
+                      className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                    >
+                      <option value="">Choose course...</option>
+                      {courseOptions.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 text-xs">
+                    <label className="font-bold text-foreground">Due Date *</label>
+                    <input
+                      type="date"
+                      required
+                      value={editAsgForm.dueDate || ""}
+                      onChange={(e) => setEditAsgForm((f) => ({ ...f, dueDate: e.target.value }))}
+                      className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1 text-xs">
+                  <label className="font-bold text-foreground">Total Points (Max Score)</label>
+                  <input
+                    type="number"
+                    value={editAsgForm.maxScore || ""}
+                    onChange={(e) => setEditAsgForm((f) => ({ ...f, maxScore: e.target.value }))}
+                    className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1 text-xs">
+                  <label className="font-bold text-foreground">Instructions & Description *</label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={editAsgForm.description || ""}
+                    onChange={(e) => setEditAsgForm((f) => ({ ...f, description: e.target.value }))}
+                    className="w-full bg-card border border-border rounded p-2 focus:outline-none text-xs font-semibold text-foreground resize-none"
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setEditingAsg(null)}
+                    className="h-9 text-xs"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="h-9 text-xs bg-primary hover:bg-primary/95 text-white gap-1.5"
+                  >
+                    <Save size={13} />
+                    Save Template
                   </Button>
                 </div>
               </form>
