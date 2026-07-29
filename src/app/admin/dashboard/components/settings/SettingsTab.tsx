@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sliders, Database, Search, ShieldCheck, Mail, Lock, Shield } from "lucide-react";
+import { Sliders, Database, Search, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "../../../../../components/ui/card";
 import { Button } from "../../../../../components/ui/button";
@@ -37,14 +37,22 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
   const [defaultStorageLimit, setDefaultStorageLimit] = useState(50); // GB
 
   // --- SEARCH & SEO MANAGEMENT ---
-  const [seoMetaDescription, setSeoMetaDescription] = useState("Empowering students and creators to host cohorts, learn skills, and verify certificates.");
-  const [popularSearches, setPopularSearches] = useState("react, figmas, python, live math, drawing, vfx");
-  const [searchSuggestions, setSearchSuggestions] = useState("React Basics, Figma typography, Python Loops");
+  const [seoMetaDescription, setSeoMetaDescription] = useState(
+    "Empowering students and creators to host cohorts, learn skills, and verify certificates."
+  );
+  const [popularSearches, setPopularSearches] = useState(
+    "react, figmas, python, live math, drawing, vfx"
+  );
+  const [searchSuggestions, setSearchSuggestions] = useState(
+    "React Basics, Figma typography, Python Loops"
+  );
   const [courseRankingMultiplier, setCourseRankingMultiplier] = useState(1.2);
 
   // --- CREDENTIALS & GATEWAYS ---
   const [supabaseUrl, setSupabaseUrl] = useState("https://eduearn-supabase.co");
-  const [supabaseAnonKey, setSupabaseAnonKey] = useState("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.anonkey");
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState(
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.anonkey"
+  );
   const [cloudinaryCloudName, setCloudinaryCloudName] = useState("eduearn-media");
   const [smtpServer, setSmtpServer] = useState("smtp.eduearn.com");
   const [smtpUser, setSmtpUser] = useState("no-reply@eduearn.com");
@@ -53,28 +61,41 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
   // --- SECURITY ---
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
-  // Load saved settings from API
+  // Load settings from API
   const loadSettingsData = async () => {
     try {
       const res = await fetch("/api/admin/settings");
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load settings");
 
+      // Populate state from API response with defaults fallback
+      setPlatformName(data.platformName ?? platformName);
+      setBrandingTitle(data.brandingTitle ?? brandingTitle);
+      setLogoUrl(data.logoUrl ?? logoUrl);
+      setFaviconUrl(data.faviconUrl ?? faviconUrl);
+      setDefaultCurrency(data.defaultCurrency ?? defaultCurrency);
+      setTimezone(data.timezone ?? timezone);
+      setBrandColor(data.brandColor ?? brandColor);
+      setMaxUploadSize(data.maxUploadSize ?? maxUploadSize);
+      setMaxVideoLength(data.maxVideoLength ?? maxVideoLength);
+      setMaxCourseSize(data.maxCourseSize ?? maxCourseSize);
+      setDefaultAiCredits(data.defaultAiCredits ?? defaultAiCredits);
+      setDefaultStorageLimit(data.defaultStorageLimit ?? defaultStorageLimit);
+      setSeoMetaDescription(data.seoMetaDescription ?? seoMetaDescription);
+      setPopularSearches(data.popularSearches ?? popularSearches);
+      setSearchSuggestions(data.searchSuggestions ?? searchSuggestions);
+      setCourseRankingMultiplier(
+        data.courseRankingMultiplier ?? courseRankingMultiplier
+      );
+      setSupabaseUrl(data.supabaseUrl ?? supabaseUrl);
+      setSupabaseAnonKey(data.supabaseAnonKey ?? supabaseAnonKey);
+      setCloudinaryCloudName(data.cloudinaryCloudName ?? cloudinaryCloudName);
+      setSmtpServer(data.smtpServer ?? smtpServer);
+      setSmtpUser(data.smtpUser ?? smtpUser);
+      setTwilioSid(data.twilioSid ?? twilioSid);
       setMaintenanceMode(!!data.maintenanceMode);
-      if (data.brandColor) setBrandColor(data.brandColor);
     } catch (err) {
-      console.warn("Failed to fetch settings from API, using localStorage fallback:", err);
-      // Fallback
-      if (typeof window !== "undefined") {
-        const savedName = localStorage.getItem("eduearn_platform_name");
-        if (savedName) setPlatformName(savedName);
-        
-        const savedTitle = localStorage.getItem("eduearn_branding_title");
-        if (savedTitle) setBrandingTitle(savedTitle);
-
-        const savedMaintenance = localStorage.getItem("eduearn_maintenance_mode");
-        if (savedMaintenance) setMaintenanceMode(savedMaintenance === "true");
-      }
+      console.warn("Failed to fetch settings from API:", err);
     }
   };
 
@@ -89,20 +110,33 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          maintenanceMode: maintenanceMode,
-          brandColor: brandColor,
-          systemVersion: "1.0.0"
-        })
+          platformName,
+          brandingTitle,
+          logoUrl,
+          faviconUrl,
+          defaultCurrency,
+          timezone,
+          brandColor,
+          maxUploadSize,
+          maxVideoLength,
+          maxCourseSize,
+          defaultAiCredits,
+          defaultStorageLimit,
+          seoMetaDescription,
+          popularSearches,
+          searchSuggestions,
+          courseRankingMultiplier,
+          supabaseUrl,
+          supabaseAnonKey,
+          cloudinaryCloudName,
+          smtpServer,
+          smtpUser,
+          twilioSid,
+          maintenanceMode,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to save settings");
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem("eduearn_platform_name", platformName);
-        localStorage.setItem("eduearn_branding_title", brandingTitle);
-        localStorage.setItem("eduearn_maintenance_mode", String(maintenanceMode));
-        window.dispatchEvent(new Event("storage"));
-      }
 
       logAuditAction(`Updated global platform settings: subtab=${activeSubTab}`);
       toast.success("Global configurations saved successfully!");
@@ -117,16 +151,12 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
       const res = await fetch("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ maintenanceMode: nextMode })
+        body: JSON.stringify({ maintenanceMode: nextMode }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to toggle maintenance mode");
 
       setMaintenanceMode(nextMode);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("eduearn_maintenance_mode", String(nextMode));
-        window.dispatchEvent(new Event("storage"));
-      }
       logAuditAction(`Toggled maintenance mode lock to ${nextMode ? "ON" : "OFF"}`);
       toast.warning(`Maintenance Mode toggled ${nextMode ? "ON (simulating platform lock)" : "OFF"}`);
     } catch (err: any) {
@@ -141,27 +171,15 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
       exit={{ opacity: 0, y: -15 }}
       className="space-y-6 text-left"
     >
-      {/* HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-5 select-none">
-        <div className="space-y-1">
-          <h2 className="text-xl sm:text-2xl font-heading font-extrabold text-foreground tracking-tight">
-            System Settings &amp; Infrastructure
-          </h2>
-          <p className="text-xs text-muted-foreground font-semibold">
-            Configure default currency settings, upload limits, SEO search tags, and maintenance lockouts.
-          </p>
-        </div>
-      </div>
+      {/* Header removed, using DashboardLayout PageHeader */}
 
       {/* SUB-TABS SELECTOR */}
       <div className="flex flex-wrap border-b border-border/40 pb-3 gap-2.5 select-none">
-        {[
-          { id: "general", label: "General Settings", icon: Sliders },
+        {[{ id: "general", label: "General Settings", icon: Sliders },
           { id: "infrastructure", label: "Infrastructure Limits", icon: Database },
           { id: "search", label: "Search & SEO Mappings", icon: Search },
           { id: "gateways", label: "Credentials & Gateways", icon: Mail },
-          { id: "security", label: "Maintenance & Security", icon: Lock }
-        ].map((sub) => {
+          { id: "security", label: "Maintenance & Security", icon: Lock }].map((sub) => {
           const Icon = sub.icon;
           return (
             <button
@@ -183,7 +201,6 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
       {/* CORE FORMS BASED ON SUB-TABS */}
       <Card className="p-6 sm:p-7 border-border bg-card shadow-soft">
         <form onSubmit={handleSaveSettings} className="space-y-6">
-          
           {/* GENERAL SETTINGS */}
           {activeSubTab === "general" && (
             <div className="space-y-6 animate-fadeIn">
@@ -192,7 +209,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 text-xs font-semibold">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Platform Brand Name</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Platform Brand Name
+                  </label>
                   <input
                     type="text"
                     value={platformName}
@@ -201,7 +220,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Operations Dashboard Brand Title</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Operations Dashboard Brand Title
+                  </label>
                   <input
                     type="text"
                     value={brandingTitle}
@@ -210,7 +231,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Branding Logo Asset URL</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Branding Logo Asset URL
+                  </label>
                   <input
                     type="text"
                     value={logoUrl}
@@ -219,7 +242,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Favicon URL Link</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Favicon URL Link
+                  </label>
                   <input
                     type="text"
                     value={faviconUrl}
@@ -228,7 +253,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Default Platform Currency</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Default Platform Currency
+                  </label>
                   <select
                     value={defaultCurrency}
                     onChange={(e) => setDefaultCurrency(e.target.value)}
@@ -240,7 +267,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Timezone Alignment</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Timezone Alignment
+                  </label>
                   <select
                     value={timezone}
                     onChange={(e) => setTimezone(e.target.value)}
@@ -250,6 +279,17 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                     <option value="UTC">Coordinated Universal Time (UTC)</option>
                     <option value="America/New_York">New York (EST - UTC-5:00)</option>
                   </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Primary Brand Accent Color
+                  </label>
+                  <input
+                    type="color"
+                    value={brandColor}
+                    onChange={(e) => setBrandColor(e.target.value)}
+                    className={INPUT_CLASS}
+                  />
                 </div>
               </div>
             </div>
@@ -263,7 +303,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-xs font-semibold">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Max Attachment Upload Size (MB)</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Max Attachment Upload Size (MB)
+                  </label>
                   <input
                     type="number"
                     value={maxUploadSize}
@@ -272,7 +314,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Max Single Lecture Length (Min)</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Max Single Lecture Length (Min)
+                  </label>
                   <input
                     type="number"
                     value={maxVideoLength}
@@ -281,7 +325,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Max Total Course Size (GB)</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Max Total Course Size (GB)
+                  </label>
                   <input
                     type="number"
                     value={maxCourseSize}
@@ -290,7 +336,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Default Student AI Prompt Credits</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Default Student AI Prompt Credits
+                  </label>
                   <input
                     type="number"
                     value={defaultAiCredits}
@@ -299,7 +347,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Default Educator Cloud Storage (GB)</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Default Educator Cloud Storage (GB)
+                  </label>
                   <input
                     type="number"
                     value={defaultStorageLimit}
@@ -319,7 +369,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
               </h4>
               <div className="space-y-4 text-xs font-semibold">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Default Meta SEO Description Copy</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Default Meta SEO Description Copy
+                  </label>
                   <textarea
                     rows={3}
                     value={seoMetaDescription}
@@ -329,7 +381,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Popular Search Tags (Comma separated)</label>
+                    <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                      Popular Search Tags (Comma separated)
+                    </label>
                     <input
                       type="text"
                       value={popularSearches}
@@ -338,7 +392,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Spotlight Search Suggestions (Comma separated)</label>
+                    <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                      Spotlight Search Suggestions (Comma separated)
+                    </label>
                     <input
                       type="text"
                       value={searchSuggestions}
@@ -347,7 +403,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Cohort Ranking Weight multiplier (1.0 = Default)</label>
+                    <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                      Cohort Ranking Weight multiplier (1.0 = Default)
+                    </label>
                     <input
                       type="number"
                       step="0.1"
@@ -369,7 +427,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 text-xs font-semibold">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Supabase Project Endpoint URL</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Supabase Project Endpoint URL
+                  </label>
                   <input
                     type="text"
                     value={supabaseUrl}
@@ -378,7 +438,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Supabase Anon Public API Key</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Supabase Anon Public API Key
+                  </label>
                   <input
                     type="password"
                     value={supabaseAnonKey}
@@ -387,7 +449,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">Cloudinary Media Storage Bucket Name</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    Cloudinary Media Storage Bucket Name
+                  </label>
                   <input
                     type="text"
                     value={cloudinaryCloudName}
@@ -396,7 +460,9 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">SMTP Default Relay Host</label>
+                  <label className="text-[10px] font-extrabold text-foreground uppercase tracking-wider block">
+                    SMTP Default Relay Host
+                  </label>
                   <input
                     type="text"
                     value={smtpServer}
@@ -439,7 +505,6 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
               </Button>
             </div>
           )}
-
         </form>
       </Card>
     </motion.div>

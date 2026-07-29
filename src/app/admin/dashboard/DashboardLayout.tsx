@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { RequireAdmin } from "../../../features/auth/components/RouteGuard";
 import { useAuth } from "../../../hooks/useAuth";
+import PageHeader from "./components/PageHeader";
 
 interface SidebarGroup {
   title: string;
@@ -76,7 +77,7 @@ export default function DashboardLayout({
   const router = useRouter();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // Title mapping for each tab\n  const titleMap: Record<string, string> = {\n    dashboard: \"Dashboard\",\n    users: \"Users Directory\",\n    students: \"Students\",\n    tutors: \"Tutors\",\n    \"tutor-verification\": \"Tutor Verification\",\n    categories: \"Categories Hierarchy\",\n    courses: \"Courses Inventory\",\n    \"live-classes\": \"Live Classes Monitor\",\n    payments: \"Payments Escrow\",\n    pricing: \"Pricing Settings\",\n    offers: \"Offers & Coupons\",\n    cms: \"Website CMS Layout\",\n    ai: \"AI Control Center\",\n    communication: \"Broadcast & Tickets\",\n    analytics: \"Analytics\",\n    roles: \"Roles & Matrix\",\n    \"audit-logs\": \"Audit Trails\",\n    settings: \"Platform Settings\"\n  };\n  const pageTitle = titleMap[activeTab] || \"Admin\";\n
   
   // Command Palette & Search States
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -329,6 +330,7 @@ export default function DashboardLayout({
             setIsCommandPaletteOpen={setIsCommandPaletteOpen}
           />
 
+          <PageHeader title={pageTitle} />
           {/* PAGE BODY VIEW */}
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-background relative z-10 scroll-smooth pt-20">
             {children}

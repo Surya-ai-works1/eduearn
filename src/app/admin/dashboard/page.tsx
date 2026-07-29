@@ -43,10 +43,7 @@ export default function AdminDashboardPage() {
   }, [searchParams]);
 
   // 1. Audit Security Logs
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([
-    { id: "log-1", timestamp: "2026-07-01 09:30", adminName: "Surya (Admin)", action: "System login authorized." },
-    { id: "log-2", timestamp: "2026-07-01 10:15", adminName: "Surya (Admin)", action: "Released payout of ₹15,000 for Rohan Das." }
-  ]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [logIdCounter, setLogIdCounter] = useState(2);
 
   const logAuditAction = (actionStr: string) => {
@@ -62,115 +59,19 @@ export default function AdminDashboardPage() {
   };
 
   // 2. Users (Students & Tutors)
-  const [users, setUsers] = useState<AdminUser[]>([
-    { id: "u-1", name: "Rahul Verma", email: "rahul@eduearn.com", role: "learner", status: "Active", createdAt: "2026-06-01", walletCoins: 120 },
-    { id: "u-2", name: "Amit Verma", email: "amit@eduearn.com", role: "tutor", status: "Active", createdAt: "2026-05-15", walletCoins: 450 },
-    { id: "u-3", name: "Priya Patel", email: "priya@eduearn.com", role: "tutor", status: "Active", createdAt: "2026-05-20", walletCoins: 310 },
-    { id: "u-4", name: "Sanjay Dutt", email: "sanjay@eduearn.com", role: "admin", status: "Active", createdAt: "2026-04-10", walletCoins: 0 },
-    { id: "u-5", name: "Surya K", email: "surya@learner.com", role: "learner", status: "Active", createdAt: "2026-06-25", walletCoins: 280 }
-  ]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
 
   // 3. Tutor Applications (Verification)
-  const [verifications, setVerifications] = useState<VerificationApp[]>(() => {
-    const defaults: VerificationApp[] = [
-      { id: "v-1", tutorId: "mock-1", tutorName: "Rohan Das", expertise: "Mathematics & Geometry", education: "IIT Bombay, Math undergrad", status: "Pending", govIdFile: "rohan-aadhaar.jpg", studentIdFile: "rohan-college-id.jpg", email: "rohan@example.com", created_at: new Date().toISOString() },
-      { id: "v-2", tutorId: "mock-2", tutorName: "Sneha Iyer", expertise: "UI/UX Figma Layouts", education: "NID Design undergrad", status: "Pending", govIdFile: "sneha-passport.jpg", studentIdFile: "sneha-college-id.jpg", email: "sneha@example.com", created_at: new Date().toISOString() }
-    ];
-    if (typeof window === "undefined") return defaults;
-    const savedStatus = localStorage.getItem("tutor_application_status");
-    const savedDetails = localStorage.getItem("tutor_application_details");
-    
-    if (savedStatus && savedDetails) {
-      try {
-        const details = JSON.parse(savedDetails);
-        const expertiseStr = Array.isArray(details.selectedSkills) ? details.selectedSkills.join(", ") : details.selectedSkills || "General Expertise";
-        const educationStr = Array.isArray(details.educationList) && details.educationList.length > 0 ? `${details.educationList[0].degree} at ${details.educationList[0].school}` : "Undergrad credentials";
-
-        const dynamicApp: VerificationApp = {
-          id: details.code || "v-user",
-          tutorId: details.tutorId || "mock-user-id",
-          tutorName: details.fullName || "Applied User",
-          expertise: expertiseStr,
-          education: educationStr,
-          status: (savedStatus === "pending" || savedStatus === "Under Review" ? "Under Review" : savedStatus === "approved" ? "Approved" : savedStatus === "rejected" ? "Rejected" : "Pending") as any,
-          govIdFile: details.govIdFile || "aadhaar.jpg",
-          studentIdFile: details.profileImage || "avatar.png",
-          isDynamic: true,
-          email: details.email || "tutor@example.com",
-          created_at: new Date().toISOString()
-        };
-        return [dynamicApp, ...defaults];
-      } catch (e) {
-        console.error("Error parsing tutor application details", e);
-      }
-    }
-    return defaults;
-  });
+  const [verifications, setVerifications] = useState<VerificationApp[]>([]);
 
   // 4. Course Moderation states
-  const [courses, setCourses] = useState<AdminCourse[]>(() => {
-    const defaults: AdminCourse[] = [
-      { id: "c-1", title: "Mastering React Native Hooks & Layouts", tutorName: "Amit Verma", tutorId: "mock-t1", category: "Coding", price: 1200, tutorEarnings: 960, platformEarnings: 240, status: "Approved", featured: true, hidden: false, assignedSkill: "React", created_at: new Date().toISOString() },
-      { id: "c-2", title: "Kuchipudi Mudras & Coordination Masterclass", tutorName: "Priya Patel", tutorId: "mock-t2", category: "Dance", price: 1500, tutorEarnings: 1200, platformEarnings: 300, status: "Approved", featured: false, hidden: false, assignedSkill: "Kuchipudi", created_at: new Date().toISOString() },
-      { id: "c-3", title: "Double-Entry Accounting & Taxation Basics", tutorName: "Priya Patel", tutorId: "mock-t2", category: "Academics", price: 999, tutorEarnings: 799, platformEarnings: 200, status: "Pending", featured: false, hidden: true, assignedSkill: "Accounting", created_at: new Date().toISOString() }
-    ];
-    if (typeof window === "undefined") return defaults;
-    
-    const savedCoursesStr = localStorage.getItem("eduearn_tutor_courses");
-    if (!savedCoursesStr) return defaults;
-    
-    try {
-      const savedCourses = JSON.parse(savedCoursesStr) as any[];
-      const config = PaymentService.getPlatformConfig();
-      const dynamicCourses = savedCourses.map((c) => {
-        const platformShare = Math.round((c.price * config.commission) / 100);
-        const tutorShare = c.price - platformShare;
-        
-        return {
-          id: c.id,
-          title: c.title,
-          tutorName: "Applied Tutor",
-          tutorId: c.tutor_id || "mock-user-id",
-          category: c.category,
-          price: c.price,
-          tutorEarnings: tutorShare,
-          platformEarnings: platformShare,
-          status: (c.status === "published" ? "Approved" : c.status === "pending" ? "Pending" : c.status === "archived" ? "Rejected" : "Pending") as any,
-          featured: false,
-          hidden: c.status === "draft" || c.status === "archived",
-          assignedSkill: c.category,
-          isDynamic: true,
-          created_at: new Date().toISOString()
-        };
-      });
-      
-      const filteredDefaults = defaults.filter(d => !dynamicCourses.some(dc => dc.id === d.id));
-      return [...dynamicCourses, ...filteredDefaults];
-    } catch {
-      return defaults;
-    }
-  });
+  const [courses, setCourses] = useState<AdminCourse[]>([]);
 
   // Dynamic admin purchases sync
-  const [adminEnrollments] = useState<any[]>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("eduearn_admin_enrollments");
-      return stored ? JSON.parse(stored) : [];
-    }
-    return [];
-  });
+  const [adminEnrollments] = useState<any[]>([]);
 
   // Live Class Monitoring states
-  const [adminLiveSessions, setAdminLiveSessions] = useState<any[]>(() => {
-    if (typeof window === "undefined") return [];
-    const saved = localStorage.getItem("eduearn_live_classes");
-    if (saved) {
-      try { return JSON.parse(saved); } catch {}
-    }
-    return [
-      { id: "live-t1", title: "Interactive Q&A Session: Linear Algebra Doubts", time: "Today, 5:00 PM IST", countdown: "Starts in 2 hours", meetingLink: "https://meet.eduearn.com/tutor-algebra", platform: "Google Meet", status: "Scheduled", studentsCount: 3, attendanceCount: 3 }
-    ];
-  });
+  const [adminLiveSessions, setAdminLiveSessions] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any>(null);
 
@@ -182,27 +83,7 @@ export default function AdminDashboardPage() {
   };
 
   // Tutor Payouts & Escrows list
-  const [payouts, setPayouts] = useState<any[]>(() => {
-    const defaults = [
-      { id: "po-1", tutorName: "Amit Verma", amount: 18400, pendingWallet: 9600, status: "Pending", date: "2026-06-30", method: "Bank", bankDetails: "A/C: ****1234" },
-      { id: "po-2", tutorName: "Priya Patel", amount: 12000, pendingWallet: 3000, status: "On Hold", date: "2026-06-28", method: "UPI", bankDetails: "priya@upi" }
-    ];
-    if (typeof window === "undefined") return defaults;
-    
-    const withdrawHistory = PaymentService.getWithdrawalHistory();
-    const dynamicPayouts = withdrawHistory.map((w) => ({
-      id: w.id,
-      tutorName: "Applied Tutor",
-      amount: w.amount,
-      pendingWallet: 0,
-      status: w.status === "Pending" ? "Pending" : w.status === "Approved" ? "Released" : w.status === "Rejected" ? "Rejected" : "On Hold",
-      date: w.date,
-      method: w.method,
-      bankDetails: w.bankDetails || "",
-      isDynamic: true
-    }));
-    return [...dynamicPayouts, ...defaults];
-  });
+  const [payouts, setPayouts] = useState<any[]>([]);
 
   // ─── ECOSYSTEM CONNECTED WORKFLOW SYNC ───────────────────────────────────────
   useEffect(() => {
@@ -257,10 +138,7 @@ export default function AdminDashboardPage() {
   }, []);
 
   const [refundRequests] = useState(() => PaymentService.getRefundRequests());
-  const [tickets, setTickets] = useState([
-    { id: "tick-1", type: "Refund Request", title: "Course double billing refund", user: "Rahul Verma", status: "Open", assignedTo: "Support Agent A" },
-    { id: "tick-2", type: "Tutor Complaint", title: "Whiteboard disconnect during Algebra session", user: "Amit Verma", status: "Open", assignedTo: "Tech Lead" }
-  ]);
+  const [tickets, setTickets] = useState<any[]>([]);
 
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);

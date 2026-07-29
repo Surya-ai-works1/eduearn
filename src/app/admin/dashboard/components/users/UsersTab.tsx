@@ -1003,27 +1003,6 @@ export default function UsersTab({
               className="fixed right-0 top-0 bottom-0 w-full max-w-3xl bg-background border-l border-border/80 z-50 overflow-y-auto shadow-2xl flex flex-col justify-between"
             >
               
-              {/* Header */}
-              <div className="p-6 border-b border-border/40 flex items-center justify-between bg-card">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">
-                    {selectedApp.tutorName.charAt(0)}
-                  </div>
-                  <div>
-                    <h2 className="text-base font-extrabold text-foreground">{selectedApp.tutorName}</h2>
-                    <p className="text-xs text-muted-foreground">{selectedApp.email} · Applied {selectedApp.created_at ? new Date(selectedApp.created_at).toLocaleDateString() : ""}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`px-2.5 py-0.5 rounded text-[9px] uppercase font-extrabold ${
-                    selectedApp.status === "Approved" ? "bg-emerald-500/10 text-emerald-600" :
-                    selectedApp.status === "Rejected" ? "bg-rose-500/10 text-rose-600" :
-                    selectedApp.status === "Under Review" ? "bg-blue-500/10 text-blue-500" : "bg-amber-500/10 text-amber-600"
-                  }`}>
-                    {selectedApp.status}
-                  </span>
-                  <button
-                    onClick={() => setSelectedApp(null)}
                     className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-all"
                   >
                     <X size={16} />
