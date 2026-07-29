@@ -20,8 +20,23 @@ export function Footer() {
   const [subscribed, setSubsubscribed] = useState(false);
   const [error, setError] = useState("");
 
-  const isDashboard = pathname?.includes("/dashboard");
-  if (isDashboard) return null;
+  const isExcluded = pathname && (
+    pathname.startsWith("/tutor") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/dashboard") ||
+    pathname.includes("/dashboard") ||
+    pathname.startsWith("/profile") ||
+    pathname.includes("/profile") ||
+    pathname.startsWith("/wallet") ||
+    pathname.includes("/wallet") ||
+    pathname.startsWith("/settings") ||
+    pathname.includes("/settings") ||
+    pathname.startsWith("/onboarding") ||
+    pathname.includes("/onboarding") ||
+    pathname.startsWith("/application-status") ||
+    pathname.includes("/application-status")
+  );
+  if (isExcluded) return null;
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,5 +1,7 @@
+/* eslint-disable */
 const { chromium } = require("playwright");
 const path = require("path");
+
 
 const urls = [
   { name: "tutor_assignments_page.png", url: "http://localhost:3000/tutor/assignments" },
