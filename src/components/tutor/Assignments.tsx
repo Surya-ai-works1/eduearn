@@ -1136,11 +1136,11 @@ export const Assignments = React.memo(function Assignments({
           {activeTab === "assignments" && (
             <div className="space-y-4">
               {/* Desktop Table View */}
-              <div className="hidden sm:block w-full overflow-x-auto border border-border bg-card rounded-card shadow-soft">
-                <table className="w-full text-xs text-left min-w-[900px]">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/20 text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">
-                      <th className="p-4 w-10 text-center">
+              <div className="hidden sm:block w-full overflow-auto max-h-[600px] border border-border bg-card rounded-card shadow-soft">
+                <table className="w-full text-xs text-left min-w-[900px] table-layout-fixed">
+                  <thead className="sticky top-0 bg-card/95 backdrop-blur-sm z-10">
+                    <tr className="border-b border-border text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">
+                      <th className="p-3 w-10 text-center select-none bg-muted/20">
                         <input
                           type="checkbox"
                           checked={selectedAsgIds.size === filteredAssignments.length && filteredAssignments.length > 0}
@@ -1148,23 +1148,23 @@ export const Assignments = React.memo(function Assignments({
                           className="rounded cursor-pointer"
                         />
                       </th>
-                      <th className="p-4">Assignment</th>
-                      <th className="p-4">Course</th>
-                      <th className="p-4">Batch</th>
-                      <th className="p-4">Created On</th>
-                      <th className="p-4">Deadline</th>
-                      <th className="p-4 text-center">Max Marks</th>
-                      <th className="p-4 text-center">Submission Status</th>
-                      <th className="p-4">Progress</th>
-                      <th className="p-4 text-center">Actions</th>
+                      <th className="p-3 w-64 max-w-[16rem] bg-muted/20">Assignment</th>
+                      <th className="p-3 w-56 max-w-[14rem] bg-muted/20">Course</th>
+                      <th className="p-3 w-28 max-w-[7rem] bg-muted/20">Batch</th>
+                      <th className="p-3 w-28 max-w-[7rem] bg-muted/20">Created On</th>
+                      <th className="p-3 w-44 max-w-[11rem] bg-muted/20">Deadline</th>
+                      <th className="p-3 w-24 text-center bg-muted/20">Max Marks</th>
+                      <th className="p-3 w-28 text-center bg-muted/20">Submission Status</th>
+                      <th className="p-3 w-32 bg-muted/20">Progress</th>
+                      <th className="p-3 w-36 text-right pr-4 bg-muted/20">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40 font-semibold text-muted-foreground">
                     {filteredAssignments.map((asg) => {
                       const asgStat = getAsgStats(asg.id);
                       return (
-                        <tr key={asg.id} className="hover:bg-muted/15">
-                          <td className="p-4 text-center">
+                        <tr key={asg.id} className="hover:bg-muted/15 align-middle">
+                          <td className="p-2.5 text-center w-10">
                             <input
                               type="checkbox"
                               checked={selectedAsgIds.has(asg.id)}
@@ -1172,27 +1172,33 @@ export const Assignments = React.memo(function Assignments({
                               className="rounded cursor-pointer"
                             />
                           </td>
-                          <td className="p-4">
+                          <td className="p-2.5 w-64 max-w-[16rem] truncate" title={asg.title}>
                             <button
                               onClick={() => { setSelectedAsgId(asg.id); setViewMode("details"); }}
-                              className="font-bold text-foreground hover:underline text-left"
+                              className="font-bold text-foreground hover:underline text-left block w-full truncate"
                             >
                               {asg.title}
                             </button>
-                            <div className="text-[10px] text-muted-foreground font-medium mt-0.5">Difficulty: {asg.difficulty}</div>
+                            <div className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate block w-full">Difficulty: {asg.difficulty}</div>
                           </td>
-                          <td className="p-4">{asg.courseTitle}</td>
-                          <td className="p-4">{asg.batch}</td>
-                          <td className="p-4">{new Date(asg.createdAt).toLocaleDateString()}</td>
-                          <td className="p-4">
-                            <div className="font-bold text-foreground">
+                          <td className="p-2.5 w-56 max-w-[14rem] truncate" title={asg.courseTitle}>
+                            <span className="block w-full truncate">{asg.courseTitle}</span>
+                          </td>
+                          <td className="p-2.5 w-28 max-w-[7rem] truncate" title={asg.batch}>
+                            <span className="block w-full truncate">{asg.batch}</span>
+                          </td>
+                          <td className="p-2.5 w-28 max-w-[7rem] truncate">
+                            {new Date(asg.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="p-2.5 w-44 max-w-[11rem] truncate">
+                            <div className="font-bold text-foreground truncate block w-full" title={`${new Date(asg.dueDate).toLocaleDateString()} at ${new Date(asg.dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}>
                               {new Date(asg.dueDate).toLocaleDateString()} at {new Date(asg.dueDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
-                            <div className="mt-1">{renderCountdown(asg.dueDate, asg.status === "closed")}</div>
+                            <div className="mt-0.5 block">{renderCountdown(asg.dueDate, asg.status === "closed")}</div>
                           </td>
-                          <td className="p-4 text-center text-foreground font-bold">{asg.maxMarks}</td>
-                          <td className="p-4 text-center">
-                            <span className={`text-[8px] font-extrabold uppercase px-2 py-0.5 rounded border ${
+                          <td className="p-2.5 w-24 text-center text-foreground font-bold">{asg.maxMarks}</td>
+                          <td className="p-2.5 w-28 text-center">
+                            <span className={`text-[8px] font-extrabold uppercase px-2 py-0.5 rounded border inline-block ${
                               asg.status === "published" ? "bg-sky-500/10 border-sky-500/20 text-sky-500" :
                               asg.status === "closed" ? "bg-rose-500/10 border-rose-500/20 text-rose-500" :
                               "bg-slate-500/10 border-slate-500/20 text-slate-500"
@@ -1200,8 +1206,8 @@ export const Assignments = React.memo(function Assignments({
                               {asg.status}
                             </span>
                           </td>
-                          <td className="p-4">
-                            <div className="space-y-1 w-28">
+                          <td className="p-2.5 w-32">
+                            <div className="space-y-1 w-full">
                               <div className="flex justify-between text-[10px] font-bold">
                                 <span className="text-foreground">{asgStat.submitted} / {asgStat.total}</span>
                                 <span>{asgStat.rate}%</span>
@@ -1214,13 +1220,13 @@ export const Assignments = React.memo(function Assignments({
                               </div>
                             </div>
                           </td>
-                          <td className="p-4 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
+                          <td className="p-2.5 w-36 text-right pr-4">
+                            <div className="flex items-center justify-end gap-1 ml-auto">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => { setSelectedAsgId(asg.id); setViewMode("details"); }}
-                                className="h-7 w-7 p-0"
+                                className="h-7 w-7 p-0 shrink-0 cursor-pointer"
                                 title="View details"
                               >
                                 <Eye size={12} />
@@ -1229,7 +1235,7 @@ export const Assignments = React.memo(function Assignments({
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleStartEdit(asg)}
-                                className="h-7 w-7 p-0"
+                                className="h-7 w-7 p-0 shrink-0 cursor-pointer"
                                 title="Edit"
                               >
                                 <Edit2 size={12} />
@@ -1238,7 +1244,7 @@ export const Assignments = React.memo(function Assignments({
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleDuplicateAssignment(asg)}
-                                className="h-7 w-7 p-0"
+                                className="h-7 w-7 p-0 shrink-0 cursor-pointer"
                                 title="Duplicate"
                               >
                                 <Copy size={12} />
@@ -1248,7 +1254,7 @@ export const Assignments = React.memo(function Assignments({
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleCloseAssignment(asg.id)}
-                                  className="h-7 w-7 p-0 text-amber-500"
+                                  className="h-7 w-7 p-0 shrink-0 text-amber-500 cursor-pointer"
                                   title="Close Assignment"
                                 >
                                   <X size={12} />
@@ -1258,7 +1264,7 @@ export const Assignments = React.memo(function Assignments({
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleDeleteAssignment(asg.id)}
-                                className="h-7 w-7 p-0 text-rose-500 hover:bg-rose-500/5"
+                                className="h-7 w-7 p-0 shrink-0 text-rose-500 hover:bg-rose-500/5 cursor-pointer"
                                 title="Delete"
                               >
                                 <Trash2 size={12} />
@@ -1701,25 +1707,25 @@ export const Assignments = React.memo(function Assignments({
                 </div>
 
                 {/* Submissions Table */}
-                <div className="hidden sm:block w-full overflow-x-auto border border-border bg-card rounded-card shadow-soft">
-                  <table className="w-full text-xs text-left min-w-[800px]">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/20 text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">
-                        <th className="p-4">Student</th>
-                        <th className="p-4">Email</th>
-                        <th className="p-4">Submission Date</th>
-                        <th className="p-4">File Uploaded</th>
-                        <th className="p-4 text-center">Status</th>
-                        <th className="p-4 text-center">Score Marks</th>
-                        <th className="p-4 text-center">Actions</th>
+                <div className="hidden sm:block w-full overflow-auto max-h-[500px] border border-border bg-card rounded-card shadow-soft">
+                  <table className="w-full text-xs text-left min-w-[800px] table-layout-fixed">
+                    <thead className="sticky top-0 bg-card/95 backdrop-blur-sm z-10">
+                      <tr className="border-b border-border text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">
+                        <th className="p-3 w-48 bg-muted/20">Student</th>
+                        <th className="p-3 w-52 max-w-[13rem] bg-muted/20">Email</th>
+                        <th className="p-3 w-40 bg-muted/20">Submission Date</th>
+                        <th className="p-3 w-44 max-w-[11rem] bg-muted/20">File Uploaded</th>
+                        <th className="p-3 w-28 text-center bg-muted/20">Status</th>
+                        <th className="p-3 w-28 text-center bg-muted/20">Score Marks</th>
+                        <th className="p-3 w-28 text-center bg-muted/20">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40 font-semibold text-muted-foreground">
                       {activeSubs.map((sub) => (
-                        <tr key={sub.id} className="hover:bg-muted/15">
-                          <td className="p-4 text-foreground font-bold">{sub.studentName}</td>
-                          <td className="p-4">{sub.studentEmail}</td>
-                          <td className="p-4">
+                        <tr key={sub.id} className="hover:bg-muted/15 align-middle">
+                          <td className="p-2.5 w-48 truncate text-foreground font-bold" title={sub.studentName}>{sub.studentName}</td>
+                          <td className="p-2.5 w-52 max-w-[13rem] truncate" title={sub.studentEmail}>{sub.studentEmail}</td>
+                          <td className="p-2.5 w-40 truncate">
                             {sub.submittedAt ? (
                               <div className="space-y-0.5">
                                 <p className="text-foreground">{new Date(sub.submittedAt).toLocaleDateString()}</p>
@@ -1729,11 +1735,11 @@ export const Assignments = React.memo(function Assignments({
                               <span className="text-muted-foreground/60 italic font-medium">Awaiting upload</span>
                             )}
                           </td>
-                          <td className="p-4">
+                          <td className="p-2.5 w-44 max-w-[11rem] truncate">
                             {sub.fileUrl ? (
                               <div className="flex items-center gap-1.5 text-primary">
-                                <FileText size={12} />
-                                <span className="truncate max-w-[150px] font-bold hover:underline cursor-pointer" title={sub.fileUrl}>
+                                <FileText size={12} className="shrink-0" />
+                                <span className="truncate w-full font-bold hover:underline cursor-pointer" title={sub.fileUrl}>
                                   {sub.fileUrl}
                                 </span>
                               </div>
@@ -1741,8 +1747,8 @@ export const Assignments = React.memo(function Assignments({
                               <span className="text-muted-foreground/60 italic font-medium">&mdash;</span>
                             )}
                           </td>
-                          <td className="p-4 text-center">
-                            <span className={`text-[8px] font-extrabold uppercase px-2.5 py-0.5 rounded border ${
+                          <td className="p-2.5 w-28 text-center">
+                            <span className={`text-[8px] font-extrabold uppercase px-2.5 py-0.5 rounded border inline-block ${
                               sub.status === "Graded" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
                               sub.status === "Late Submission" ? "bg-rose-500/10 border-rose-500/20 text-rose-500" :
                               sub.status === "Not Submitted" ? "bg-slate-500/10 border-slate-500/20 text-slate-500" :
@@ -1751,10 +1757,10 @@ export const Assignments = React.memo(function Assignments({
                               {sub.status}
                             </span>
                           </td>
-                          <td className="p-4 text-center text-foreground font-bold">
+                          <td className="p-2.5 w-28 text-center text-foreground font-bold">
                             {sub.marks !== undefined ? `${sub.marks} / ${selectedAsg.maxMarks}` : <span className="text-muted-foreground/60 font-medium">&mdash;</span>}
                           </td>
-                          <td className="p-4 text-center">
+                          <td className="p-2.5 w-28 text-center">
                             <div className="flex items-center justify-center gap-1.5">
                               {sub.status !== "Not Submitted" ? (
                                 <Button

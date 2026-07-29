@@ -68,7 +68,7 @@ function TutorPortalLayoutContent({ children }: { children: React.ReactNode }) {
             pendingNotifications={0}
           />
 
-          <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${sidebarOffset}`}>
+          <div className={`flex-1 flex flex-col min-h-screen min-w-0 transition-all duration-300 ${sidebarOffset}`}>
             <TutorHeader
               activeTab={activeTab}
               isCurriculumBuilderOpen={!!activeBuilderCourseId}
