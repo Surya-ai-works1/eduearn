@@ -58,6 +58,11 @@ function createRedirectResponse(url: URL, baseResponse: NextResponse) {
 }
 
 export async function proxy(request: NextRequest) {
+  if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
+    const { response } = createMiddlewareClient(request);
+    return response;
+  }
+
   // 1. Rate Limiting Protection Check
   const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
   if (isRateLimited(ip)) {

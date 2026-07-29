@@ -104,6 +104,17 @@ export function RequireTutor({ children }: RouteGuardProps) {
     if (isLoading) return;
 
     if (!isAuthenticated) {
+      if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
+        const mockUser = {
+          id: "dev-tutor-id",
+          email: "dev-tutor@eduearn.com",
+          fullName: "Tutor Demo",
+          role: "tutor" as const,
+          complete: true,
+        };
+        useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
+        return;
+      }
       router.replace("/tutor/login");
       return;
     }
@@ -114,7 +125,7 @@ export function RequireTutor({ children }: RouteGuardProps) {
         return;
       }
       // Tutors must complete onboarding before accessing the dashboard
-      if (user.role === "tutor" && !user.complete) {
+      if (user.role === "tutor" && !user.complete && process.env.NEXT_PUBLIC_DEV_MODE !== "true") {
         router.replace("/tutor/onboarding");
         return;
       }
@@ -124,7 +135,7 @@ export function RequireTutor({ children }: RouteGuardProps) {
   const isBlocked =
     !isAuthenticated ||
     (user && user.role !== "tutor" && user.role !== "admin") ||
-    (user && user.role === "tutor" && !user.complete);
+    (user && user.role === "tutor" && !user.complete && process.env.NEXT_PUBLIC_DEV_MODE !== "true");
 
   if (isLoading || isBlocked) {
     return (

@@ -162,6 +162,20 @@ export const useAuth = create<AuthStore>((set, get) => ({
 
   initialize: async () => {
     try {
+      if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
+        set({
+          user: {
+            id: "dev-tutor-id",
+            email: "dev-tutor@eduearn.com",
+            fullName: "Tutor Demo",
+            role: "tutor",
+            complete: true,
+          },
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        return;
+      }
       const supabase = getSafeSupabase();
       set({ isLoading: true });
 
