@@ -19,8 +19,10 @@ import {
   ArrowLeft,
   X,
   Edit2,
-  PieChart,
-  Grid
+  ArrowUpDown,
+  Share2,
+  Clock,
+  Save
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "../../components/ui/card";
@@ -44,6 +46,8 @@ interface ExtendedMediaFile extends MediaFile {
   folderId?: string; // organize by folders
   category?: string;
   url?: string;
+  uploadedAt: string;
+  sharedWithCohort?: string;
 }
 
 export const Resources = React.memo(function Resources({
@@ -68,7 +72,9 @@ export const Resources = React.memo(function Resources({
       type: "PDF",
       url: "#",
       folderId: "fld-1",
-      category: "Syllabus"
+      category: "Syllabus",
+      uploadedAt: "2026-07-28",
+      sharedWithCohort: "All Enrolled Students"
     },
     {
       id: "media-2",
@@ -77,7 +83,9 @@ export const Resources = React.memo(function Resources({
       type: "Video",
       url: "#",
       folderId: "fld-2",
-      category: "Lecture Recording"
+      category: "Lecture Recording",
+      uploadedAt: "2026-07-27",
+      sharedWithCohort: "Linear Algebra Cohort"
     },
     {
       id: "media-3",
@@ -86,16 +94,19 @@ export const Resources = React.memo(function Resources({
       type: "ZIP",
       url: "#",
       folderId: "fld-3",
-      category: "Rubric"
+      category: "Rubric",
+      uploadedAt: "2026-07-25",
+      sharedWithCohort: "Full-Stack Cohort"
     }
   ]);
 
   // Current folder navigation: null means root.
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
 
-  // Search & Filter
+  // Search, Filter & Sort
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
+  const [sortBy, setSortBy] = useState("name-asc"); // "name-asc" | "size-desc" | "date-desc"
 
   // Dialogs
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -119,7 +130,7 @@ export const Resources = React.memo(function Resources({
   const [renamingFolder, setRenamingFolder] = useState<ResourceFolder | null>(null);
   const [newFolderInput, setNewFolderInput] = useState("");
 
-  // Storage Stats Computations
+  // Storage utilization stats
   const totalLimit = platformConfig.storageLimit || 500; // in MB
   const totalUsedMB = calculateTotalMediaSizeMB() + 55.5; // Mock actual baseline + custom uploads
   const usagePercentage = Math.min((totalUsedMB / totalLimit) * 100, 100);
@@ -129,7 +140,6 @@ export const Resources = React.memo(function Resources({
     const pdfCount = extendedMedia.filter((f) => f.type === "PDF").length;
     const videoCount = extendedMedia.filter((f) => f.type === "Video").length;
     const zipCount = extendedMedia.filter((f) => f.type === "ZIP").length;
-
     return { totalFiles, pdfCount, videoCount, zipCount };
   }, [extendedMedia]);
 
@@ -140,9 +150,19 @@ export const Resources = React.memo(function Resources({
 
   // Navigation crumbs
   const currentFolderName = useMemo(() => {
-    if (!currentFolderId) return "Root Resource Directory";
+    if (!currentFolderId) return "Root Library Directory";
     return folders.find((f) => f.id === currentFolderId)?.name || "Folder";
   }, [currentFolderId, folders]);
+
+  // Recent Uploads list (sorted by upload date desc)
+  const recentUploads = useMemo(() => {
+    return [...extendedMedia].sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt)).slice(0, 3);
+  }, [extendedMedia]);
+
+  // Shared Resources list
+  const sharedResources = useMemo(() => {
+    return extendedMedia.filter((f) => f.sharedWithCohort);
+  }, [extendedMedia]);
 
   // Handlers
   const handleCreateFolder = (e: React.FormEvent) => {
@@ -172,7 +192,9 @@ export const Resources = React.memo(function Resources({
       type: uploadForm.type,
       url: "#",
       folderId: currentFolderId || undefined,
-      category: uploadForm.category
+      category: uploadForm.category,
+      uploadedAt: new Date().toISOString().split("T")[0],
+      sharedWithCohort: currentFolderId === "fld-1" ? "All Enrolled Students" : "Cohort batch"
     };
 
     setExtendedMedia((prev) => [newFile, ...prev]);
@@ -191,7 +213,7 @@ export const Resources = React.memo(function Resources({
       size: "1.5 MB",
       category: "General Notes"
     });
-    toast.success("File uploaded to directory!");
+    toast.success("Resource uploaded successfully!");
   };
 
   const handleDeleteFile = (id: string) => {
@@ -207,12 +229,11 @@ export const Resources = React.memo(function Resources({
 
   const handleDeleteFolder = (id: string) => {
     setFolders((prev) => prev.filter((f) => f.id !== id));
-    // Orphan files to root
     setExtendedMedia((prev) => prev.map((f) => (f.folderId === id ? { ...f, folderId: undefined } : f)));
     if (currentFolderId === id) {
       setCurrentFolderId(null);
     }
-    toast.success("Folder deleted. Sub-contents moved to root directory.");
+    toast.success("Folder deleted. Inner resources moved to root.");
   };
 
   const handleRenameFile = (e: React.FormEvent) => {
@@ -237,29 +258,38 @@ export const Resources = React.memo(function Resources({
     toast.success("Folder renamed successfully.");
   };
 
-  // Filtered directories & files matching current folder scope
+  // Filtered files
   const visibleFolders = useMemo(() => {
-    if (currentFolderId !== null) return []; // Folders are only on root for this hierarchy
+    if (currentFolderId !== null) return [];
     return folders.filter((f) => f.name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [folders, currentFolderId, searchQuery]);
 
   const visibleFiles = useMemo(() => {
-    return extendedMedia.filter((f) => {
-      const inCurrentFolder = currentFolderId ? f.folderId === currentFolderId : !f.folderId;
-      const matchesSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCat = categoryFilter === "All" || f.category === categoryFilter;
-
-      return inCurrentFolder && matchesSearch && matchesCat;
-    });
-  }, [extendedMedia, currentFolderId, searchQuery, categoryFilter]);
+    return extendedMedia
+      .filter((f) => {
+        const inCurrentFolder = currentFolderId ? f.folderId === currentFolderId : !f.folderId;
+        const matchesSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCat = categoryFilter === "All" || f.category === categoryFilter;
+        return inCurrentFolder && matchesSearch && matchesCat;
+      })
+      .sort((a, b) => {
+        if (sortBy === "name-asc") return a.name.localeCompare(b.name);
+        if (sortBy === "date-desc") return b.uploadedAt.localeCompare(a.uploadedAt);
+        if (sortBy === "size-desc") {
+          const valA = parseFloat(a.size);
+          const valB = parseFloat(b.size);
+          return valB - valA;
+        }
+        return 0;
+      });
+  }, [extendedMedia, currentFolderId, searchQuery, categoryFilter, sortBy]);
 
   const FILE_ICON_MAP: Record<string, React.ElementType> = {
     Video: Video,
     PDF: FileText,
     PPT: FileText,
-    DOCX: FileText,
+    DOC: FileText,
     ZIP: FolderOpen,
-    Image: ImageIcon,
   };
 
   return (
@@ -270,12 +300,12 @@ export const Resources = React.memo(function Resources({
       exit={{ opacity: 0, y: -10 }}
       className="space-y-6"
     >
-      {/* Header */}
+      {/* Title Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-heading font-extrabold text-foreground">Resources Center</h2>
+          <h2 className="text-xl font-heading font-extrabold text-foreground">Resources</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Store and share syllabus files, study materials, and reference guides.
+            Study material libraries, lecture recordings, guidelines and folder configurations.
           </p>
         </div>
         <div className="flex gap-2">
@@ -292,16 +322,182 @@ export const Resources = React.memo(function Resources({
             size="sm"
             className="h-9 gap-1.5 shadow-soft bg-primary hover:bg-primary/95 text-white font-bold"
           >
-            <Upload size={14} /> Upload File
+            <Upload size={14} /> Upload Resource
           </Button>
         </div>
       </div>
 
-      {/* Storage stats panel */}
-      <div className="grid grid-cols-1 md:grid-cols-[1.5fr_2fr] gap-4">
-        <Card variant="glass" className="p-4 space-y-3 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between text-xs font-bold mb-1">
+      {/* Main split grid: library files / Side status details */}
+      <div className="grid grid-cols-1 xl:grid-cols-[2.5fr_1fr] gap-6">
+        
+        {/* Left Side Library explorer */}
+        <div className="space-y-5">
+          {/* Filters & Search */}
+          <Card variant="glass" className="p-4 flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[180px] max-w-xs">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search file library..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-9 w-full pl-9 pr-3 rounded-button border border-border bg-card/60 text-xs font-semibold text-foreground focus:outline-none"
+              />
+            </div>
+
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="h-9 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+            >
+              <option value="All">All Categories</option>
+              {uniqueCategories.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="h-9 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+            >
+              <option value="name-asc">Sort: A-Z</option>
+              <option value="date-desc">Sort: Newest</option>
+              <option value="size-desc">Sort: Largest</option>
+            </select>
+          </Card>
+
+          {/* Breadcrumbs Navigation */}
+          <div className="flex items-center gap-1 text-[11px] font-bold text-muted-foreground px-1">
+            {currentFolderId && (
+              <button
+                onClick={() => setCurrentFolderId(null)}
+                className="hover:text-foreground flex items-center gap-0.5 cursor-pointer font-extrabold"
+              >
+                <ArrowLeft size={12} /> Back to root
+              </button>
+            )}
+            <ChevronRight size={12} className="opacity-40" />
+            <span className="text-foreground">{currentFolderName}</span>
+          </div>
+
+          {/* Directory Folder Grid */}
+          {currentFolderId === null && visibleFolders.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {visibleFolders.map((folder) => (
+                <Card
+                  key={folder.id}
+                  onClick={() => setCurrentFolderId(folder.id)}
+                  className="p-4 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer flex items-center justify-between border-border/70 shadow-soft"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                      <FolderOpen size={20} />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-foreground leading-tight truncate">{folder.name}</h4>
+                      <p className="text-[10px] text-muted-foreground mt-1 font-semibold">
+                        {folder.filesCount} resources
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => { setRenamingFolder(folder); setNewFolderInput(folder.name); }}
+                      className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      <Edit2 size={11} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteFolder(folder.id)}
+                      className="p-1 hover:bg-rose-500/10 rounded text-rose-500 cursor-pointer"
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Explorer Files Grid */}
+          {visibleFiles.length === 0 && visibleFolders.length === 0 ? (
+            <div className="text-center py-10 bg-card rounded-card border border-border/50 text-muted-foreground italic text-xs">
+              No study materials found in this directory folder.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {visibleFiles.map((file) => {
+                const Icon = FILE_ICON_MAP[file.type] || File;
+                return (
+                  <div
+                    key={file.id}
+                    className="card-surface p-3.5 border border-border/50 rounded-card flex items-center justify-between shadow-soft hover:border-primary/20"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 rounded bg-muted/40 text-primary border border-border/30 shrink-0">
+                        <Icon size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-foreground truncate max-w-[190px]">{file.name}</h4>
+                        <div className="flex items-center gap-2 text-[8px] font-extrabold uppercase mt-1 text-muted-foreground">
+                          <span>{file.size}</span>
+                          <span>&bull;</span>
+                          <span className="bg-primary/5 text-primary px-1.5 rounded">{file.category || "General"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPreviewFile(file)}
+                        className="h-7 w-7 p-0"
+                        title="Preview"
+                      >
+                        <Eye size={12} />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setRenamingFile(file); setNewNameInput(file.name); }}
+                        className="h-7 w-7 p-0"
+                        title="Rename"
+                      >
+                        <Edit2 size={12} />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toast.info(`Downloading resource ZIP: ${file.name}`)}
+                        className="h-7 w-7 p-0"
+                        title="Download"
+                      >
+                        <Download size={12} />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteFile(file.id)}
+                        className="h-7 w-7 p-0 text-rose-500 hover:bg-rose-500/5"
+                        title="Delete"
+                      >
+                        <Trash2 size={12} />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Right Side Status Panel details */}
+        <div className="space-y-5">
+          {/* Storage Indicator */}
+          <Card variant="glass" className="p-4 space-y-3">
+            <div className="flex items-center justify-between text-xs font-bold">
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <HardDrive size={13} />
                 Storage Utilization
@@ -311,182 +507,45 @@ export const Resources = React.memo(function Resources({
             <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
               <div className="h-full bg-primary rounded-full" style={{ width: `${usagePercentage}%` }} />
             </div>
-          </div>
-          <p className="text-[9px] text-muted-foreground leading-normal mt-2">
-            Storage limit is determined by your subscription. Upgrade to premium for unlimited study material hosting.
-          </p>
-        </Card>
+            <p className="text-[9px] text-muted-foreground leading-normal">
+              Utilizing {usagePercentage.toFixed(1)}% of your allowed bandwidth/storage capacity.
+            </p>
+          </Card>
 
-        <Card variant="glass" className="p-4 grid grid-cols-3 gap-3 text-center">
-          {[
-            { label: "Total Files", val: statsBreakdown.totalFiles, sub: "documents" },
-            { label: "PDF Documents", val: statsBreakdown.pdfCount, sub: "slides / guides" },
-            { label: "Video Files", val: statsBreakdown.videoCount, sub: "recordings" }
-          ].map((item, idx) => (
-            <div key={idx} className="p-2.5 bg-card rounded-card border border-border/40 font-bold flex flex-col justify-center">
-              <p className="text-lg font-heading font-extrabold text-foreground leading-none">{item.val}</p>
-              <p className="text-[9px] text-muted-foreground mt-1.5">{item.label}</p>
-              <span className="text-[8px] text-muted-foreground/60 font-medium mt-0.5">{item.sub}</span>
+          {/* Recent Uploads */}
+          <Card variant="glass" className="p-4 space-y-3">
+            <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground border-b border-border/40 pb-2">
+              Recent Uploads
+            </h4>
+            <div className="space-y-2">
+              {recentUploads.map((f) => (
+                <div key={f.id} className="flex items-center gap-2 text-[10px] font-semibold text-foreground">
+                  <Clock size={11} className="text-primary shrink-0" />
+                  <span className="truncate max-w-[120px]">{f.name}</span>
+                  <span className="text-[8px] text-muted-foreground ml-auto">{f.uploadedAt}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </Card>
-      </div>
+          </Card>
 
-      {/* Filters & Search */}
-      <Card variant="glass" className="p-4 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search folders and files..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 w-full pl-9 pr-3 rounded-button border border-border bg-card/60 text-xs font-semibold text-foreground focus:outline-none"
-          />
+          {/* Shared study cohort resources */}
+          <Card variant="glass" className="p-4 space-y-3">
+            <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-violet-600 border-b border-border/40 pb-2">
+              Shared Study Cohorts
+            </h4>
+            <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              {sharedResources.map((f) => (
+                <div key={f.id} className="p-2 bg-violet-500/5 border border-violet-500/10 rounded text-[9px] font-semibold space-y-1">
+                  <div className="flex items-center justify-between text-foreground">
+                    <span className="font-bold truncate max-w-[120px]">{f.name}</span>
+                    <Share2 size={10} className="text-violet-500" />
+                  </div>
+                  <p className="text-muted-foreground">Shared: {f.sharedWithCohort}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
-
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="h-9 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-        >
-          <option value="All">All Categories</option>
-          {uniqueCategories.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      </Card>
-
-      {/* Breadcrumbs Navigation */}
-      <div className="flex items-center gap-1 text-[11px] font-bold text-muted-foreground px-1">
-        {currentFolderId && (
-          <button
-            onClick={() => setCurrentFolderId(null)}
-            className="hover:text-foreground flex items-center gap-0.5 cursor-pointer font-extrabold"
-          >
-            <ArrowLeft size={12} /> Back to root
-          </button>
-        )}
-        <ChevronRight size={12} className="opacity-40" />
-        <span className="text-foreground">{currentFolderName}</span>
-      </div>
-
-      {/* Directory Content List */}
-      <div className="space-y-4">
-        {/* Folders List (only at root) */}
-        {currentFolderId === null && visibleFolders.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {visibleFolders.map((folder) => (
-              <Card
-                key={folder.id}
-                onClick={() => setCurrentFolderId(folder.id)}
-                className="p-4 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer flex items-center justify-between border-border/70 shadow-soft"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
-                    <FolderOpen size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-foreground leading-tight">{folder.name}</h4>
-                    <p className="text-[10px] text-muted-foreground mt-1 font-semibold">
-                      {folder.filesCount} resources
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    onClick={() => { setRenamingFolder(folder); setNewFolderInput(folder.name); }}
-                    className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                    title="Rename"
-                  >
-                    <Edit2 size={11} />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteFolder(folder.id)}
-                    className="p-1 hover:bg-rose-500/10 rounded text-rose-500 cursor-pointer"
-                    title="Delete"
-                  >
-                    <Trash2 size={11} />
-                  </button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Files List */}
-        {visibleFiles.length === 0 && visibleFolders.length === 0 ? (
-          <div className="text-center py-10 bg-card rounded-card border border-border/50 text-muted-foreground italic text-xs">
-            This directory folder is currently empty. Upload study files to share.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {visibleFiles.map((file) => {
-              const Icon = FILE_ICON_MAP[file.type] || File;
-              return (
-                <div
-                  key={file.id}
-                  className="card-surface p-3.5 border border-border/50 rounded-card flex items-center justify-between shadow-soft hover:border-primary/20"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-2 rounded bg-muted/40 text-primary border border-border/30 shrink-0">
-                      <Icon size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-foreground truncate max-w-[220px]">{file.name}</h4>
-                      <div className="flex items-center gap-2 text-[8px] font-extrabold uppercase mt-1 text-muted-foreground">
-                        <span>{file.size}</span>
-                        <span>&bull;</span>
-                        <span className="bg-primary/5 text-primary px-1.5 rounded">{file.category || "General"}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPreviewFile(file)}
-                      className="h-7 w-7 p-0"
-                      title="Preview file"
-                    >
-                      <Eye size={12} />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { setRenamingFile(file); setNewNameInput(file.name); }}
-                      className="h-7 w-7 p-0"
-                      title="Rename file"
-                    >
-                      <Edit2 size={12} />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toast.info(`Downloading resource: ${file.name}`)}
-                      className="h-7 w-7 p-0"
-                      title="Download resource"
-                    >
-                      <Download size={12} />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteFile(file.id)}
-                      className="h-7 w-7 p-0 text-rose-500 hover:bg-rose-500/5"
-                      title="Delete resource"
-                    >
-                      <Trash2 size={12} />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* CREATE FOLDER DIALOG */}
@@ -523,7 +582,7 @@ export const Resources = React.memo(function Resources({
                     required
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
-                    placeholder="e.g. Reference Books"
+                    placeholder="e.g. Reference Slides"
                     className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
                   />
                 </div>
@@ -539,7 +598,7 @@ export const Resources = React.memo(function Resources({
         )}
       </AnimatePresence>
 
-      {/* FILE UPLOADER DIALOG */}
+      {/* UPLOAD DIALOG */}
       <AnimatePresence>
         {isUploading && (
           <>
@@ -559,7 +618,7 @@ export const Resources = React.memo(function Resources({
               <form onSubmit={handleUploadFile} className="space-y-4">
                 <div className="flex items-center justify-between border-b border-border/60 pb-2">
                   <h4 className="text-xs font-heading font-extrabold uppercase text-foreground">
-                    Upload Resource Document
+                    Upload Resource
                   </h4>
                   <button type="button" onClick={() => setIsUploading(false)} className="text-muted-foreground">
                     <X size={16} />
@@ -567,32 +626,34 @@ export const Resources = React.memo(function Resources({
                 </div>
 
                 <div className="space-y-1 text-xs">
-                  <label className="font-bold text-foreground">Resource Name *</label>
+                  <label className="font-bold text-foreground">Resource File Name *</label>
                   <input
                     type="text"
                     required
                     value={uploadForm.name}
                     onChange={(e) => setUploadForm((f) => ({ ...f, name: e.target.value }))}
-                    placeholder="e.g. syllabus_draft_v2"
+                    placeholder="e.g. vector_calculus_axioms"
                     className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div className="space-y-1">
-                    <label className="font-bold text-foreground">Document Type *</label>
+                    <label className="font-bold text-foreground">Type *</label>
                     <select
                       value={uploadForm.type}
                       onChange={(e) => setUploadForm((f) => ({ ...f, type: e.target.value as any }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                      className="h-9 w-full rounded border border-border bg-card px-2 font-semibold text-foreground focus:outline-none"
                     >
-                      <option value="PDF">PDF Guide</option>
-                      <option value="Video">Video Material</option>
-                      <option value="ZIP">ZIP Archive</option>
+                      <option value="PDF">PDF Document</option>
+                      <option value="PPT">PPT Slide deck</option>
+                      <option value="DOC">DOC Guide</option>
+                      <option value="ZIP">ZIP Download bundle</option>
+                      <option value="Video">Video File Player</option>
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="font-bold text-foreground">Mock File Size *</label>
+                    <label className="font-bold text-foreground">Mock Size *</label>
                     <input
                       type="text"
                       required
@@ -609,13 +670,12 @@ export const Resources = React.memo(function Resources({
                     type="text"
                     value={uploadForm.category}
                     onChange={(e) => setUploadForm((f) => ({ ...f, category: e.target.value }))}
-                    placeholder="e.g. Cheat Sheet"
                     className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
                   />
                 </div>
 
                 <div className="flex gap-2 justify-end pt-1">
-                  <Button type="submit" className="h-9 text-xs bg-primary hover:bg-primary/95 text-white">
+                  <Button type="submit" className="h-9 text-xs bg-primary hover:bg-primary/95 text-white font-bold">
                     Submit Upload
                   </Button>
                 </div>
@@ -625,56 +685,7 @@ export const Resources = React.memo(function Resources({
         )}
       </AnimatePresence>
 
-      {/* RENAME FILE DIALOG */}
-      <AnimatePresence>
-        {renamingFile && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm"
-              onClick={() => setRenamingFile(null)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              className="fixed inset-0 m-auto z-50 h-fit w-[90%] max-w-sm bg-card border border-border rounded-card p-5 shadow-floating"
-            >
-              <form onSubmit={handleRenameFile} className="space-y-4">
-                <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                  <h4 className="text-xs font-heading font-extrabold uppercase text-foreground">
-                    Rename Resource File
-                  </h4>
-                  <button type="button" onClick={() => setRenamingFile(null)} className="text-muted-foreground">
-                    <X size={16} />
-                  </button>
-                </div>
-
-                <div className="space-y-1 text-xs">
-                  <label className="font-bold text-foreground">New Resource Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newNameInput}
-                    onChange={(e) => setNewNameInput(e.target.value)}
-                    className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-                  />
-                </div>
-
-                <div className="flex gap-2 justify-end pt-1">
-                  <Button type="submit" className="h-9 text-xs bg-primary hover:bg-primary/95 text-white">
-                    Save Name
-                  </Button>
-                </div>
-              </form>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* RENAME FOLDER DIALOG */}
+      {/* RENAME FOLDER */}
       <AnimatePresence>
         {renamingFolder && (
           <>
@@ -713,8 +724,8 @@ export const Resources = React.memo(function Resources({
                 </div>
 
                 <div className="flex gap-2 justify-end pt-1">
-                  <Button type="submit" className="h-9 text-xs bg-primary hover:bg-primary/95 text-white">
-                    Save Folder Name
+                  <Button type="submit" className="h-9 text-xs bg-primary hover:bg-primary/95 text-white font-bold">
+                    Save Name
                   </Button>
                 </div>
               </form>
@@ -723,7 +734,56 @@ export const Resources = React.memo(function Resources({
         )}
       </AnimatePresence>
 
-      {/* Document Preview Overlay */}
+      {/* RENAME FILE */}
+      <AnimatePresence>
+        {renamingFile && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm"
+              onClick={() => setRenamingFile(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="fixed inset-0 m-auto z-50 h-fit w-[90%] max-w-sm bg-card border border-border rounded-card p-5 shadow-floating"
+            >
+              <form onSubmit={handleRenameFile} className="space-y-4">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                  <h4 className="text-xs font-heading font-extrabold uppercase text-foreground">
+                    Rename Resource
+                  </h4>
+                  <button type="button" onClick={() => setRenamingFile(null)} className="text-muted-foreground">
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="space-y-1 text-xs">
+                  <label className="font-bold text-foreground">New File Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newNameInput}
+                    onChange={(e) => setNewNameInput(e.target.value)}
+                    className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end pt-1">
+                  <Button type="submit" className="h-9 text-xs bg-primary hover:bg-primary/95 text-white font-bold">
+                    Save Name
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Preview Dialog */}
       <AnimatePresence>
         {previewFile && (
           <>
@@ -738,35 +798,26 @@ export const Resources = React.memo(function Resources({
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="fixed inset-0 m-auto z-50 h-fit max-h-[85vh] w-[90%] max-w-xl bg-card border border-border rounded-card p-5 shadow-floating overflow-y-auto"
+              className="fixed inset-0 m-auto z-50 h-fit max-h-[85vh] w-[90%] max-w-lg bg-card border border-border rounded-card p-5 shadow-floating overflow-y-auto"
             >
-              <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2">
                 <h4 className="text-xs font-heading font-extrabold uppercase text-foreground">
                   File Preview Workspace
                 </h4>
-                <button
-                  onClick={() => setPreviewFile(null)}
-                  className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded"
-                >
+                <button onClick={() => setPreviewFile(null)} className="text-muted-foreground hover:text-foreground">
                   <X size={16} />
                 </button>
               </div>
 
               {/* Rendering preview block depending on file type */}
-              <div className="my-5 p-4 rounded-lg bg-muted/30 border border-border/40 min-h-[160px] flex items-center justify-center text-center">
+              <div className="my-5 p-4 rounded-lg bg-muted/30 border border-border/40 min-h-[180px] flex items-center justify-center text-center">
                 {previewFile.type === "Video" ? (
                   <div className="w-full space-y-2">
                     <div className="aspect-video w-full rounded bg-black flex items-center justify-center text-white relative">
                       <Video size={36} className="text-primary animate-pulse" />
                       <span className="absolute bottom-2 right-2 text-[8px] bg-black/60 px-1 py-0.5 rounded">0:00 / 2:30</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground font-semibold">Video demo player ready.</p>
-                  </div>
-                ) : previewFile.type === "Image" ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <ImageIcon size={42} className="text-primary" />
-                    <p className="text-xs text-foreground font-bold">{previewFile.name}</p>
-                    <p className="text-[10px] text-muted-foreground">Dimensions: 800 x 600px &bull; Format: PNG</p>
+                    <p className="text-[10px] text-muted-foreground font-semibold">Video player active.</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-3 py-6">
@@ -789,14 +840,9 @@ export const Resources = React.memo(function Resources({
                   }}
                   className="h-9 text-xs font-bold gap-1"
                 >
-                  <Download size={13} /> Download
+                  <Download size={13} /> ZIP Download
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPreviewFile(null)}
-                  className="h-9 text-xs font-bold"
-                >
+                <Button variant="outline" size="sm" onClick={() => setPreviewFile(null)} className="h-9 text-xs font-bold">
                   Close Preview
                 </Button>
               </div>

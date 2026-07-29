@@ -20,7 +20,10 @@ import {
   Save,
   X,
   User,
-  Filter
+  Filter,
+  Eye,
+  FileCheck,
+  ClipboardList
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
@@ -47,7 +50,10 @@ interface AssignmentItem {
   maxScore: string;
   description: string;
   attachments?: string[];
-  submissionsCount: number;
+  totalStudents: number;
+  submittedCount: number;
+  pendingCount: number;
+  status: "Active" | "Completed";
 }
 
 export const Assignments = React.memo(function Assignments({
@@ -68,22 +74,28 @@ export const Assignments = React.memo(function Assignments({
       maxScore: "100",
       description: "Prove the 8 axioms of vector spaces for the set of polynomial functions of degree n.",
       attachments: ["axiom_cheatsheet.pdf", "sample_proofs.pdf"],
-      submissionsCount: students.filter(s => s.courseTitle.includes("Algebra")).length
+      totalStudents: 15,
+      submittedCount: 8,
+      pendingCount: 7,
+      status: "Active"
     },
     {
       id: "asg-2",
       title: "Lab 2: Dynamic Routing Page Configuration",
       courseTitle: "Full-Stack Web Dev Bootcamp",
-      dueDate: "2026-08-10",
+      dueDate: "2026-07-20",
       maxScore: "100",
       description: "Setup custom layout routes in Next.js App Router and handle client-side context updates.",
       attachments: ["routing_spec.docx"],
-      submissionsCount: students.filter(s => s.courseTitle.includes("Web")).length
+      totalStudents: 20,
+      submittedCount: 20,
+      pendingCount: 0,
+      status: "Completed"
     }
   ]);
 
   // Tab: "submissions" | "assignments"
-  const [activeTab, setActiveTab] = useState<"submissions" | "assignments">("submissions");
+  const [activeTab, setActiveTab] = useState<"assignments" | "submissions">("assignments");
 
   // Create Assignment State
   const [isCreatingAsg, setIsCreatingAsg] = useState(false);
@@ -100,27 +112,27 @@ export const Assignments = React.memo(function Assignments({
   const [editingAsg, setEditingAsg] = useState<AssignmentItem | null>(null);
   const [editAsgForm, setEditAsgForm] = useState<Partial<AssignmentItem>>({});
 
+  // Submission Drawer (Review Drawer)
+  const [selectedSubmission, setSelectedSubmission] = useState<StudentProgress | null>(null);
+
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState("");
   const [courseFilter, setCourseFilter] = useState("All");
-  const [submissionFilter, setSubmissionFilter] = useState("All"); // "All" | "Submitted" | "Graded"
+  const [statusFilter, setStatusFilter] = useState("All"); // "All" | "Active" | "Completed" for table; "All" | "Submitted" | "Graded" for submissions
 
   const courseOptions = useMemo(() => {
     return Array.from(new Set(students.map((s) => s.courseTitle)));
   }, [students]);
 
-  // Compute submission buckets
-  const { submitted, graded, pending } = useMemo(() => {
-    const s: StudentProgress[] = [];
-    const g: StudentProgress[] = [];
-    const p: StudentProgress[] = [];
-    for (const st of students) {
-      if (st.assignmentStatus === "Submitted") s.push(st);
-      else if (st.assignmentStatus === "Graded") g.push(st);
-      else p.push(st);
-    }
-    return { submitted: s, graded: g, pending: p };
-  }, [students]);
+  // Compute stats
+  const stats = useMemo(() => {
+    const total = assignments.length;
+    const active = assignments.filter((a) => a.status === "Active").length;
+    const pending = students.filter((s) => s.assignmentStatus === "Submitted").length;
+    const completed = assignments.filter((a) => a.status === "Completed").length;
+
+    return { total, active, pending, completed };
+  }, [assignments, students]);
 
   // Handlers
   const handleCreateAssignment = (e: React.FormEvent) => {
@@ -138,7 +150,10 @@ export const Assignments = React.memo(function Assignments({
       maxScore: asgForm.maxScore,
       description: asgForm.description,
       attachments: asgForm.attachments,
-      submissionsCount: 0
+      totalStudents: students.filter(s => s.courseTitle === asgForm.courseTitle).length || 10,
+      submittedCount: 0,
+      pendingCount: students.filter(s => s.courseTitle === asgForm.courseTitle).length || 10,
+      status: "Active"
     };
 
     setAssignments((prev) => [newItem, ...prev]);
@@ -162,7 +177,7 @@ export const Assignments = React.memo(function Assignments({
       dueDate: asg.dueDate,
       maxScore: asg.maxScore,
       description: asg.description,
-      attachments: asg.attachments || []
+      status: asg.status
     });
   };
 
@@ -180,52 +195,55 @@ export const Assignments = React.memo(function Assignments({
               dueDate: editAsgForm.dueDate || a.dueDate,
               maxScore: editAsgForm.maxScore || a.maxScore,
               description: editAsgForm.description || a.description,
-              attachments: editAsgForm.attachments,
+              status: editAsgForm.status || a.status
             }
           : a
       )
     );
 
     setEditingAsg(null);
-    toast.success("Assignment template updated successfully!");
+    toast.success("Assignment updated successfully!");
   };
 
   const handleDeleteAssignment = (id: string) => {
     setAssignments((prev) => prev.filter((a) => a.id !== id));
-    toast.success("Assignment template deleted successfully.");
+    toast.success("Assignment deleted successfully.");
   };
 
-  // Filtered submissions
+  // Filters for Table
+  const filteredAssignments = useMemo(() => {
+    return assignments.filter((a) => {
+      const matchesSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.courseTitle.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCourse = courseFilter === "All" || a.courseTitle === courseFilter;
+      const matchesStatus = statusFilter === "All" || a.status === statusFilter;
+      return matchesSearch && matchesCourse && matchesStatus;
+    });
+  }, [assignments, searchQuery, courseFilter, statusFilter]);
+
+  // Filters for Submissions
   const filteredSubmissions = useMemo(() => {
     return students.filter((s) => {
       const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.courseTitle.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCourse = courseFilter === "All" || s.courseTitle === courseFilter;
-      
       const matchesStatus =
-        submissionFilter === "All"
+        statusFilter === "All"
           ? true
-          : submissionFilter === "Submitted"
+          : statusFilter === "Submitted"
           ? s.assignmentStatus === "Submitted"
           : s.assignmentStatus === "Graded";
-
       return matchesSearch && matchesCourse && matchesStatus;
     });
-  }, [students, searchQuery, courseFilter, submissionFilter]);
+  }, [students, searchQuery, courseFilter, statusFilter]);
 
-  // Filtered assignments list
-  const filteredAssignments = useMemo(() => {
-    return assignments.filter((a) => {
-      const matchesSearch = a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        a.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCourse = courseFilter === "All" || a.courseTitle === courseFilter;
-      return matchesSearch && matchesCourse;
-    });
-  }, [assignments, searchQuery, courseFilter]);
-
-  // Rich Text Editor mock toolbar triggers
   const handleToolbarClick = (action: string) => {
-    toast.info(`Rich text styling [${action}] applied to cursor selection.`);
+    toast.info(`Rich text styling [${action}] applied to description.`);
+  };
+
+  const handleGradeSubmit = (studentId: string) => {
+    handleSubmitGrade(studentId);
+    setSelectedSubmission(null);
   };
 
   return (
@@ -234,14 +252,14 @@ export const Assignments = React.memo(function Assignments({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="space-y-5"
+      className="space-y-6"
     >
-      {/* Header */}
+      {/* Title Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-heading font-extrabold text-foreground">Assignments Portal</h2>
+          <h2 className="text-xl font-heading font-extrabold text-foreground">Assignment Manager</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Create, distribute, and grade assignments with feedback scores.
+            Monitor, edit, delete, and grade all student assessments.
           </p>
         </div>
         <Button
@@ -253,42 +271,44 @@ export const Assignments = React.memo(function Assignments({
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          {
-            label: "Awaiting Review",
-            count: submitted.length,
-            color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
-          },
-          {
-            label: "Graded Submissions",
-            count: graded.length,
-            color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
-          },
-          {
-            label: "Total Templates",
-            count: assignments.length,
-            color: "text-primary bg-primary/10 border-primary/20",
-          },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className={`card-surface p-3.5 rounded-card border text-center ${stat.color} font-bold`}
-          >
-            <p className="text-xl font-heading font-extrabold">{stat.count}</p>
-            <p className="text-[9px] font-bold uppercase mt-0.5">{stat.label}</p>
-          </div>
+          { label: "Total Assignments", count: stats.total, color: "text-violet-500 bg-violet-500/10 border-violet-500/20" },
+          { label: "Active Assignments", count: stats.active, color: "text-sky-500 bg-sky-500/10 border-sky-500/20" },
+          { label: "Pending Review", count: stats.pending, color: "text-amber-500 bg-amber-500/10 border-amber-500/20 animate-pulse" },
+          { label: "Completed", count: stats.completed, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
+        ].map((item, idx) => (
+          <Card key={idx} variant="glass" className={`p-4 text-center border font-bold ${item.color}`}>
+            <p className="text-2xl font-heading font-extrabold">{item.count}</p>
+            <p className="text-[10px] font-extrabold uppercase mt-1">{item.label}</p>
+          </Card>
         ))}
       </div>
 
-      {/* Filters Card */}
+      {/* Tabs toggle between templates and submissions list */}
+      <div className="flex border-b border-border/40 pb-2 gap-4 text-xs font-bold text-muted-foreground">
+        <button
+          onClick={() => { setActiveTab("assignments"); setStatusFilter("All"); }}
+          className={`pb-2 border-b-2 transition-all cursor-pointer ${activeTab === "assignments" ? "border-primary text-primary" : "border-transparent hover:text-foreground"}`}
+        >
+          Assignments Grid
+        </button>
+        <button
+          onClick={() => { setActiveTab("submissions"); setStatusFilter("All"); }}
+          className={`pb-2 border-b-2 transition-all cursor-pointer ${activeTab === "submissions" ? "border-primary text-primary" : "border-transparent hover:text-foreground"}`}
+        >
+          Submissions Inbox ({students.filter(s => s.assignmentStatus !== "Pending").length})
+        </button>
+      </div>
+
+      {/* Search and Filters card */}
       <Card variant="glass" className="p-4 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search assignments/students..."
+            placeholder={activeTab === "assignments" ? "Search assignments..." : "Search students..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="h-9 w-full pl-9 pr-3 rounded-button border border-border bg-card/60 text-xs font-semibold text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
@@ -308,60 +328,112 @@ export const Assignments = React.memo(function Assignments({
           ))}
         </select>
 
-        {activeTab === "submissions" && (
-          <select
-            value={submissionFilter}
-            onChange={(e) => setSubmissionFilter(e.target.value)}
-            className="h-9 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-          >
-            <option value="All">All Submissions</option>
-            <option value="Submitted">Awaiting Review</option>
-            <option value="Graded">Graded</option>
-          </select>
-        )}
-
-        {/* Tab Toggle */}
-        <div className="flex bg-muted/40 p-0.5 rounded-button ml-auto">
-          <button
-            onClick={() => setActiveTab("submissions")}
-            className={`px-3 py-1.5 text-[10px] font-extrabold uppercase rounded-button transition-all cursor-pointer ${
-              activeTab === "submissions"
-                ? "bg-card text-foreground shadow-soft"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Submissions ({students.filter(s => s.assignmentStatus !== "Pending").length})
-          </button>
-          <button
-            onClick={() => setActiveTab("assignments")}
-            className={`px-3 py-1.5 text-[10px] font-extrabold uppercase rounded-button transition-all cursor-pointer ${
-              activeTab === "assignments"
-                ? "bg-card text-foreground shadow-soft"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Assignment List ({assignments.length})
-          </button>
-        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="h-9 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+        >
+          {activeTab === "assignments" ? (
+            <>
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Completed">Completed</option>
+            </>
+          ) : (
+            <>
+              <option value="All">All Submissions</option>
+              <option value="Submitted">Awaiting Review</option>
+              <option value="Graded">Graded</option>
+            </>
+          )}
+        </select>
       </Card>
 
-      {/* TAB CONTENT: Submissions List */}
-      {activeTab === "submissions" && (
+      {/* Tab contents */}
+      {activeTab === "assignments" ? (
+        <div className="w-full overflow-x-auto border border-border bg-card rounded-card shadow-soft">
+          <table className="w-full text-xs text-left min-w-[800px]" role="table">
+            <thead>
+              <tr className="border-b border-border bg-muted/20 text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">
+                <th className="p-4">Assignment Name</th>
+                <th className="p-4">Course</th>
+                <th className="p-4">Due Date</th>
+                <th className="p-4 text-center">Total Students</th>
+                <th className="p-4 text-center">Submitted</th>
+                <th className="p-4 text-center">Pending</th>
+                <th className="p-4 text-center">Status</th>
+                <th className="p-4 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/40 font-semibold text-muted-foreground">
+              {filteredAssignments.map((asg) => (
+                <tr key={asg.id} className="hover:bg-muted/15">
+                  <td className="p-4 font-bold text-foreground">{asg.title}</td>
+                  <td className="p-4">{asg.courseTitle}</td>
+                  <td className="p-4">{asg.dueDate}</td>
+                  <td className="p-4 text-center text-foreground font-bold">{asg.totalStudents}</td>
+                  <td className="p-4 text-center text-emerald-600 font-bold">{asg.submittedCount}</td>
+                  <td className="p-4 text-center text-amber-600 font-bold">{asg.pendingCount}</td>
+                  <td className="p-4 text-center">
+                    <span className={`text-[8px] font-extrabold uppercase px-2 py-0.5 rounded border ${
+                      asg.status === "Active" ? "bg-sky-500/10 border-sky-500/20 text-sky-500" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                    }`}>
+                      {asg.status}
+                    </span>
+                  </td>
+                  <td className="p-4 text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleStartEdit(asg)}
+                        className="h-7 w-7 p-0"
+                        title="Edit"
+                      >
+                        <Edit2 size={12} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteAssignment(asg.id)}
+                        className="h-7 w-7 p-0 text-rose-500 hover:bg-rose-500/5"
+                        title="Delete"
+                      >
+                        <Trash2 size={12} />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredAssignments.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="text-center p-8 text-muted-foreground italic">No assignments found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        /* Submissions Inbox view */
         <div className="space-y-4">
           {filteredSubmissions.length === 0 ? (
             <EmptyState
-              icon={<FileText size={28} />}
-              title="No submissions matching filter"
-              description="Awaiting student uploads or filter is matching 0 records."
+              icon={<ClipboardList size={28} />}
+              title="No submissions found"
+              description="Awaiting student uploads."
             />
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredSubmissions.map((student) => (
-                <div key={student.id} className="card-surface p-4 border border-border/50 rounded-card shadow-soft space-y-3">
+                <Card
+                  key={student.id}
+                  className="p-4 border-border/50 shadow-soft space-y-3 hover:border-primary/20 transition-all cursor-pointer"
+                  onClick={() => setSelectedSubmission(student)}
+                >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                        <User size={14} />
+                        {student.name.charAt(0)}
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-foreground">{student.name}</h4>
@@ -369,190 +441,31 @@ export const Assignments = React.memo(function Assignments({
                       </div>
                     </div>
                     <span className={`text-[8px] font-extrabold uppercase px-2.5 py-0.5 rounded border ${
-                      student.assignmentStatus === "Graded"
-                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
-                        : student.assignmentStatus === "Submitted"
-                        ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
-                        : "bg-muted border-border text-muted-foreground"
+                      student.assignmentStatus === "Graded" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-amber-500/10 border-amber-500/20 text-amber-500"
                     }`}>
                       {student.assignmentStatus}
                     </span>
                   </div>
-
                   {student.submittedFile && (
-                    <div className="flex items-center justify-between text-[10px] bg-muted/40 p-2.5 rounded border border-border/40 font-semibold">
-                      <div className="flex items-center gap-2">
-                        <FileText size={13} className="text-primary" />
-                        <span className="text-foreground">{student.submittedFile}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toast.info(`Downloading: ${student.submittedFile}`)}
-                        className="h-6 text-[9px] px-2 font-bold gap-1 text-primary hover:bg-primary/5"
-                      >
-                        <Download size={11} /> Download
-                      </Button>
+                    <div className="text-[9px] bg-muted/40 p-2 border border-border/40 rounded flex items-center gap-1.5">
+                      <FileText size={12} className="text-primary" />
+                      <span className="text-foreground truncate">{student.submittedFile}</span>
                     </div>
                   )}
-
-                  {/* Display graded statistics if already graded */}
                   {student.assignmentStatus === "Graded" && (
-                    <div className="p-3 bg-muted/20 border border-border/40 rounded text-xs space-y-1">
-                      <div className="flex justify-between font-bold text-foreground">
-                        <span>Score Assigned: {student.grade}</span>
-                        <span>Date Reviewed: Just now</span>
-                      </div>
-                      {student.feedback && (
-                        <p className="text-muted-foreground mt-1">Feedback: &quot;{student.feedback}&quot;</p>
-                      )}
-                    </div>
+                    <p className="text-[10px] text-muted-foreground italic">Grade Score: {student.grade} &bull; Marks assigned</p>
                   )}
-
-                  {activeGradingStudentId === student.id ? (
-                    <div className="space-y-3 border-t border-border/40 pt-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1 text-xs">
-                          <label className="font-bold text-foreground">Grade Mark *</label>
-                          <select
-                            value={gradingForm.grade}
-                            onChange={(e) => setGradingForm((f) => ({ ...f, grade: e.target.value }))}
-                            className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-                          >
-                            <option value="">Select grade...</option>
-                            {["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "D", "F"].map((g) => (
-                              <option key={g} value={g}>{g}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="space-y-1 text-xs">
-                          <label className="font-bold text-foreground">Score (Points) *</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 92/100"
-                            value={gradingForm.score}
-                            onChange={(e) => setGradingForm((f) => ({ ...f, score: e.target.value }))}
-                            className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1 text-xs">
-                        <label className="font-bold text-foreground">Reviewer Feedback *</label>
-                        <textarea
-                          rows={3}
-                          value={gradingForm.feedback}
-                          onChange={(e) => setGradingForm((f) => ({ ...f, feedback: e.target.value }))}
-                          placeholder="Provide specific, constructive remarks..."
-                          className="w-full bg-card border border-border rounded p-2 focus:outline-none text-xs font-semibold text-foreground resize-none"
-                        />
-                      </div>
-                      <div className="flex gap-2 justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-xs font-bold"
-                          onClick={() => setActiveGradingStudentId(null)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="h-8 text-xs font-bold bg-primary hover:bg-primary/95 text-white"
-                          onClick={() => handleSubmitGrade(student.id)}
-                        >
-                          <CheckCircle size={12} className="mr-1" />
-                          Submit Grade
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    student.assignmentStatus === "Submitted" && (
-                      <Button
-                        onClick={() => {
-                          setGradingForm({ grade: "", feedback: "", score: "" });
-                          setActiveGradingStudentId(student.id);
-                        }}
-                        size="sm"
-                        className="h-8 text-xs font-bold bg-primary hover:bg-primary/95 text-white"
-                      >
-                        Grade Submission
-                      </Button>
-                    )
-                  )}
-                </div>
+                  <Button size="sm" className="w-full h-8 text-[10px] font-bold bg-primary text-white">
+                    {student.assignmentStatus === "Graded" ? "View Review Feedback" : "Review & Grade Submission"}
+                  </Button>
+                </Card>
               ))}
             </div>
           )}
         </div>
       )}
 
-      {/* TAB CONTENT: Assignment Templates List */}
-      {activeTab === "assignments" && (
-        <div className="space-y-4">
-          {filteredAssignments.length === 0 ? (
-            <EmptyState
-              icon={<BookOpen size={28} />}
-              title="No assignments configured"
-              description="Click 'Create Assignment' to distribute your first assessment."
-            />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredAssignments.map((asg) => (
-                <div key={asg.id} className="card-surface p-4 border border-border/50 rounded-card shadow-soft flex flex-col justify-between space-y-3">
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="text-xs font-bold text-foreground leading-tight">{asg.title}</h4>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          onClick={() => handleStartEdit(asg)}
-                          className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                          title="Edit Template"
-                        >
-                          <Edit2 size={12} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAssignment(asg.id)}
-                          className="p-1 hover:bg-rose-500/10 rounded text-rose-500 cursor-pointer"
-                          title="Delete Template"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                        <span className="text-[9px] font-extrabold bg-primary/10 text-primary px-2 py-0.5 rounded border border-primary/20">
-                          {asg.maxScore} pts
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
-                      {asg.description}
-                    </p>
-
-                    {asg.attachments && asg.attachments.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {asg.attachments.map((file, idx) => (
-                          <span key={idx} className="flex items-center gap-1 text-[8px] bg-muted/40 border border-border/40 rounded px-1.5 py-0.5 text-muted-foreground font-bold">
-                            <Paperclip size={8} /> {file}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between text-[9px] font-bold text-muted-foreground border-t border-border/40 pt-2.5">
-                    <span className="flex items-center gap-1">
-                      <BookOpen size={11} /> {asg.courseTitle}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar size={11} /> Due: {asg.dueDate}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Create Assignment Dialog */}
+      {/* CREATE ASSIGNMENT DIALOG MODAL */}
       <AnimatePresence>
         {isCreatingAsg && (
           <>
@@ -574,11 +487,7 @@ export const Assignments = React.memo(function Assignments({
                   <h4 className="text-sm font-heading font-extrabold uppercase text-foreground">
                     Create Course Assignment
                   </h4>
-                  <button
-                    type="button"
-                    onClick={() => setIsCreatingAsg(false)}
-                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded"
-                  >
+                  <button type="button" onClick={() => setIsCreatingAsg(false)} className="text-muted-foreground">
                     <X size={16} />
                   </button>
                 </div>
@@ -590,35 +499,34 @@ export const Assignments = React.memo(function Assignments({
                     required
                     value={asgForm.title}
                     onChange={(e) => setAsgForm((f) => ({ ...f, title: e.target.value }))}
-                    placeholder="e.g. Unit 3 Quiz: Complex Integrals"
+                    placeholder="e.g. Unit 3 Homework Assignment"
                     className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1 text-xs">
-                    <label className="font-bold text-foreground">Target Course *</label>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Course *</label>
                     <select
                       required
                       value={asgForm.courseTitle}
                       onChange={(e) => setAsgForm((f) => ({ ...f, courseTitle: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                      className="h-9 w-full rounded border border-border bg-card px-2 font-semibold text-foreground focus:outline-none"
                     >
-                      <option value="">Choose course...</option>
+                      <option value="">Select course...</option>
                       {courseOptions.map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
                   </div>
-
-                  <div className="space-y-1 text-xs">
+                  <div className="space-y-1">
                     <label className="font-bold text-foreground">Due Date *</label>
                     <input
                       type="date"
                       required
                       value={asgForm.dueDate}
                       onChange={(e) => setAsgForm((f) => ({ ...f, dueDate: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                      className="h-9 w-full rounded border border-border bg-card px-2 font-semibold text-foreground focus:outline-none"
                     />
                   </div>
                 </div>
@@ -633,7 +541,6 @@ export const Assignments = React.memo(function Assignments({
                   />
                 </div>
 
-                {/* Rich text instructions placeholder toolbar */}
                 <div className="space-y-1 text-xs">
                   <label className="font-bold text-foreground">Instructions & Description *</label>
                   <div className="flex gap-1 bg-muted p-1 border border-b-0 border-border rounded-t">
@@ -646,26 +553,17 @@ export const Assignments = React.memo(function Assignments({
                     required
                     value={asgForm.description}
                     onChange={(e) => setAsgForm((f) => ({ ...f, description: e.target.value }))}
-                    placeholder="Write details of the assignment..."
+                    placeholder="Write instructions..."
                     className="w-full bg-card border border-border border-t-0 rounded-b p-2 focus:outline-none text-xs font-semibold text-foreground resize-none"
                   />
                 </div>
 
                 <div className="flex gap-2 justify-end pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsCreatingAsg(false)}
-                    className="h-9 text-xs"
-                  >
+                  <Button type="button" variant="outline" onClick={() => setIsCreatingAsg(false)} className="h-9 text-xs">
                     Cancel
                   </Button>
-                  <Button
-                    type="submit"
-                    className="h-9 text-xs bg-primary hover:bg-primary/95 text-white gap-1.5"
-                  >
-                    <Send size={13} />
-                    Publish Assignment
+                  <Button type="submit" className="h-9 text-xs bg-primary hover:bg-primary/95 text-white gap-1.5">
+                    <Send size={13} /> Publish Assignment
                   </Button>
                 </div>
               </form>
@@ -674,7 +572,7 @@ export const Assignments = React.memo(function Assignments({
         )}
       </AnimatePresence>
 
-      {/* Edit Assignment Dialog */}
+      {/* EDIT TEMPLATE DIALOG MODAL */}
       <AnimatePresence>
         {editingAsg && (
           <>
@@ -694,13 +592,9 @@ export const Assignments = React.memo(function Assignments({
               <form onSubmit={handleSaveEdit} className="space-y-4">
                 <div className="flex items-center justify-between border-b border-border/60 pb-2">
                   <h4 className="text-sm font-heading font-extrabold uppercase text-foreground">
-                    Edit Assignment Template
+                    Edit Assignment Detail
                   </h4>
-                  <button
-                    type="button"
-                    onClick={() => setEditingAsg(null)}
-                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded"
-                  >
+                  <button type="button" onClick={() => setEditingAsg(null)} className="text-muted-foreground">
                     <X size={16} />
                   </button>
                 </div>
@@ -716,49 +610,59 @@ export const Assignments = React.memo(function Assignments({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1 text-xs">
-                    <label className="font-bold text-foreground">Target Course *</label>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Course *</label>
                     <select
                       required
                       value={editAsgForm.courseTitle || ""}
                       onChange={(e) => setEditAsgForm((f) => ({ ...f, courseTitle: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                      className="h-9 w-full rounded border border-border bg-card px-2 font-semibold text-foreground focus:outline-none"
                     >
-                      <option value="">Choose course...</option>
                       {courseOptions.map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
                   </div>
-
-                  <div className="space-y-1 text-xs">
+                  <div className="space-y-1">
                     <label className="font-bold text-foreground">Due Date *</label>
                     <input
                       type="date"
                       required
                       value={editAsgForm.dueDate || ""}
                       onChange={(e) => setEditAsgForm((f) => ({ ...f, dueDate: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                      className="h-9 w-full rounded border border-border bg-card px-2 font-semibold text-foreground focus:outline-none"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1 text-xs">
-                  <label className="font-bold text-foreground">Total Points (Max Score)</label>
-                  <input
-                    type="number"
-                    value={editAsgForm.maxScore || ""}
-                    onChange={(e) => setEditAsgForm((f) => ({ ...f, maxScore: e.target.value }))}
-                    className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-                  />
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Max Score</label>
+                    <input
+                      type="text"
+                      value={editAsgForm.maxScore || ""}
+                      onChange={(e) => setEditAsgForm((f) => ({ ...f, maxScore: e.target.value }))}
+                      className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Status</label>
+                    <select
+                      value={editAsgForm.status || "Active"}
+                      onChange={(e) => setEditAsgForm((f) => ({ ...f, status: e.target.value as any }))}
+                      className="h-9 w-full rounded border border-border bg-card px-2 font-semibold text-foreground focus:outline-none"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="space-y-1 text-xs">
-                  <label className="font-bold text-foreground">Instructions & Description *</label>
+                  <label className="font-bold text-foreground">Description</label>
                   <textarea
                     rows={3}
-                    required
                     value={editAsgForm.description || ""}
                     onChange={(e) => setEditAsgForm((f) => ({ ...f, description: e.target.value }))}
                     className="w-full bg-card border border-border rounded p-2 focus:outline-none text-xs font-semibold text-foreground resize-none"
@@ -766,23 +670,142 @@ export const Assignments = React.memo(function Assignments({
                 </div>
 
                 <div className="flex gap-2 justify-end pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setEditingAsg(null)}
-                    className="h-9 text-xs"
-                  >
+                  <Button type="button" variant="outline" onClick={() => setEditingAsg(null)} className="h-9 text-xs">
                     Cancel
                   </Button>
-                  <Button
-                    type="submit"
-                    className="h-9 text-xs bg-primary hover:bg-primary/95 text-white gap-1.5"
-                  >
-                    <Save size={13} />
-                    Save Template
+                  <Button type="submit" className="h-9 text-xs bg-primary hover:bg-primary/95 text-white gap-1.5">
+                    <Save size={13} /> Save Template
                   </Button>
                 </div>
               </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* SUBMISSION REVIEW & GRADING DRAWER */}
+      <AnimatePresence>
+        {selectedSubmission && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm"
+              onClick={() => setSelectedSubmission(null)}
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              className="fixed right-0 top-0 bottom-0 w-full sm:w-[400px] bg-card border-l border-border z-50 overflow-y-auto shadow-floating flex flex-col justify-between"
+            >
+              <div className="p-5 space-y-5 flex-1 overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                  <h3 className="text-sm font-heading font-extrabold uppercase text-foreground">
+                    Review Submission
+                  </h3>
+                  <button onClick={() => setSelectedSubmission(null)} className="text-muted-foreground hover:text-foreground">
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="space-y-4 text-xs font-semibold">
+                  <div className="p-3 bg-muted/20 border border-border/40 rounded space-y-1">
+                    <p className="text-[9px] font-bold uppercase text-muted-foreground">Student Name</p>
+                    <p className="text-foreground font-bold">{selectedSubmission.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{selectedSubmission.courseTitle}</p>
+                  </div>
+
+                  {selectedSubmission.submittedFile && (
+                    <div className="p-3 bg-muted/20 border border-border/40 rounded space-y-2">
+                      <p className="text-[9px] font-bold uppercase text-muted-foreground">Uploaded Document</p>
+                      <div className="flex items-center justify-between bg-card p-2 rounded border border-border/40">
+                        <span className="text-foreground truncate">{selectedSubmission.submittedFile}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toast.info(`Downloading: ${selectedSubmission.submittedFile}`)}
+                          className="h-6 text-[9px] px-2 text-primary"
+                        >
+                          <Download size={11} />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedSubmission.assignmentStatus === "Graded" ? (
+                    <div className="p-3 bg-muted/30 border border-border/40 rounded space-y-2 text-foreground font-semibold">
+                      <p className="text-[9px] font-extrabold uppercase text-emerald-600">Graded Details</p>
+                      <div>
+                        <span className="text-muted-foreground">Assigned Grade:</span> {selectedSubmission.grade}
+                      </div>
+                      {selectedSubmission.feedback && (
+                        <div>
+                          <p className="text-muted-foreground">Feedback:</p>
+                          <p className="italic text-muted-foreground/90 font-medium mt-0.5">
+                            &quot;{selectedSubmission.feedback}&quot;
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Grade Form */
+                    <div className="space-y-3 border-t border-border/40 pt-3">
+                      <p className="text-[10px] font-extrabold uppercase text-primary">Score Assessment</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="font-bold text-foreground">Grade Mark *</label>
+                          <select
+                            value={gradingForm.grade}
+                            onChange={(e) => setGradingForm((f) => ({ ...f, grade: e.target.value }))}
+                            className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                          >
+                            <option value="">Choose...</option>
+                            {["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "D", "F"].map((g) => (
+                              <option key={g} value={g}>{g}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-bold text-foreground">Score Marks *</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 95/100"
+                            value={gradingForm.score}
+                            onChange={(e) => setGradingForm((f) => ({ ...f, score: e.target.value }))}
+                            className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-foreground">Constructive Feedback *</label>
+                        <textarea
+                          rows={4}
+                          value={gradingForm.feedback}
+                          onChange={(e) => setGradingForm((f) => ({ ...f, feedback: e.target.value }))}
+                          placeholder="Provide descriptive feedback notes..."
+                          className="w-full bg-card border border-border rounded p-2 focus:outline-none text-xs font-semibold text-foreground resize-none"
+                        />
+                      </div>
+                      <Button
+                        onClick={() => handleGradeSubmit(selectedSubmission.id)}
+                        className="w-full h-9 bg-primary hover:bg-primary/95 text-white font-bold gap-1 mt-2 shadow-soft"
+                      >
+                        <CheckCircle size={13} />
+                        Submit Grade
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-5 border-t border-border/40 bg-muted/10">
+                <Button variant="outline" className="w-full h-9" onClick={() => setSelectedSubmission(null)}>
+                  Close Review Panel
+                </Button>
+              </div>
             </motion.div>
           </>
         )}

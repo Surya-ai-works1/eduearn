@@ -192,6 +192,14 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
       setActiveTab("students");
     } else if (pathname.includes("/tutor/live-classes")) {
       setActiveTab("live-classes");
+    } else if (pathname.includes("/tutor/assignments")) {
+      setActiveTab("assignments");
+    } else if (pathname.includes("/tutor/calendar")) {
+      setActiveTab("calendar");
+    } else if (pathname.includes("/tutor/resources")) {
+      setActiveTab("resources");
+    } else if (pathname.includes("/tutor/ai-studio")) {
+      setActiveTab("ai-studio");
     } else if (pathname.includes("/tutor/analytics")) {
       setActiveTab("analytics");
     } else if (pathname.includes("/tutor/wallet")) {
@@ -220,6 +228,14 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
       router.push("/tutor/students");
     } else if (tab === "live-classes") {
       router.push("/tutor/live-classes");
+    } else if (tab === "assignments") {
+      router.push("/tutor/assignments");
+    } else if (tab === "calendar") {
+      router.push("/tutor/calendar");
+    } else if (tab === "resources") {
+      router.push("/tutor/resources");
+    } else if (tab === "ai-studio") {
+      router.push("/tutor/ai-studio");
     } else if (tab === "analytics") {
       router.push("/tutor/analytics");
     } else if (tab === "finance") {

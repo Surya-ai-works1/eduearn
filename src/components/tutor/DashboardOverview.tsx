@@ -195,58 +195,25 @@ export const DashboardOverview = React.memo(function DashboardOverview({
       className="space-y-8"
     >
       {/* Welcome Banner */}
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-5">
-        <Card
-          variant="glass"
-          className="p-6 border-primary/10 bg-gradient-to-br from-primary/5 to-primary/[0.02] flex items-center justify-between relative overflow-hidden"
-        >
-          <div className="space-y-2 relative z-10">
-            <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-primary">
-              Welcome back
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-foreground tracking-tight">
-              Hey, {user?.fullName?.split(" ")[0] || "Tutor"}! 👋
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground font-semibold max-w-md leading-relaxed">
-              You&apos;ve earned{" "}
-              <strong className="text-foreground">₹{earningsBalance.total.toLocaleString()}</strong>{" "}
-              this month. Keep publishing to grow your reach.
-            </p>
-          </div>
-          <Sparkles size={44} className="text-primary/15 shrink-0 hidden sm:block" />
-        </Card>
-
-        {/* Trial / Status card */}
-        <Card
-          variant="glass"
-          className={`p-6 flex flex-col justify-between border ${
-            trialDaysRemaining <= 5
-              ? "border-rose-500/20 bg-rose-500/5"
-              : "border-amber-500/10 bg-amber-500/5"
-          }`}
-        >
-          <div className="space-y-1">
-            <span
-              className={`text-[10px] sm:text-xs font-extrabold uppercase tracking-wider ${
-                trialDaysRemaining <= 5 ? "text-rose-500" : "text-amber-600 dark:text-amber-400"
-              }`}
-            >
-              Managed Tutor Payout Status
-            </span>
-            <p className="text-3xl font-heading font-extrabold text-foreground tracking-tight">
-              70% Payout
-            </p>
-            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wide">30% EduEarn Platform Share</p>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => onTabChange("finance")}
-            className="mt-3 text-xs font-bold w-full"
-          >
-            View Revenue Breakdown
-          </Button>
-        </Card>
-      </div>
+      <Card
+        variant="glass"
+        className="p-6 border-primary/10 bg-gradient-to-br from-primary/5 to-primary/[0.02] flex items-center justify-between relative overflow-hidden"
+      >
+        <div className="space-y-2 relative z-10">
+          <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-primary">
+            Welcome back
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-foreground tracking-tight">
+            Hey, {user?.fullName?.split(" ")[0] || "Tutor"}! 👋
+          </h2>
+          <p className="text-xs sm:text-sm text-muted-foreground font-semibold max-w-md leading-relaxed">
+            You&apos;ve earned{" "}
+            <strong className="text-foreground">₹{earningsBalance.total.toLocaleString()}</strong>{" "}
+            this month. Keep publishing to grow your reach.
+          </p>
+        </div>
+        <Sparkles size={44} className="text-primary/15 shrink-0 hidden sm:block" />
+      </Card>
 
       {/* Managed Tutor Allocation & Status Pipeline Banner */}
       <Card variant="glass" className="p-5 border-primary/20 bg-muted/10 space-y-4">
