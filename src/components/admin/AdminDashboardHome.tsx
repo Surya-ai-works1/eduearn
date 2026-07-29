@@ -5,12 +5,20 @@ import Link from "next/link";
 import { ArrowRight, BookOpenCheck, CircleDollarSign, ShieldCheck, Users } from "lucide-react";
 
 type DashboardStats = { totalUsers?: number; students?: number; tutors?: number; totalCourses?: number; pendingCourses?: number; totalRevenue?: number; pendingVerifications?: number };
-const cards = [
+interface DashboardCard {
+  label: string;
+  value: keyof DashboardStats;
+  icon: React.ComponentType<any>;
+  href: string;
+  currency?: boolean;
+}
+
+const cards: DashboardCard[] = [
   { label: "Platform users", value: "totalUsers", icon: Users, href: "/admin/users" },
   { label: "Tutors", value: "tutors", icon: ShieldCheck, href: "/admin/tutor-verification" },
   { label: "Courses", value: "totalCourses", icon: BookOpenCheck, href: "/admin/courses" },
   { label: "Revenue", value: "totalRevenue", icon: CircleDollarSign, href: "/admin/payments", currency: true },
-] as const;
+];
 
 export function AdminDashboardHome() {
   const [stats, setStats] = useState<DashboardStats | null>(null);

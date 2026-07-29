@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { RequireAdmin } from "../../../features/auth/components/RouteGuard";
 import { useAuth } from "../../../hooks/useAuth";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 import PageHeader from "./components/PageHeader";
 
 interface SidebarGroup {
@@ -77,7 +78,29 @@ export default function DashboardLayout({
   const router = useRouter();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  // Title mapping for each tab\n  const titleMap: Record<string, string> = {\n    dashboard: \"Dashboard\",\n    users: \"Users Directory\",\n    students: \"Students\",\n    tutors: \"Tutors\",\n    \"tutor-verification\": \"Tutor Verification\",\n    categories: \"Categories Hierarchy\",\n    courses: \"Courses Inventory\",\n    \"live-classes\": \"Live Classes Monitor\",\n    payments: \"Payments Escrow\",\n    pricing: \"Pricing Settings\",\n    offers: \"Offers & Coupons\",\n    cms: \"Website CMS Layout\",\n    ai: \"AI Control Center\",\n    communication: \"Broadcast & Tickets\",\n    analytics: \"Analytics\",\n    roles: \"Roles & Matrix\",\n    \"audit-logs\": \"Audit Trails\",\n    settings: \"Platform Settings\"\n  };\n  const pageTitle = titleMap[activeTab] || \"Admin\";\n
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // Title mapping for each tab
+  const titleMap: Record<string, string> = {
+    dashboard: "Dashboard",
+    users: "Users Directory",
+    students: "Students",
+    tutors: "Tutors",
+    "tutor-verification": "Tutor Verification",
+    categories: "Categories Hierarchy",
+    courses: "Courses Inventory",
+    "live-classes": "Live Classes Monitor",
+    payments: "Payments Escrow",
+    pricing: "Pricing Settings",
+    offers: "Offers & Coupons",
+    cms: "Website CMS Layout",
+    ai: "AI Control Center",
+    communication: "Broadcast & Tickets",
+    analytics: "Analytics",
+    roles: "Roles & Matrix",
+    "audit-logs": "Audit Trails",
+    settings: "Platform Settings"
+  };
+  const pageTitle = titleMap[activeTab] || "Admin";
   
   // Command Palette & Search States
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -180,6 +203,14 @@ export default function DashboardLayout({
             {isSidebarCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
           </button>
 
+          {/* Logo / Brand Header */}
+          <div className="p-5 border-b border-border/40 select-none">
+            <BrandLogo 
+              collapsed={isSidebarCollapsed} 
+              onClick={() => setActiveTab("dashboard")} 
+            />
+          </div>
+
           {/* Admin Avatar Header */}
           <div className="p-5 border-b border-border/40 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-black text-primary shrink-0 relative overflow-hidden select-none shadow-soft">
@@ -273,9 +304,17 @@ export default function DashboardLayout({
                 className="fixed top-0 left-0 bottom-0 w-64 bg-card border-r border-border backdrop-blur-md z-50 flex flex-col p-4 md:hidden"
               >
                 <div className="flex items-center justify-between pb-3 border-b border-border/40 mb-3 select-none">
-                  <span className="text-xs font-heading font-extrabold text-foreground">EduEarn Menu</span>
+                  <BrandLogo 
+                    onClick={() => {
+                      setActiveTab("dashboard");
+                      setIsMobileMenuOpen(false);
+                    }} 
+                  />
                   <button
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMobileMenuOpen(false);
+                    }}
                     className="p-1 hover:bg-muted rounded cursor-pointer text-foreground"
                   >
                     <X size={16} />

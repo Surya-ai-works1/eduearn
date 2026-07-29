@@ -86,7 +86,6 @@ export interface TutorVerificationApp {
   email: string;
   created_at: string;
   isDynamic?: boolean;
-
   // Extended properties for production review console
   personalInfo?: any;
   academicQualifications?: any;
@@ -187,4 +186,19 @@ export interface PermissionMatrixRow {
   student: boolean;
   tutor: boolean;
   admin: boolean;
+}
+
+// ---- Offer type ----
+export interface Offer {
+  id: string;               // UUID primary key
+  code: string;             // Upper‑case unique coupon code
+  type: "percentage" | "fixed";
+  value: number;            // Discount amount (percentage or flat amount)
+  minPurchase?: number;     // Minimum cart value required (optional)
+  maxDiscount?: number;     // Optional cap for percentage discounts
+  expiresAt: string;        // ISO date string (YYYY‑MM‑DD)
+  usageLimit: number;       // Maximum redemptions allowed (0 = unlimited)
+  usageCount?: number;      // Derived usage count (optional)
+  createdAt: string;        // Timestamp
+  updatedAt?: string;       // Timestamp for updates
 }

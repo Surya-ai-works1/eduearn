@@ -438,7 +438,7 @@ export default function CategoriesTab({ logAuditAction }: CategoriesTabProps) {
                     </div>
                   </div>
 
-                  <div className="pl-4 space-y-4">
+                  <div className="pl-4 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground">
                         Subcategories &amp; Skills Nodes
@@ -470,7 +470,7 @@ export default function CategoriesTab({ logAuditAction }: CategoriesTabProps) {
                       {cat.subcategories.map((sub) => {
                         const skillKey = `${cat.id}-${sub.name}`;
                         return (
-                          <div key={sub.name} className="border border-border/40 p-3 bg-muted/5 rounded-card flex flex-col gap-3">
+                          <div key={sub.name} className="border border-border/40 py-2 px-3 bg-muted/5 rounded-card flex flex-col gap-1.5">
                             <div className="flex items-center justify-between text-xs font-bold text-foreground select-none">
                               <span>📦 {sub.name}</span>
                               <div className="flex items-center gap-1.5">

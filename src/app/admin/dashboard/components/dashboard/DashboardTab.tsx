@@ -150,18 +150,18 @@ export default function DashboardTab({
       {/* SYSTEM PERFORMANCE KPIS */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 select-none">
         {[
-          { label: "Total Platform Revenue", val: `₹${totalRevenue.toLocaleString("en-IN")}`, sub: "Gross payments volume", icon: DollarSign, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/10", trend: "+18.4%", isPositive: true },
-          { label: "Net Commission Earned", val: `₹${commissionEarned.toLocaleString("en-IN")}`, sub: "10% platform share", icon: TrendingUp, color: "text-blue-500 bg-blue-500/10 border-blue-500/10", trend: "+18.4%", isPositive: true },
-          { label: "Total Students Registered", val: String(totalStudents), sub: "Active learners", icon: Users, color: "text-purple-500 bg-purple-500/10 border-purple-500/10", trend: "+15.2%", isPositive: true },
-          { label: "Total Tutors Registered", val: String(totalTutors), sub: "Educators cohort pool", icon: Users, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/10", trend: "+8.5%", isPositive: true },
-          { label: "Published Cohort Courses", val: String(publishedCourses), sub: "Active inventory", icon: BookOpen, color: "text-amber-500 bg-amber-500/10 border-amber-500/10", trend: "+10.0%", isPositive: true },
-          { label: "Courses Pending Approval", val: String(pendingCourses), sub: "Review pipeline queue", icon: AlertTriangle, color: "text-rose-500 bg-rose-500/10 border-rose-500/10", trend: "-25.0%", isPositive: true },
-          { label: "Live Classes Today", val: `${liveSessions.length} Active`, sub: "Linked classrooms online", icon: Video, color: "text-rose-500 bg-rose-500/10 border-rose-500/10", trend: "+20.0%", isPositive: true },
-          { label: "Pending Tutor Audits", val: `${pendingTutors.length} Profiles`, sub: "Verification queue", icon: UserCheck, color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/10", trend: "0%", isPositive: null },
-          { label: "Escrow Payout Requests", val: `${pendingPayouts.length} Requests`, sub: "Tutor withdrawal cycle", icon: DollarSign, color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/10", trend: "0%", isPositive: null },
-          { label: "Refund Claims Queue", val: `${pendingRefunds.length} Claims`, sub: "Awaiting approval", icon: AlertTriangle, color: "text-orange-500 bg-orange-500/10 border-orange-500/10", trend: "-40.0%", isPositive: true },
-          { label: "Certificates Issued", val: String(certificatesIssued), sub: "Verifiable credentials", icon: Award, color: "text-blue-500 bg-blue-500/10 border-blue-500/10", trend: "+22.1%", isPositive: true },
-          { label: "AI Requests Today", val: "8,943 calls", sub: "Gemini 2.5 Flash API usage", icon: Sparkles, color: "text-purple-500 bg-purple-500/10 border-purple-500/10", trend: "+35.6%", isPositive: true }
+          { label: "Total Platform Revenue", val: `₹${totalRevenue.toLocaleString("en-IN")}`, sub: "Gross payments volume", icon: DollarSign, color: "text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/10", trend: "+18.4%", isPositive: true },
+          { label: "Net Commission Earned", val: `₹${commissionEarned.toLocaleString("en-IN")}`, sub: "10% platform share", icon: TrendingUp, color: "text-blue-700 dark:text-blue-400 bg-blue-500/10 border-blue-500/10", trend: "+18.4%", isPositive: true },
+          { label: "Total Students Registered", val: String(totalStudents), sub: "Active learners", icon: Users, color: "text-purple-700 dark:text-purple-400 bg-purple-500/10 border-purple-500/10", trend: "+15.2%", isPositive: true },
+          { label: "Total Tutors Registered", val: String(totalTutors), sub: "Educators cohort pool", icon: Users, color: "text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/10", trend: "+8.5%", isPositive: true },
+          { label: "Published Cohort Courses", val: String(publishedCourses), sub: "Active inventory", icon: BookOpen, color: "text-amber-700 dark:text-amber-400 bg-amber-500/10 border-amber-500/10", trend: "+10.0%", isPositive: true },
+          { label: "Courses Pending Approval", val: String(pendingCourses), sub: "Review pipeline queue", icon: AlertTriangle, color: "text-rose-700 dark:text-rose-400 bg-rose-500/10 border-rose-500/10", trend: "-25.0%", isPositive: true },
+          { label: "Live Classes Today", val: `${liveSessions.length} Active`, sub: "Linked classrooms online", icon: Video, color: "text-rose-700 dark:text-rose-400 bg-rose-500/10 border-rose-500/10", trend: "+20.0%", isPositive: true },
+          { label: "Pending Tutor Audits", val: `${pendingTutors.length} Profiles`, sub: "Verification queue", icon: UserCheck, color: "text-indigo-700 dark:text-indigo-400 bg-indigo-500/10 border-indigo-500/10", trend: "0%", isPositive: null },
+          { label: "Escrow Payout Requests", val: `${pendingPayouts.length} Requests`, sub: "Tutor withdrawal cycle", icon: DollarSign, color: "text-cyan-700 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/10", trend: "0%", isPositive: null },
+          { label: "Refund Claims Queue", val: `${pendingRefunds.length} Claims`, sub: "Awaiting approval", icon: AlertTriangle, color: "text-orange-700 dark:text-orange-400 bg-orange-500/10 border-orange-500/10", trend: "-40.0%", isPositive: true },
+          { label: "Certificates Issued", val: String(certificatesIssued), sub: "Verifiable credentials", icon: Award, color: "text-blue-700 dark:text-blue-400 bg-blue-500/10 border-blue-500/10", trend: "+22.1%", isPositive: true },
+          { label: "AI Requests Today", val: "8,943 calls", sub: "Gemini 2.5 Flash API usage", icon: Sparkles, color: "text-purple-700 dark:text-purple-400 bg-purple-500/10 border-purple-500/10", trend: "+35.6%", isPositive: true }
         ].map((kpi, i) => {
           const Icon = kpi.icon;
           return (

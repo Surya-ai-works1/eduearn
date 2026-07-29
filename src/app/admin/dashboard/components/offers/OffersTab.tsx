@@ -2,18 +2,21 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Tag, Percent, Calendar, RefreshCcw } from "lucide-react";
+import { Plus, Trash2, Tag, Percent, Calendar, RefreshCcw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "../../../../../components/ui/card";
 import { Button } from "../../../../../components/ui/button";
-import { PaymentService, Coupon } from "../../../../../features/payments/services/paymentService";
+import { Coupon } from "../../../../../features/payments/services/paymentService";
+import { Offer } from "@/lib/types/admin";
 
 interface OffersTabProps {
   logAuditAction: (actionStr: string) => void;
 }
 
 export default function OffersTab({ logAuditAction }: OffersTabProps) {
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [coupons, setCoupons] = useState<(Coupon & { id?: string })[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // Coupon Builder State
   const [formCode, setFormCode] = useState("");
@@ -24,52 +27,108 @@ export default function OffersTab({ logAuditAction }: OffersTabProps) {
   const [formExpiry, setFormExpiry] = useState("");
   const [formLimit, setFormLimit] = useState("");
 
-  const loadCoupons = () => {
-    setCoupons(PaymentService.getCoupons());
+  const loadCoupons = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/offers");
+      if (!res.ok) {
+        throw new Error("Failed to load offers from server");
+      }
+      const data: Offer[] = await res.json();
+      const mapped: (Coupon & { id?: string })[] = data.map((offer) => ({
+        id: offer.id,
+        code: offer.code,
+        type: offer.type === "fixed" ? "flat" : (offer.type as any),
+        value: offer.value,
+        minPurchase: offer.minPurchase || 0,
+        maxDiscount: offer.maxDiscount,
+        expiryDate: offer.expiresAt ? offer.expiresAt.split("T")[0] : "",
+        usageLimit: offer.usageLimit,
+        usageCount: offer.usageCount || 0
+      }));
+      setCoupons(mapped);
+    } catch (err: any) {
+      setError(err.message || "Failed to load offers");
+      toast.error(err.message || "Failed to load offers");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     loadCoupons();
   }, []);
 
-  const handleCreateCoupon = (e: React.FormEvent) => {
+  const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formCode.trim() || !formValue) return;
 
-    const newCoupon: Coupon = {
+    const backendType = formType === "percentage" ? "percentage" : "fixed";
+
+    const payload = {
       code: formCode.trim().toUpperCase(),
-      type: formType,
+      type: backendType,
       value: Number(formValue),
       minPurchase: Number(formMinPurchase || 0),
       maxDiscount: formMaxDiscount ? Number(formMaxDiscount) : undefined,
-      expiryDate: formExpiry || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      usageLimit: Number(formLimit || 100),
-      usageCount: 0
+      expiresAt: formExpiry || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      usageLimit: Number(formLimit || 100)
     };
 
-    PaymentService.createCoupon(newCoupon);
-    logAuditAction(`Created discount campaign coupon code: ${newCoupon.code}`);
-    toast.success("Coupon code successfully created.");
-    
-    // Reset form
-    setFormCode("");
-    setFormValue("");
-    setFormMinPurchase("");
-    setFormMaxDiscount("");
-    setFormExpiry("");
-    setFormLimit("");
-    loadCoupons();
+    try {
+      const res = await fetch("/api/admin/offers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to create coupon code");
+      }
+
+      const createdOffer: Offer = await res.json();
+      logAuditAction(`Created discount campaign coupon code: ${createdOffer.code}`);
+      toast.success("Coupon code successfully created.");
+      
+      // Reset form
+      setFormCode("");
+      setFormValue("");
+      setFormMinPurchase("");
+      setFormMaxDiscount("");
+      setFormExpiry("");
+      setFormLimit("");
+      loadCoupons();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
-  const handleDeleteCoupon = (code: string) => {
+  const handleDeleteCoupon = async (code: string) => {
+    const coupon = coupons.find(c => c.code === code);
+    if (!coupon) return;
+    const offerId = coupon.id;
+    if (!offerId) {
+      toast.error("Coupon ID not found");
+      return;
+    }
+
     if (confirm(`Are you sure you want to permanently delete coupon "${code}"?`)) {
-      if (typeof window !== "undefined") {
-        const current = PaymentService.getCoupons().filter(c => c.code !== code);
-        localStorage.setItem("eduearn_coupons", JSON.stringify(current));
+      try {
+        const res = await fetch(`/api/admin/offers?offerId=${offerId}`, {
+          method: "DELETE"
+        });
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Failed to delete coupon");
+        }
+        logAuditAction(`Deleted platform coupon code: ${code}`);
+        toast.success("Coupon code deleted.");
+        loadCoupons();
+      } catch (err: any) {
+        toast.error(err.message);
       }
-      logAuditAction(`Deleted platform coupon code: ${code}`);
-      toast.success("Coupon code deleted.");
-      loadCoupons();
     }
   };
 
@@ -184,7 +243,23 @@ export default function OffersTab({ logAuditAction }: OffersTabProps) {
           <Tag size={14} className="text-primary" /> Active Platform Campaigns &amp; Coupons
         </h4>
         <div className="space-y-3">
-          {coupons.length === 0 ? (
+          {error ? (
+            <div className="flex flex-col items-center justify-center p-8 border border-destructive/15 bg-destructive/5 rounded-xl text-center space-y-3.5 select-none">
+              <AlertCircle className="h-8 w-8 text-destructive animate-pulse" />
+              <div>
+                <h5 className="text-xs font-extrabold text-foreground uppercase tracking-wider">Sync Connection Failed</h5>
+                <p className="text-[10px] text-muted-foreground mt-1 max-w-xs">{error}</p>
+              </div>
+              <Button onClick={loadCoupons} size="sm" className="bg-destructive hover:bg-destructive/95 text-white font-extrabold shadow-soft cursor-pointer text-[10px]">
+                <RefreshCcw size={12} className="mr-1.5" />
+                Retry Synchronize
+              </Button>
+            </div>
+          ) : isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+            </div>
+          ) : coupons.length === 0 ? (
             <div className="text-center py-6 text-muted-foreground/60">
               No active offers configured. Create one above to incentivize learners.
             </div>

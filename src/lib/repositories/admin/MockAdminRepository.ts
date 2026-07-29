@@ -14,7 +14,8 @@ import {
   AdminAnnouncement,
   PlatformSettings,
   PermissionMatrixRow,
-  AdminActivityLog
+  AdminActivityLog,
+  Offer
 } from "../../types/admin";
 
 export class MockAdminRepository implements IAdminRepository {
@@ -492,5 +493,60 @@ export class MockAdminRepository implements IAdminRepository {
   async updatePermissionMatrix(matrix: PermissionMatrixRow[]): Promise<PermissionMatrixRow[]> {
     this.setLocalData("eduearn_mock_admin_roles_matrix", matrix);
     return matrix;
+  }
+
+  // --- OFFERS ---
+  async getOffers(): Promise<Offer[]> {
+    return this.getLocalData<Offer[]>("eduearn_mock_admin_offers", []);
+  }
+
+  async createOffer(offer: Omit<Offer, "id" | "createdAt" | "usageCount">): Promise<Offer> {
+    const list = await this.getOffers();
+    const newOffer: Offer = {
+      id: `off-${Date.now()}`,
+      ...offer,
+      usageCount: 0,
+      createdAt: new Date().toISOString()
+    };
+    this.setLocalData("eduearn_mock_admin_offers", [...list, newOffer]);
+    return newOffer;
+  }
+
+  async updateOffer(offerId: string, updates: Partial<Omit<Offer, "id" | "createdAt">>): Promise<Offer> {
+    const list = await this.getOffers();
+    let updated: Offer | null = null;
+    const newList = list.map((o) => {
+      if (o.id === offerId) {
+        updated = { ...o, ...updates, updatedAt: new Date().toISOString() };
+        return updated;
+      }
+      return o;
+    });
+    if (!updated) throw new Error("Offer not found");
+    this.setLocalData("eduearn_mock_admin_offers", newList);
+    return updated;
+  }
+
+  async deleteOffer(offerId: string): Promise<boolean> {
+    const list = await this.getOffers();
+    const newList = list.filter((o) => o.id !== offerId);
+    this.setLocalData("eduearn_mock_admin_offers", newList);
+    return true;
+  }
+
+  // --- AUDIT LOGS ---
+  async getAuditLogs(params?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    module?: string;
+    action?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{ logs: AdminActivityLog[]; total: number }> {
+    const allLogs = this.getLocalData<AdminActivityLog[]>("eduearn_mock_admin_audit_logs", [
+      { id: "1", timestamp: new Date().toISOString(), adminName: "Admin Operations", action: "System Startup" }
+    ]);
+    return { logs: allLogs, total: allLogs.length };
   }
 }

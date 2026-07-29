@@ -15,7 +15,7 @@ import {
   AdminAnnouncement,
   PlatformSettings,
   PermissionMatrixRow,
-  AdminActivityLog
+  AdminActivityLog, Offer
 } from "../../types/admin";
 
 export class SupabaseAdminRepository implements IAdminRepository {
@@ -344,6 +344,58 @@ export class SupabaseAdminRepository implements IAdminRepository {
       details: details || null,
       ip_address: "127.0.0.1"
     });
+  }
+
+  // Audit Logs Retrieval
+  async getAuditLogs(params?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    module?: string;
+    action?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{ logs: AdminActivityLog[]; total: number }> {
+    const supabase = await this.getSupabase();
+    const page = params?.page ?? 1;
+    const pageSize = params?.pageSize ?? 20;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    let query = supabase
+      .from("audit_logs")
+      .select("*, profiles:user_id(full_name)", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (params?.search) {
+      const search = `%${params.search}%`;
+      query = query.ilike("action", search).or(`profiles.full_name.ilike.%${params.search}%`);
+    }
+    if (params?.startDate) {
+      query = query.gte("created_at", params.startDate);
+    }
+    if (params?.endDate) {
+      query = query.lte("created_at", params.endDate);
+    }
+    if (params?.module) {
+      // assuming a column named "module"
+      query = (query as any).eq("module", params.module);
+    }
+    if (params?.action) {
+      query = query.eq("action", params.action);
+    }
+
+    const { data, count, error } = await query;
+    if (error) throw error;
+
+    const logs: AdminActivityLog[] = (data || []).map((l: any) => ({
+      id: l.id,
+      timestamp: new Date(l.created_at).toISOString().replace("T", " ").substring(0, 16),
+      adminName: l.profiles?.full_name || "Admin",
+      action: l.action,
+    }));
+    return { logs, total: count || 0 };
   }
 
   // --- COURSES ---
@@ -931,6 +983,131 @@ export class SupabaseAdminRepository implements IAdminRepository {
       allowNewRegistrations: true,
       updatedAt: data.updated_at
     };
+  }
+
+  // --- OFFERS ---
+  private mapDbOfferToOffer(data: any): Offer {
+    return {
+      id: data.id,
+      code: data.code,
+      type: data.type,
+      value: Number(data.value),
+      minPurchase: data.min_purchase !== null && data.min_purchase !== undefined ? Number(data.min_purchase) : undefined,
+      maxDiscount: data.max_discount !== null && data.max_discount !== undefined ? Number(data.max_discount) : undefined,
+      expiresAt: data.expires_at,
+      usageLimit: Number(data.usage_limit),
+      usageCount: Number(data.usage_count || 0),
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
+  }
+
+  async getOffers(): Promise<Offer[]> {
+    const supabase = await this.getSupabase();
+    const { data, error } = await supabase.from("admin_offers").select("*");
+    if (error) throw error;
+    return (data || []).map((item: any) => this.mapDbOfferToOffer(item));
+  }
+
+  async createOffer(offer: Omit<Offer, "id" | "createdAt" | "usageCount">): Promise<Offer> {
+    const supabase = await this.getSupabase();
+    const code = offer.code.trim().toUpperCase();
+    if (!code) throw new Error("Coupon code must be provided");
+    if (offer.value <= 0) throw new Error("Discount value must be greater than 0");
+    if (offer.type === "percentage" && offer.value > 100) throw new Error("Percentage cannot exceed 100");
+    if (offer.usageLimit < 0) throw new Error("Usage limit cannot be negative");
+    if (new Date(offer.expiresAt) <= new Date()) throw new Error("Expiration must be in the future");
+    
+    const { data: existing } = await supabase.from("admin_offers").select("code").eq("code", code);
+    if (existing && existing.length > 0) throw new Error("Coupon code already exists");
+    
+    const payload = {
+      code,
+      type: offer.type,
+      value: offer.value,
+      min_purchase: offer.minPurchase || 0,
+      max_discount: offer.maxDiscount || null,
+      expires_at: offer.expiresAt,
+      usage_limit: offer.usageLimit,
+      usage_count: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase
+      .from("admin_offers")
+      .insert(payload)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return this.mapDbOfferToOffer(data);
+  }
+
+  async updateOffer(offerId: string, updates: Partial<Omit<Offer, "id" | "createdAt">>): Promise<Offer> {
+    const supabase = await this.getSupabase();
+    const payload: any = {};
+    
+    if (updates.code) {
+      const code = updates.code.trim().toUpperCase();
+      const { data: dup } = await supabase.from("admin_offers").select("id").eq("code", code).neq("id", offerId);
+      if (dup && dup.length > 0) throw new Error("Coupon code already exists");
+      payload.code = code;
+    }
+    
+    if (updates.type) {
+      payload.type = updates.type;
+    }
+    
+    if (updates.value !== undefined) {
+      if (updates.value <= 0) throw new Error("Discount value must be greater than 0");
+      payload.value = updates.value;
+    }
+    
+    if ((payload.type === "percentage" || (!payload.type && updates.value !== undefined)) && (payload.value !== undefined || updates.value !== undefined)) {
+      const checkValue = payload.value !== undefined ? payload.value : updates.value;
+      const checkType = payload.type || (await supabase.from("admin_offers").select("type").eq("id", offerId).single().then(r => r.data?.type));
+      if (checkType === "percentage" && checkValue > 100) {
+        throw new Error("Percentage cannot exceed 100");
+      }
+    }
+    
+    if (updates.minPurchase !== undefined) {
+      payload.min_purchase = updates.minPurchase;
+    }
+    
+    if (updates.maxDiscount !== undefined) {
+      payload.max_discount = updates.maxDiscount;
+    }
+    
+    if (updates.expiresAt) {
+      if (new Date(updates.expiresAt) <= new Date()) throw new Error("Expiration must be in the future");
+      payload.expires_at = updates.expiresAt;
+    }
+    
+    if (updates.usageLimit !== undefined) {
+      if (updates.usageLimit < 0) throw new Error("Usage limit cannot be negative");
+      payload.usage_limit = updates.usageLimit;
+    }
+    
+    payload.updated_at = new Date().toISOString();
+    
+    const { data, error } = await supabase
+      .from("admin_offers")
+      .update(payload)
+      .eq("id", offerId)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return this.mapDbOfferToOffer(data);
+  }
+
+  async deleteOffer(offerId: string): Promise<boolean> {
+    const supabase = await this.getSupabase();
+    const { error } = await supabase.from("admin_offers").delete().eq("id", offerId);
+    if (error) throw error;
+    return true;
   }
 
   // --- ROLES MATRIX ---

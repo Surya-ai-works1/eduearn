@@ -1,5 +1,6 @@
 import React from "react";
-import { Search, RefreshCw, Bell, Menu } from "lucide-react";
+import { Search, RefreshCw, Bell, Menu, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 
 interface AppHeaderProps {
   activeTab: string;
@@ -20,21 +21,27 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   isSidebarCollapsed,
   setIsCommandPaletteOpen,
 }) => {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
   return (
     <header
       className={`h-16 px-4 sm:px-6 flex items-center justify-between navbar-surface-blur border-b border-border/20 fixed top-0 right-0 z-30 shrink-0 select-none transition-all duration-300 w-full ${
         isSidebarCollapsed ? "md:pl-20" : "md:pl-64"
       }`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4.5">
         <button
           onClick={() => setIsMobileMenuOpen(true)}
-          className="md:hidden p-2 hover:bg-muted rounded-button cursor-pointer text-foreground"
+          className="md:hidden p-2 hover:bg-muted rounded-button cursor-pointer text-foreground mr-1"
           aria-label="Open mobile menu"
         >
           <Menu size={18} />
         </button>
-        <h1 className="text-sm font-heading font-extrabold tracking-tight uppercase text-foreground">
+        <h1 className="text-xs sm:text-sm font-heading font-extrabold tracking-tight uppercase text-foreground truncate max-w-[160px] sm:max-w-none">
           Command Panel / <span className="text-primary">{activeTab.replace("-", " ")}</span>
         </h1>
       </div>
@@ -60,6 +67,15 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <RefreshCw size={16} className={isRefreshing ? "animate-spin text-primary" : ""} />
           </button>
         )}
+
+        <button
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="p-2 hover:bg-muted rounded-full cursor-pointer text-foreground transition-colors"
+          aria-label="Toggle Theme"
+          title="Toggle Color Theme"
+        >
+          {mounted && theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
 
         <button className="p-2 hover:bg-muted rounded-full relative cursor-pointer text-foreground" aria-label="View notifications">
           <Bell size={16} />

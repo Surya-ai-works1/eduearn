@@ -13,7 +13,9 @@ import {
   SupportTicket,
   AdminAnnouncement,
   PlatformSettings,
-  PermissionMatrixRow
+  PermissionMatrixRow,
+  Offer,
+  AdminActivityLog
 } from "../types/admin";
 
 export class AdminService {
@@ -373,9 +375,60 @@ export class AdminService {
     return settings;
   }
 
-  // Roles Matrix
+  // Offers
+  async getOffers(): Promise<Offer[]> {
+    return AdminRepository.getOffers();
+  }
+
+  async createOffer(adminName: string, offer: Omit<Offer, "id" | "createdAt" | "usageCount">): Promise<Offer> {
+    const created = await AdminRepository.createOffer(offer);
+    await AdminRepository.logAuditAction(
+      adminName,
+      `Offer Created: ${created.code}`,
+      `Details: ${JSON.stringify(created)}`
+    );
+    return created;
+  }
+
+  async updateOffer(adminName: string, offerId: string, updates: Partial<Omit<Offer, "id" | "createdAt">>): Promise<Offer> {
+    const updated = await AdminRepository.updateOffer(offerId, updates);
+    await AdminRepository.logAuditAction(
+      adminName,
+      `Offer Updated: ${updated.code}`,
+      `Updates: ${JSON.stringify(updates)}`
+    );
+    return updated;
+  }
+
+  async deleteOffer(adminName: string, offerId: string): Promise<boolean> {
+    const offers = await AdminRepository.getOffers();
+    const target = offers.find(o => o.id === offerId);
+    const success = await AdminRepository.deleteOffer(offerId);
+    if (success && target) {
+      await AdminRepository.logAuditAction(
+        adminName,
+        `Offer Deleted: ${target.code}`,
+        `Offer ID ${offerId} (Code: ${target.code}) removed`
+      );
+    }
+    return success;
+  }
+
   async getPermissionMatrix(): Promise<PermissionMatrixRow[]> {
     return AdminRepository.getPermissionMatrix();
+  }
+
+  // Audit Logs retrieval
+  async getAuditLogs(params?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    module?: string;
+    action?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{ logs: AdminActivityLog[]; total: number }> {
+    return AdminRepository.getAuditLogs(params);
   }
 
   async updatePermissionMatrix(adminName: string, matrix: PermissionMatrixRow[]): Promise<PermissionMatrixRow[]> {

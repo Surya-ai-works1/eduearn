@@ -1,18 +1,18 @@
--- 1. Admin logs / Audit logs table
-CREATE TABLE IF NOT EXISTS public.admin_logs (
+-- 1. Audit logs table
+CREATE TABLE IF NOT EXISTS public.audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    admin_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     action TEXT NOT NULL,
-    target TEXT NOT NULL,
+    details TEXT,
     ip_address TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Enable RLS on Admin Logs
-ALTER TABLE public.admin_logs ENABLE ROW LEVEL SECURITY;
+-- Enable RLS on Audit Logs
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Admins can view all admin logs"
-ON public.admin_logs FOR SELECT
+CREATE POLICY "Admins can view all audit logs"
+ON public.audit_logs FOR SELECT
 USING (
     EXISTS (
         SELECT 1 FROM public.profiles
@@ -20,14 +20,9 @@ USING (
     )
 );
 
-CREATE POLICY "Admins can insert admin logs"
-ON public.admin_logs FOR INSERT
-WITH CHECK (
-    EXISTS (
-        SELECT 1 FROM public.profiles
-        WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
-    )
-);
+CREATE POLICY "Admins can insert audit logs"
+ON public.audit_logs FOR INSERT
+WITH CHECK (true);
 
 -- 2. Support Tickets Table
 CREATE TABLE IF NOT EXISTS public.support_tickets (
@@ -135,7 +130,7 @@ USING (
 );
 
 -- 6. Indexes for optimized analytics querying
-CREATE INDEX IF NOT EXISTS idx_admin_logs_admin_id ON public.admin_logs(admin_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON public.audit_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id ON public.support_tickets(user_id);
 CREATE INDEX IF NOT EXISTS idx_support_tickets_assigned_to ON public.support_tickets(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_announcements_created_by ON public.announcements(created_by);

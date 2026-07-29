@@ -278,7 +278,7 @@ export function DevBadge() {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-[99999] select-none text-left" ref={menuRef}>
+    <div className="fixed bottom-16 sm:bottom-4 right-4 z-[99999] select-none text-left" ref={menuRef}>
       {/* Dropdown Menu */}
       {isOpen && (
         <div className="absolute bottom-12 right-0 w-52 rounded-2xl bg-card/95 border border-border shadow-floating backdrop-blur-md p-3.5 space-y-3 animate-fadeIn duration-200">

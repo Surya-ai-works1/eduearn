@@ -1099,7 +1099,7 @@ export function Navbar() {
                   <>
                     <Link
                       href={user?.role === "tutor" ? "/tutor/dashboard" : "/student/dashboard"}
-                      className="w-full text-center py-2 rounded-button bg-muted hover:bg-muted/80 text-xs font-bold text-foreground transition-colors"
+                      className="w-full text-center py-2.5 rounded-button bg-primary hover:bg-primary/95 text-xs font-extrabold text-white shadow-soft transition-colors"
                     >
                       Go to Dashboard
                     </Link>

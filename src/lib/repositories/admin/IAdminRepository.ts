@@ -12,7 +12,9 @@ import {
   SupportTicket,
   AdminAnnouncement,
   PlatformSettings,
-  PermissionMatrixRow
+  PermissionMatrixRow,
+  AdminActivityLog,
+  Offer
 } from "../../types/admin";
 
 export interface IAdminRepository {
@@ -66,7 +68,24 @@ export interface IAdminRepository {
   getSettings(): Promise<PlatformSettings>;
   updateSettings(updates: Partial<PlatformSettings>): Promise<PlatformSettings>;
   
-  // Roles Matrix
+  // Offers
+getOffers(): Promise<Offer[]>;
+createOffer(offer: Omit<Offer, "id" | "createdAt" | "usageCount">): Promise<Offer>;
+updateOffer(offerId: string, updates: Partial<Omit<Offer, "id" | "createdAt">>): Promise<Offer>;
+deleteOffer(offerId: string): Promise<boolean>;
+
+// Roles Matrix
+  // Audit Logs
+  getAuditLogs(params?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    module?: string;
+    action?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{ logs: AdminActivityLog[]; total: number }>;
+
   getPermissionMatrix(): Promise<PermissionMatrixRow[]>;
   updatePermissionMatrix(matrix: PermissionMatrixRow[]): Promise<PermissionMatrixRow[]>;
 }

@@ -336,6 +336,7 @@ export default function AdminDashboardPage() {
             onRejectTutor={(id) => triggerTutorVerification(id, false)}
             logAuditAction={logAuditAction}
             isLoading={isLoadingData}
+            activeTab={activeTab}
           />
         )}
 
@@ -397,10 +398,7 @@ export default function AdminDashboardPage() {
         )}
 
         {activeTab === "audit-logs" && (
-          <AuditLogsTab
-            auditLogs={auditLogs}
-            setAuditLogs={setAuditLogs}
-          />
+          <AuditLogsTab />
         )}
 
       </DashboardLayout>

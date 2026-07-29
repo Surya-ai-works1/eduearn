@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search, Clock, Trash2, Filter } from "lucide-react";
+import { Search, Clock, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "../../../../../components/ui/card";
 import { Button } from "../../../../../components/ui/button";
@@ -14,27 +14,42 @@ interface AuditLog {
   action: string;
 }
 
-interface AuditLogsTabProps {
-  auditLogs: AuditLog[];
-  setAuditLogs: React.Dispatch<React.SetStateAction<AuditLog[]>>;
-}
-
-export default function AuditLogsTab({ auditLogs, setAuditLogs }: AuditLogsTabProps) {
+export default function AuditLogsTab() {
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterModule, setFilterModule] = useState("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+
+  const fetchLogs = async () => {
+    const params = new URLSearchParams();
+    params.append("page", page.toString());
+    params.append("pageSize", pageSize.toString());
+    if (searchQuery) params.append("search", searchQuery);
+    if (filterModule && filterModule !== "all") params.append("module", filterModule);
+    const res = await fetch(`/api/admin/audit-logs?${params.toString()}`);
+    if (!res.ok) {
+      toast.error("Failed to load audit logs");
+      return;
+    }
+    const data = await res.json();
+    setLogs(data.logs);
+    setTotal(data.total);
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, [page, searchQuery, filterModule]);
 
   const handleClearLogs = () => {
     if (confirm("Are you sure you want to purge the security audit logs trail? This action is irreversible.")) {
-      setAuditLogs([]);
+      setLogs([]);
       toast.success("Security audit trail logs cleared.");
     }
   };
 
-  const filteredLogs = auditLogs.filter(log => {
-    const matchesSearch = log.action.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          log.adminName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
+  const filteredLogs = logs; // server side already filtered
 
   return (
     <motion.div
@@ -108,7 +123,6 @@ export default function AuditLogsTab({ auditLogs, setAuditLogs }: AuditLogsTabPr
                   </span>
                   <span className="text-foreground leading-snug">{log.action}</span>
                 </div>
-                
                 {/* Meta details */}
                 <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
                   <div className="flex gap-2 text-[8px] text-muted-foreground/60 font-mono font-bold">

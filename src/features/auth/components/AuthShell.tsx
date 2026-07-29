@@ -17,6 +17,7 @@ import {
 import { Container } from "../../../components/layout/Container";
 import { PageWrapper } from "../../../components/layout/PageWrapper";
 import { Card } from "../../../components/ui/card";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 import { cn } from "../../../utils/cn";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -227,7 +228,10 @@ export function AuthShell({
               )}
 
               {/* Card header */}
-              <div className="mb-6 text-center">
+              <div className="mb-6 flex flex-col items-center text-center">
+                <div className="mb-4">
+                  <BrandLogo href="/" />
+                </div>
                 <span className="mb-3 inline-flex rounded-full bg-primary/10 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wide text-primary">
                   {eyebrow}
                 </span>

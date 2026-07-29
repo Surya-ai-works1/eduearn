@@ -1107,3 +1107,31 @@ ON CONFLICT (name) DO NOTHING;
 -- 4. Master tags / skills Seed Data
 -- (React JS, Python, Javascript, CSS, HTML, Flutter, Figma, Machine Learning, Data Analytics)
 
+
+-- 5. Offers & Coupons Table
+CREATE TABLE IF NOT EXISTS public.admin_offers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT NOT NULL UNIQUE,
+    type TEXT NOT NULL CHECK (type IN ('percentage', 'fixed')),
+    value NUMERIC NOT NULL CHECK (value > 0),
+    min_purchase NUMERIC DEFAULT 0,
+    max_discount NUMERIC,
+    expires_at TIMESTAMPTZ NOT NULL,
+    usage_limit INTEGER NOT NULL CHECK (usage_limit >= 0),
+    usage_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Enable RLS on admin_offers
+ALTER TABLE public.admin_offers ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow read to everyone" ON public.admin_offers FOR SELECT USING (true);
+CREATE POLICY "Allow admins full access to offers" ON public.admin_offers FOR ALL USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_offers_expires_at ON public.admin_offers(expires_at);

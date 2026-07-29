@@ -446,11 +446,11 @@ export default function FinanceTab({ logAuditAction }: FinanceTabProps) {
                     <td className="py-4 px-3 text-foreground font-bold">{esc.courseTitle}</td>
                     <td className="py-4 px-3 text-muted-foreground">{esc.date}</td>
                     <td className="py-4 px-3 font-bold text-foreground">₹{esc.amount.toLocaleString()}</td>
-                    <td className="py-4 px-3 text-emerald-500 font-extrabold">₹{esc.tutorShare.toLocaleString()}</td>
+                    <td className="py-4 px-3 text-emerald-700 font-extrabold">₹{esc.tutorShare.toLocaleString()}</td>
                     <td className="py-4 px-3 text-muted-foreground font-bold">₹{esc.platformShare.toLocaleString()}</td>
                     <td className="py-4 px-3">
                       <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded ${
-                        esc.status === "Released" ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600 animate-pulse"
+                        esc.status === "Released" ? "bg-emerald-500/10 text-emerald-700" : "bg-amber-500/10 text-amber-700 animate-pulse"
                       }`}>
                         {esc.status}
                       </span>

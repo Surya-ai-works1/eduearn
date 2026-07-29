@@ -1,2 +1,10 @@
-import { AdminModulePage } from "@/components/admin/AdminModulePage";
-export default function AdminAiPage() { return <AdminModulePage title="AI controls" description="Access the current AI configuration workspace while enterprise policy controls are separated in a future phase." legacyTab="ai" pending />; }
+"use client";
+
+import AiControlTab from "@/app/admin/dashboard/components/ai/AiControlTab";
+
+export default function AdminAiPage() {
+  const logAuditAction = (action: string) => {
+    console.log("Audit:", action);
+  };
+  return <AiControlTab logAuditAction={logAuditAction} />;
+}

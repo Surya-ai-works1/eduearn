@@ -1,2 +1,10 @@
-import { AdminModulePage } from "@/components/admin/AdminModulePage";
-export default function AdminCmsPage() { return <AdminModulePage title="Content management" description="Access the existing landing-page content controls. A durable CMS workflow is pending a later phase." legacyTab="cms" pending />; }
+"use client";
+
+import CMSTab from "@/app/admin/dashboard/components/cms/CMSTab";
+
+export default function AdminCmsPage() {
+  const logAuditAction = (action: string) => {
+    console.log("Audit:", action);
+  };
+  return <CMSTab logAuditAction={logAuditAction} />;
+}

@@ -26,6 +26,7 @@ interface UsersTabProps {
   onRejectTutor: (id: string) => void;
   logAuditAction: (actionStr: string) => void;
   isLoading?: boolean;
+  activeTab?: string;
 }
 
 export default function UsersTab({
@@ -34,12 +35,25 @@ export default function UsersTab({
   verifications,
   setVerifications,
   logAuditAction,
-  isLoading = false
+  isLoading = false,
+  activeTab
 }: UsersTabProps) {
   // Navigation & filter tab state
   const [roleFilter, setRoleFilter] = useState<string>("learner");
   const [userSearch, setUserSearch] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  React.useEffect(() => {
+    if (activeTab === "students") {
+      setRoleFilter("learner");
+    } else if (activeTab === "tutors") {
+      setRoleFilter("tutor-roster");
+    } else if (activeTab === "tutor-verification") {
+      setRoleFilter("tutor");
+    } else if (activeTab === "users") {
+      setRoleFilter("learner");
+    }
+  }, [activeTab]);
   
   // Student Profile states
   const [selectedUserProfile, setSelectedUserProfile] = useState<AdminUser | null>(null);
@@ -570,8 +584,8 @@ export default function UsersTab({
                             {aiScore !== undefined ? (
                               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
                                 aiScore >= 80 
-                                  ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
-                                  : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20' 
+                                  : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
                               }`}>
                                 {aiScore}%
                               </span>
@@ -584,9 +598,9 @@ export default function UsersTab({
                           </td>
                           <td className="py-4 px-3">
                             <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-extrabold ${
-                              app.status === "Approved" ? "bg-emerald-500/10 text-emerald-600" :
-                              app.status === "Rejected" ? "bg-rose-500/10 text-rose-600" :
-                              app.status === "Under Review" ? "bg-blue-500/10 text-blue-500" : "bg-amber-500/10 text-amber-600"
+                              app.status === "Approved" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" :
+                              app.status === "Rejected" ? "bg-rose-500/10 text-rose-700 dark:text-rose-400" :
+                              app.status === "Under Review" ? "bg-blue-500/10 text-blue-700 dark:text-blue-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
                             }`}>
                               {app.status}
                             </span>
@@ -888,19 +902,19 @@ export default function UsersTab({
                             <>
                               <td className="py-4 px-3">
                                 <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-extrabold ${
-                                  u.tutorDetails?.verificationStatus === "Approved" ? "bg-emerald-500/10 text-emerald-600" :
-                                  u.tutorDetails?.verificationStatus === "Rejected" ? "bg-rose-500/10 text-rose-600" :
-                                  "bg-amber-500/10 text-amber-600"
+                                  u.tutorDetails?.verificationStatus === "Approved" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" :
+                                  u.tutorDetails?.verificationStatus === "Rejected" ? "bg-rose-500/10 text-rose-700 dark:text-rose-400" :
+                                  "bg-amber-500/10 text-amber-700 dark:text-amber-400"
                                 }`}>
                                   {u.tutorDetails?.verificationStatus || "Approved"}
                                 </span>
                               </td>
                               <td className="py-4 px-3">{u.tutorDetails?.publishedCoursesCount || 0} Published</td>
                               <td className="py-4 px-3">{u.tutorDetails?.studentsTaughtCount || 0} Students</td>
-                              <td className="py-4 px-3 text-emerald-500 font-bold">₹{u.tutorDetails?.totalRevenue?.toLocaleString() || 0}</td>
+                              <td className="py-4 px-3 text-emerald-700 dark:text-emerald-400 font-bold">₹{u.tutorDetails?.totalRevenue?.toLocaleString() || 0}</td>
                               <td className="py-4 px-3">
-                                <div className="inline-flex items-center gap-1 bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2 py-0.5 rounded-full text-[10px] font-extrabold">
-                                  <span className="text-amber-500 font-extrabold text-[10px]">★</span>
+                                <div className="inline-flex items-center gap-1 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full text-[10px] font-extrabold">
+                                  <span className="text-amber-600 font-extrabold text-[10px]">★</span>
                                   <span>{u.tutorDetails?.averageRating ? Number(u.tutorDetails.averageRating).toFixed(1) : "0.0"}</span>
                                 </div>
                               </td>
@@ -917,7 +931,7 @@ export default function UsersTab({
 
                           <td className="py-4 px-3">
                             <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-extrabold ${
-                              u.status === "Active" ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"
+                              u.status === "Active" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-red-500/10 text-red-700 dark:text-red-400"
                             }`}>
                               {u.status}
                             </span>
@@ -1002,7 +1016,15 @@ export default function UsersTab({
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed right-0 top-0 bottom-0 w-full max-w-3xl bg-background border-l border-border/80 z-50 overflow-y-auto shadow-2xl flex flex-col justify-between"
             >
-              
+              {/* Header */}
+              <div className="p-6 border-b border-border/80 flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-bold text-foreground">Review Tutor Application</h2>
+                  <p className="text-xs text-muted-foreground">Applicant: {selectedApp.tutorName} ({selectedApp.email})</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedApp(null)}
                     className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-all"
                   >
                     <X size={16} />
