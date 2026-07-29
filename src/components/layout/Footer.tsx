@@ -21,7 +21,7 @@ export function Footer() {
   const [error, setError] = useState("");
 
   const isDashboard = pathname?.includes("/dashboard");
-  if (isDashboard) return null;
+  if (isDashboard || pathname?.startsWith("/admin")) return null;
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();

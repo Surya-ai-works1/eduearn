@@ -23,7 +23,8 @@ export class SupabaseAdminRepository implements IAdminRepository {
     return createClient();
   }
 
-  // Helper for localStorage fallback (for tickets, announcements, reports which lack DB tables)
+  // Compatibility helper retained for legacy announcements and reports. Support tickets
+  // are backed by the support_tickets table below.
   private getFallbackData<T>(key: string, defaultVal: T): T {
     if (typeof window === "undefined") return defaultVal;
     const item = localStorage.getItem(key);
@@ -793,46 +794,58 @@ export class SupabaseAdminRepository implements IAdminRepository {
   }
 
   async getTickets(): Promise<SupportTicket[]> {
-    return this.getFallbackData<SupportTicket[]>("eduearn_supabase_tickets", [
-      { id: "tkt-1", user: "Rahul Verma", email: "rahul@eduearn.com", title: "Certificate Generation Error", description: "Completed React course but certificate page shows undefined name details.", status: "Open", priority: "High", date: "2026-07-25", replies: [] }
-    ]);
+    const supabase = await this.getSupabase();
+    const { data, error } = await supabase
+      .from("support_tickets")
+      .select("*, profiles:user_id(full_name, email)")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    return (data || []).map((ticket: any) => ({
+      id: ticket.id,
+      user: ticket.profiles?.full_name || "Platform user",
+      email: ticket.profiles?.email || "",
+      title: ticket.title,
+      description: ticket.description,
+      status: ticket.status === "resolved" ? "Resolved" : "Open",
+      priority: ticket.priority === "high" ? "High" : ticket.priority === "low" ? "Low" : "Medium",
+      date: new Date(ticket.created_at).toISOString().split("T")[0],
+      replies: []
+    }));
   }
 
   async replyTicket(ticketId: string, author: string, replyText: string): Promise<SupportTicket> {
-    const list = await this.getTickets();
-    let updated: SupportTicket | null = null;
-    const newList = list.map((t) => {
-      if (t.id === ticketId) {
-        const replies = t.replies || [];
-        replies.push({
-          id: `rep-${Date.now()}`,
-          author,
-          text: replyText,
-          timestamp: new Date().toISOString()
-        });
-        updated = { ...t, replies };
-        return updated;
-      }
-      return t;
-    });
-    if (!updated) throw new Error("Ticket not found");
-    this.setFallbackData("eduearn_supabase_tickets", newList);
-    return updated;
+    // There is no ticket-message table in the current schema. Do not pretend a
+    // reply was delivered or persist it in browser storage.
+    void author;
+    void replyText;
+    void ticketId;
+    throw new Error("Ticket replies require a persisted ticket_messages backend before they can be sent.");
   }
 
   async resolveTicket(ticketId: string): Promise<SupportTicket> {
-    const list = await this.getTickets();
-    let updated: SupportTicket | null = null;
-    const newList = list.map((t) => {
-      if (t.id === ticketId) {
-        updated = { ...t, status: "Resolved" as const };
-        return updated;
-      }
-      return t;
-    });
-    if (!updated) throw new Error("Ticket not found");
-    this.setFallbackData("eduearn_supabase_tickets", newList);
-    return updated;
+    const supabase = await this.getSupabase();
+    const { data, error } = await supabase
+      .from("support_tickets")
+      .update({ status: "resolved" })
+      .eq("id", ticketId)
+      .select("*, profiles:user_id(full_name, email)")
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      user: data.profiles?.full_name || "Platform user",
+      email: data.profiles?.email || "",
+      title: data.title,
+      description: data.description,
+      status: "Resolved",
+      priority: data.priority === "high" ? "High" : data.priority === "low" ? "Low" : "Medium",
+      date: new Date(data.created_at).toISOString().split("T")[0],
+      replies: []
+    };
   }
 
   async getAnnouncements(): Promise<AdminAnnouncement[]> {

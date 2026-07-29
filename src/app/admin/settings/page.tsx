@@ -1,18 +1,2 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-
-export default function AdminSettingsRedirectPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace("/admin/dashboard?tab=settings");
-  }, [router]);
-
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center text-xs text-muted-foreground font-semibold animate-pulse">
-      Loading admin platform settings...
-    </div>
-  );
-}
+import { AdminModulePage } from "@/components/admin/AdminModulePage";
+export default function AdminSettingsPage() { return <AdminModulePage title="Platform settings" description="Manage the existing platform-level configuration controls." legacyTab="settings" />; }
