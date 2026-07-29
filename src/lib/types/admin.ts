@@ -30,6 +30,28 @@ export interface AdminUser {
   walletCoins: number;
   country?: string;
   bio?: string;
+  enrollments?: Array<{
+    courseId: string;
+    courseTitle: string;
+    progressPercent: number;
+    enrolledAt: string;
+    certificateUrl?: string;
+  }>;
+  tutorDetails?: {
+    verificationStatus: string;
+    publishedCoursesCount: number;
+    studentsTaughtCount: number;
+    totalRevenue: number;
+    averageRating: number;
+    courses?: Array<{
+      id: string;
+      title: string;
+      price: number;
+      enrollmentCount: number;
+      revenue: number;
+    }>;
+  };
+  lastActivity?: string;
 }
 
 export interface AdminCourse {
@@ -47,6 +69,9 @@ export interface AdminCourse {
   assignedSkill: string;
   created_at: string;
   isDynamic?: boolean;
+  thumbnail?: string;
+  enrollmentCount?: number;
+  revenue?: number;
 }
 
 export interface TutorVerificationApp {

@@ -28,6 +28,10 @@ export class NotificationService {
     return NotificationRepository.addActivity(activity);
   }
 
+  async createNotification(userId: string, title: string, content: string, type?: string): Promise<void> {
+    return NotificationRepository.createNotification(userId, title, content, type);
+  }
+
   getUnreadCount(notifications: Notification[]): number {
     return notifications.filter((n) => !n.isRead).length;
   }

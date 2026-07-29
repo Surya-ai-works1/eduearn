@@ -172,6 +172,8 @@ export default function AdminDashboardPage() {
     ];
   });
 
+  const [stats, setStats] = useState<any>(null);
+
   const saveAdminLiveSessions = (sessions: any[]) => {
     setAdminLiveSessions(sessions);
     if (typeof window !== "undefined") {
@@ -260,58 +262,75 @@ export default function AdminDashboardPage() {
     { id: "tick-2", type: "Tutor Complaint", title: "Whiteboard disconnect during Algebra session", user: "Amit Verma", status: "Open", assignedTo: "Tech Lead" }
   ]);
 
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadAdminData = async (isManualRefresh = false) => {
+    if (isManualRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoadingData(true);
+    }
+    try {
+      // 1. Fetch Users
+      const usersRes = await fetch("/api/admin/users");
+      if (usersRes.ok) {
+        const usersList = await usersRes.json();
+        setUsers(usersList);
+      }
+
+      // 2. Fetch Tutor Verifications
+      const verifsRes = await fetch("/api/admin/verifications");
+      if (verifsRes.ok) {
+        const verifsList = await verifsRes.json();
+        setVerifications(verifsList);
+      }
+
+      // 3. Fetch Courses
+      const coursesRes = await fetch("/api/admin/courses");
+      if (coursesRes.ok) {
+        const coursesList = await coursesRes.json();
+        setCourses(coursesList);
+      }
+
+      // 4. Fetch Payments & Payouts
+      const paymentsRes = await fetch("/api/admin/payments");
+      if (paymentsRes.ok) {
+        const paymentsData = await paymentsRes.json();
+        setPayouts(paymentsData.payouts || []);
+      }
+
+      // 5. Fetch Tickets
+      const ticketsRes = await fetch("/api/admin/tickets");
+      if (ticketsRes.ok) {
+        const ticketsList = await ticketsRes.json();
+        setTickets(ticketsList);
+      }
+
+      // 6. Fetch Dashboard Stats & Audit Logs
+      const dbRes = await fetch("/api/admin/dashboard");
+      if (dbRes.ok) {
+        const dbData = await dbRes.json();
+        setStats(dbData);
+        setAuditLogs(dbData.recentActivity || []);
+      }
+      
+      if (isManualRefresh) {
+        toast.success("Operational database sync completed successfully.");
+      }
+    } catch (err) {
+      console.error("Failed to load admin data from backend APIs:", err);
+      toast.error("Failed to sync live operational data.");
+    } finally {
+      setIsLoadingData(false);
+      setIsRefreshing(false);
+    }
+  };
+
   // Backend API synchronization effect
   useEffect(() => {
-    async function loadAdminData() {
-      try {
-        // 1. Fetch Users
-        const usersRes = await fetch("/api/admin/users");
-        if (usersRes.ok) {
-          const usersList = await usersRes.json();
-          setUsers(usersList);
-        }
-
-        // 2. Fetch Tutor Verifications
-        const verifsRes = await fetch("/api/admin/verifications");
-        if (verifsRes.ok) {
-          const verifsList = await verifsRes.json();
-          setVerifications(verifsList);
-        }
-
-        // 3. Fetch Courses
-        const coursesRes = await fetch("/api/admin/courses");
-        if (coursesRes.ok) {
-          const coursesList = await coursesRes.json();
-          setCourses(coursesList);
-        }
-
-        // 4. Fetch Payments & Payouts
-        const paymentsRes = await fetch("/api/admin/payments");
-        if (paymentsRes.ok) {
-          const paymentsData = await paymentsRes.json();
-          setPayouts(paymentsData.payouts || []);
-        }
-
-        // 5. Fetch Tickets
-        const ticketsRes = await fetch("/api/admin/tickets");
-        if (ticketsRes.ok) {
-          const ticketsList = await ticketsRes.json();
-          setTickets(ticketsList);
-        }
-
-        // 6. Fetch Dashboard Stats & Audit Logs
-        const dbRes = await fetch("/api/admin/dashboard");
-        if (dbRes.ok) {
-          const dbData = await dbRes.json();
-          setAuditLogs(dbData.recentActivity || []);
-        }
-      } catch (err) {
-        console.error("Failed to load admin data from backend APIs:", err);
-      }
-    }
-
     loadAdminData();
-  }, [activeTab]);
+  }, []);
 
   // Sync course moderation status back to localStorage tutor courses
   useEffect(() => {
@@ -392,7 +411,12 @@ export default function AdminDashboardPage() {
 
   return (
     <RequireAdmin>
-      <DashboardLayout activeTab={activeTab} setActiveTab={setActiveTab}>
+      <DashboardLayout
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onRefresh={() => loadAdminData(true)}
+        isRefreshing={isRefreshing}
+      >
         
         {/* TAB CONTROLS RENDERING */}
         {activeTab === "dashboard" && (
@@ -405,6 +429,7 @@ export default function AdminDashboardPage() {
             tickets={tickets}
             courses={courses}
             liveSessions={adminLiveSessions}
+            stats={stats}
             onNavigateTab={setActiveTab}
             onApproveTutor={(id) => triggerTutorVerification(id, true)}
             onReleasePayout={(id) => {
@@ -432,6 +457,7 @@ export default function AdminDashboardPage() {
             onApproveTutor={(id) => triggerTutorVerification(id, true)}
             onRejectTutor={(id) => triggerTutorVerification(id, false)}
             logAuditAction={logAuditAction}
+            isLoading={isLoadingData}
           />
         )}
 
@@ -444,6 +470,7 @@ export default function AdminDashboardPage() {
             courses={courses}
             setCourses={setCourses as any}
             logAuditAction={logAuditAction}
+            isLoading={isLoadingData}
           />
         )}
 

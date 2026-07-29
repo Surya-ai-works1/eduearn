@@ -92,31 +92,58 @@ export default function AnalyticsTab() {
       {/* DETAILED SVG GRAPH CURVES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 select-none">
         {/* Monthly Revenue splits */}
-        <Card variant="glass" className="p-5 space-y-4 shadow-soft">
-          <h4 className="text-sm font-heading font-extrabold uppercase text-foreground border-b border-border/20 pb-2">
-            Monthly Platform Gross Revenue Split
-          </h4>
-          <div className="h-48 w-full flex items-end relative pt-2">
-            <svg className="w-full h-full text-primary" viewBox="0 0 100 40" preserveAspectRatio="none">
+        <Card variant="glass" className="p-5 space-y-4 shadow-soft border-border/40 relative overflow-hidden bg-card/60 backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-border/20 pb-3">
+            <h4 className="text-xs font-heading font-extrabold uppercase text-foreground tracking-wide">
+              Platform Gross Revenue &amp; Tutor Split
+            </h4>
+            <span className="text-[9px] font-bold bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-lg border border-emerald-500/20">
+              Peak: ₹12.4L
+            </span>
+          </div>
+          <div className="h-52 w-full flex items-end relative pt-2">
+            <svg className="w-full h-full" viewBox="0 0 100 40" preserveAspectRatio="none">
               <defs>
-                <linearGradient id="area-blue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.25"/>
+                <linearGradient id="glow-revenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.35"/>
                   <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.0"/>
                 </linearGradient>
+                <linearGradient id="glow-tutor" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity="0.2"/>
+                  <stop offset="100%" stopColor="#10B981" stopOpacity="0.0"/>
+                </linearGradient>
+                <filter id="svg-glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="1" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
               </defs>
               {/* Grid lines */}
-              <line x1="0" y1="10" x2="100" y2="10" stroke="var(--border)" strokeWidth="0.1" strokeDasharray="2" />
-              <line x1="0" y1="20" x2="100" y2="20" stroke="var(--border)" strokeWidth="0.1" strokeDasharray="2" />
-              <line x1="0" y1="30" x2="100" y2="30" stroke="var(--border)" strokeWidth="0.1" strokeDasharray="2" />
-              {/* Curve path */}
-              <path d="M0,38 Q15,22 30,30 T60,14 T90,24 T100,8" fill="none" stroke="currentColor" strokeWidth="2.5" />
-              <path d="M0,38 Q15,22 30,30 T60,14 T90,24 T100,8 L100,40 L0,40 Z" fill="url(#area-blue)" />
+              <line x1="0" y1="10" x2="100" y2="10" stroke="var(--border)" strokeWidth="0.08" strokeDasharray="3" />
+              <line x1="0" y1="20" x2="100" y2="20" stroke="var(--border)" strokeWidth="0.08" strokeDasharray="3" />
+              <line x1="0" y1="30" x2="100" y2="30" stroke="var(--border)" strokeWidth="0.08" strokeDasharray="3" />
+              
+              {/* Gross Revenue Curve */}
+              <path d="M0,38 Q15,18 30,28 T60,10 T90,20 T100,6" fill="none" stroke="var(--primary)" strokeWidth="2" filter="url(#svg-glow)" />
+              <path d="M0,38 Q15,18 30,28 T60,10 T90,20 T100,6 L100,40 L0,40 Z" fill="url(#glow-revenue)" />
+
+              {/* Tutor Share Curve */}
+              <path d="M0,39 Q15,22 30,32 T60,15 T90,24 T100,10" fill="none" stroke="#10B981" strokeWidth="1.5" strokeDasharray="1" />
+              <path d="M0,39 Q15,22 30,32 T60,15 T90,24 T100,10 L100,40 L0,40 Z" fill="url(#glow-tutor)" />
+
+              {/* Indicator dots at key nodes */}
+              <circle cx="30" cy="28" r="1.5" fill="var(--primary)" stroke="white" strokeWidth="0.4" />
+              <circle cx="60" cy="10" r="1.5" fill="var(--primary)" stroke="white" strokeWidth="0.4" />
+              <circle cx="100" cy="6" r="1.5" fill="var(--primary)" stroke="white" strokeWidth="0.4" />
+
+              <circle cx="60" cy="15" r="1" fill="#10B981" stroke="white" strokeWidth="0.4" />
+              <circle cx="100" cy="10" r="1" fill="#10B981" stroke="white" strokeWidth="0.4" />
             </svg>
-            <div className="absolute top-2 left-2 text-[10px] text-muted-foreground font-extrabold bg-muted/40 px-2.5 py-1 rounded-lg border border-border/40 uppercase tracking-wider">
-              Platform Gross Revenue (INR)
+            <div className="absolute top-2 left-2 flex gap-3 text-[9px] font-bold uppercase tracking-wider select-none">
+              <span className="flex items-center gap-1"><span className="w-2.5 h-1 bg-primary rounded-full inline-block"></span> Platform Gross</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-1 bg-emerald-500 rounded-full inline-block"></span> Tutor Earnings Share</span>
             </div>
           </div>
-          <div className="flex justify-between text-[10px] text-muted-foreground font-extrabold border-t border-border/20 pt-2 px-1">
+          <div className="flex justify-between text-[10px] text-muted-foreground font-extrabold border-t border-border/20 pt-3 px-1">
             <span>Jan</span>
             <span>Mar</span>
             <span>May</span>
@@ -127,31 +154,51 @@ export default function AnalyticsTab() {
         </Card>
 
         {/* Course completion velocity */}
-        <Card variant="glass" className="p-5 space-y-4 shadow-soft">
-          <h4 className="text-sm font-heading font-extrabold uppercase text-foreground border-b border-border/20 pb-2">
-            Student Course Completion Velocity
-          </h4>
-          <div className="h-48 w-full flex items-end relative pt-2">
-            <svg className="w-full h-full text-indigo-500" viewBox="0 0 100 40" preserveAspectRatio="none">
+        <Card variant="glass" className="p-5 space-y-4 shadow-soft border-border/40 relative overflow-hidden bg-card/60 backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-border/20 pb-3">
+            <h4 className="text-xs font-heading font-extrabold uppercase text-foreground tracking-wide">
+              Student Completion vs Course Drop-off
+            </h4>
+            <span className="text-[9px] font-bold bg-indigo-500/10 text-indigo-500 px-2 py-0.5 rounded-lg border border-indigo-500/20">
+              Avg Rate: 76.4%
+            </span>
+          </div>
+          <div className="h-52 w-full flex items-end relative pt-2">
+            <svg className="w-full h-full" viewBox="0 0 100 40" preserveAspectRatio="none">
               <defs>
-                <linearGradient id="area-indigo" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6366F1" stopOpacity="0.25"/>
+                <linearGradient id="glow-complete" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#6366F1" stopOpacity="0.3"/>
                   <stop offset="100%" stopColor="#6366F1" stopOpacity="0.0"/>
+                </linearGradient>
+                <linearGradient id="glow-dropoff" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#EF4444" stopOpacity="0.15"/>
+                  <stop offset="100%" stopColor="#EF4444" stopOpacity="0.0"/>
                 </linearGradient>
               </defs>
               {/* Grid lines */}
-              <line x1="0" y1="10" x2="100" y2="10" stroke="var(--border)" strokeWidth="0.1" strokeDasharray="2" />
-              <line x1="0" y1="20" x2="100" y2="20" stroke="var(--border)" strokeWidth="0.1" strokeDasharray="2" />
-              <line x1="0" y1="30" x2="100" y2="30" stroke="var(--border)" strokeWidth="0.1" strokeDasharray="2" />
-              {/* Curve path */}
-              <path d="M0,35 Q20,10 40,28 T80,12 T100,5" fill="none" stroke="currentColor" strokeWidth="2.5" />
-              <path d="M0,35 Q20,10 40,28 T80,12 T100,5 L100,40 L0,40 Z" fill="url(#area-indigo)" />
+              <line x1="0" y1="10" x2="100" y2="10" stroke="var(--border)" strokeWidth="0.08" strokeDasharray="3" />
+              <line x1="0" y1="20" x2="100" y2="20" stroke="var(--border)" strokeWidth="0.08" strokeDasharray="3" />
+              <line x1="0" y1="30" x2="100" y2="30" stroke="var(--border)" strokeWidth="0.08" strokeDasharray="3" />
+              
+              {/* Completion Curve */}
+              <path d="M0,35 Q20,10 40,28 T80,12 T100,5" fill="none" stroke="#6366F1" strokeWidth="2" filter="url(#svg-glow)" />
+              <path d="M0,35 Q20,10 40,28 T80,12 T100,5 L100,40 L0,40 Z" fill="url(#glow-complete)" />
+
+              {/* Drop-off curve */}
+              <path d="M0,8 Q25,12 50,7 T100,28" fill="none" stroke="#EF4444" strokeWidth="1.2" strokeDasharray="2" />
+              <path d="M0,8 Q25,12 50,7 T100,28 L100,40 L0,40 Z" fill="url(#glow-dropoff)" />
+
+              {/* Node highlights */}
+              <circle cx="40" cy="28" r="1.5" fill="#6366F1" stroke="white" strokeWidth="0.4" />
+              <circle cx="80" cy="12" r="1.5" fill="#6366F1" stroke="white" strokeWidth="0.4" />
+              <circle cx="100" cy="5" r="1.5" fill="#6366F1" stroke="white" strokeWidth="0.4" />
             </svg>
-            <div className="absolute top-2 left-2 text-[10px] text-muted-foreground font-extrabold bg-muted/40 px-2.5 py-1 rounded-lg border border-border/40 uppercase tracking-wider">
-              Avg. Completion Rate (%)
+            <div className="absolute top-2 left-2 flex gap-3 text-[9px] font-bold uppercase tracking-wider select-none">
+              <span className="flex items-center gap-1"><span className="w-2.5 h-1 bg-indigo-500 rounded-full inline-block"></span> Completion Rate</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-1 bg-rose-500 rounded-full inline-block"></span> Bounce/Drop-off</span>
             </div>
           </div>
-          <div className="flex justify-between text-[10px] text-muted-foreground font-extrabold border-t border-border/20 pt-2 px-1">
+          <div className="flex justify-between text-[10px] text-muted-foreground font-extrabold border-t border-border/20 pt-3 px-1">
             <span>Jan</span>
             <span>Mar</span>
             <span>May</span>
@@ -163,24 +210,33 @@ export default function AnalyticsTab() {
       </div>
 
       {/* PLATFORM METRICS MATRIX */}
-      <Card className="p-5 border border-border bg-card shadow-soft space-y-4">
-        <h4 className="text-sm font-heading font-extrabold uppercase text-foreground border-b border-border/20 pb-2">
+      <Card className="p-5 border border-border/40 bg-card shadow-soft space-y-4">
+        <h4 className="text-xs font-heading font-extrabold uppercase text-foreground border-b border-border/40 pb-2.5">
           Platform Performance Metrics Overview
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 select-none pt-2">
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <span className="text-muted-foreground block text-[10px] font-extrabold uppercase tracking-wider">Renewal Retention Rate</span>
-            <span className="text-foreground text-lg sm:text-xl font-heading font-extrabold block">88.2%</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-foreground text-xl sm:text-2xl font-heading font-extrabold block">88.2%</span>
+              <span className="text-[9px] text-emerald-500 font-extrabold bg-emerald-500/10 px-1.5 py-0.2 rounded">+2.4%</span>
+            </div>
             <p className="text-[10px] text-muted-foreground font-semibold">Calculated based on monthly student subscription packages.</p>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <span className="text-muted-foreground block text-[10px] font-extrabold uppercase tracking-wider">Cohort Course Refund Rate</span>
-            <span className="text-red-500 text-lg sm:text-xl font-heading font-extrabold block">1.4%</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-rose-500 text-xl sm:text-2xl font-heading font-extrabold block">1.4%</span>
+              <span className="text-[9px] text-emerald-500 font-extrabold bg-emerald-500/10 px-1.5 py-0.2 rounded">-0.3%</span>
+            </div>
             <p className="text-[10px] text-muted-foreground font-semibold">Calculated relative to total platform gross sales.</p>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <span className="text-muted-foreground block text-[10px] font-extrabold uppercase tracking-wider">Average Course Rating</span>
-            <span className="text-amber-500 text-lg sm:text-xl font-heading font-extrabold block">4.85 ★</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-amber-500 text-xl sm:text-2xl font-heading font-extrabold block">4.85 ★</span>
+              <span className="text-[9px] text-amber-500 font-extrabold bg-amber-500/10 px-1.5 py-0.2 rounded">Global</span>
+            </div>
             <p className="text-[10px] text-muted-foreground font-semibold">Aggregated across all approved student reviews.</p>
           </div>
         </div>

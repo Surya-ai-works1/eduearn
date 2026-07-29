@@ -266,6 +266,8 @@ export function Navbar() {
   }, [pathname]);
 
   const logoSrc = resolvedTheme === "dark" ? "/logo-light.svg" : "/logo-dark.svg";
+  const isExcluded = pathname?.startsWith("/admin") || pathname?.startsWith("/tutor/dashboard") || pathname?.startsWith("/tutor/studio") || pathname?.startsWith("/tutor/onboarding");
+  if (isExcluded) return null;
 
   return (
     <header

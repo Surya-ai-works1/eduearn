@@ -9,4 +9,5 @@ export interface INotificationRepository {
   deleteNotification(notificationId: string): Promise<void>;
   getActivities(studentId: string): Promise<Activity[]>;
   addActivity(activity: Omit<Activity, "id">): Promise<Activity>;
+  createNotification(userId: string, title: string, content: string, type?: string): Promise<void>;
 }

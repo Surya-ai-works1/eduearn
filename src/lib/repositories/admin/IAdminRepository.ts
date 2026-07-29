@@ -22,6 +22,7 @@ export interface IAdminRepository {
   // Users
   getUsers(search?: string, role?: string, status?: string): Promise<AdminUser[]>;
   updateUserStatus(userId: string, status: "Active" | "Suspended"): Promise<AdminUser>;
+  updateUserCoins(userId: string, coins: number): Promise<AdminUser>;
   deleteUser(userId: string): Promise<boolean>;
   logAuditAction(adminName: string, action: string, details?: string): Promise<void>;
   

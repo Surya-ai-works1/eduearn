@@ -34,11 +34,17 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
-    const { userId, status } = body;
-    if (!userId || !status) {
-      return NextResponse.json({ error: "Missing required fields: userId, status" }, { status: 400 });
+    const { userId, status, coins } = body;
+    if (!userId) {
+      return NextResponse.json({ error: "Missing required fields: userId" }, { status: 400 });
     }
-    const updated = await adminService.updateUserStatus(adminName, userId, status);
+    let updated;
+    if (status !== undefined) {
+      updated = await adminService.updateUserStatus(adminName, userId, status);
+    }
+    if (coins !== undefined) {
+      updated = await adminService.updateUserCoins(adminName, userId, Number(coins));
+    }
     return NextResponse.json(updated);
   } catch (err: any) {
     console.error("Admin user status update failure:", err);

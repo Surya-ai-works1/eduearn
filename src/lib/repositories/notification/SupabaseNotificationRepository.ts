@@ -114,4 +114,17 @@ export class SupabaseNotificationRepository implements INotificationRepository {
       id: `activity-${Date.now()}`,
     };
   }
+
+  async createNotification(userId: string, title: string, content: string, type: string = "general"): Promise<void> {
+    const supabase = createClient();
+    await supabase
+      .from("notifications")
+      .insert({
+        user_id: userId,
+        title,
+        content,
+        type,
+        is_read: false,
+      });
+  }
 }

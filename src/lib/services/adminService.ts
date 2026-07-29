@@ -38,6 +38,16 @@ export class AdminService {
     return user;
   }
 
+  async updateUserCoins(adminName: string, userId: string, coins: number): Promise<AdminUser> {
+    const user = await AdminRepository.updateUserCoins(userId, coins);
+    await AdminRepository.logAuditAction(
+      adminName,
+      "User Wallet Coins Updated",
+      `Target: ${user.name} (${user.email}), New Balance: ${coins} coins`
+    );
+    return user;
+  }
+
   async deleteUser(adminName: string, userId: string): Promise<boolean> {
     const users = await AdminRepository.getUsers();
     const targetUser = users.find(u => u.id === userId);
@@ -77,6 +87,12 @@ export class AdminService {
         type: "course_enrolled",
         createdAt: new Date().toISOString()
       });
+      await notificationService.createNotification(
+        course.tutorId,
+        `Course Moderation: ${status}`,
+        `Your course "${course.title}" status was changed to ${status} by admin operations.`,
+        "course"
+      );
     } catch (err) {
       console.warn("Failed to trigger tutor course status notification:", err);
     }
@@ -122,17 +138,25 @@ export class AdminService {
     // Notify applicant tutor
     try {
       const { notificationService } = await import("./notificationService");
+      const title = `Verification Application: ${status}`;
+      const description = status === "Approved" 
+        ? "Congratulations! Your tutor application was approved. You can now access the Tutor Studio dashboard."
+        : status === "Rejected"
+          ? `Your application has been rejected. Reason: ${updates?.rejectionReason || "Credentials review failed."}`
+          : `Your application status was changed to: ${status}.`;
       await notificationService.addActivity({
         studentId: verification.tutorId,
-        title: `Verification Application: ${status}`,
-        description: status === "Approved" 
-          ? "Congratulations! Your tutor application was approved. You can now access the Tutor Studio dashboard."
-          : status === "Rejected"
-            ? `Your application has been rejected. Reason: ${updates?.rejectionReason || "Credentials review failed."}`
-            : `Your application status was changed to: ${status}.`,
+        title,
+        description,
         type: "certificate_earned",
         createdAt: new Date().toISOString()
       });
+      await notificationService.createNotification(
+        verification.tutorId,
+        title,
+        description,
+        "system"
+      );
     } catch (err) {
       console.warn("Failed to trigger tutor verification status notification:", err);
     }

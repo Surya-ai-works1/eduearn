@@ -36,6 +36,18 @@ export class SupabaseAdminRepository implements IAdminRepository {
     }
   }
 
+  private mapCourseStatus(dbStatus: string | null | undefined): AdminCourse["status"] {
+    if (!dbStatus) return "Pending";
+    const statusLower = dbStatus.toLowerCase();
+    if (statusLower === "approved" || statusLower === "published") return "Approved";
+    if (statusLower === "pending") return "Pending";
+    if (statusLower === "rejected") return "Rejected";
+    if (statusLower === "draft") return "Draft";
+    if (statusLower === "need changes" || statusLower === "need_changes") return "Need Changes";
+    if (statusLower === "archived") return "Archived";
+    return "Pending";
+  }
+
   // --- STATS ---
   async getDashboardStats(): Promise<AdminDashboardStats> {
     const supabase = await this.getSupabase();
@@ -71,10 +83,19 @@ export class SupabaseAdminRepository implements IAdminRepository {
 
     const totalRevenue = (paymentsData || [])
       .filter((p) => p.status === "success" || p.status === "Success" || p.status === "completed")
-      .reduce((sum, p) => sum + Number(p.amount || 0), 0) + 1540000; // static base
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-    const activeEnrollments = this.getFallbackData<number>("eduearn_mock_enrollments_count", 412);
-    const certificatesIssued = this.getFallbackData<number>("eduearn_mock_certificates_count", 84);
+    // Fetch exact counts from enrollments table live
+    const { count: dbEnrollmentsCount } = await supabase
+      .from("enrollments")
+      .select("*", { count: "exact", head: true });
+    const activeEnrollments = dbEnrollmentsCount || 0;
+
+    const { count: dbCertificatesCount } = await supabase
+      .from("enrollments")
+      .select("*", { count: "exact", head: true })
+      .not("certificate_url", "is", null);
+    const certificatesIssued = dbCertificatesCount || 0;
 
     // 4. Get recent audit logs
     const { data: dbLogs } = await supabase
@@ -116,17 +137,116 @@ export class SupabaseAdminRepository implements IAdminRepository {
     const { data, error } = await query;
     if (error) throw error;
 
-    let list: AdminUser[] = (data || []).map((u: any) => ({
-      id: u.id,
-      name: u.full_name || u.display_name || "User Account",
-      email: u.email || "",
-      role: u.role || "student",
-      status: u.status || "Active", // profile table status column fallback
-      createdAt: u.created_at ? new Date(u.created_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
-      walletCoins: u.wallet_coins || 0,
-      country: u.country,
-      bio: u.bio
-    }));
+    const safeQuery = async (tableName: string) => {
+      try {
+        const { data, error } = await supabase.from(tableName).select("*");
+        if (error) return [];
+        return data || [];
+      } catch {
+        return [];
+      }
+    };
+
+    const safeQueryOrdered = async (tableName: string, col: string, asc: boolean) => {
+      try {
+        const { data, error } = await supabase.from(tableName).select("*").order(col, { ascending: asc });
+        if (error) return [];
+        return data || [];
+      } catch {
+        return [];
+      }
+    };
+
+    // Fetch related tables in parallel, handling potential errors for missing/empty tables gracefully
+    const [enrollmentsRes, coursesRes, verificationsRes, reviewsRes, logsRes, earningsRes] = await Promise.all([
+      safeQuery("enrollments"),
+      safeQuery("courses"),
+      safeQuery("tutor_verifications"),
+      safeQuery("reviews"),
+      safeQueryOrdered("audit_logs", "created_at", false),
+      safeQuery("tutor_earnings")
+    ]);
+
+    const courseMap = new Map<string, any>(coursesRes.map(c => [c.id, c]));
+
+    let list: AdminUser[] = (data || []).map((u: any) => {
+      // 1. Map student details if student
+      const userEnrollments = enrollmentsRes
+        .filter((e: any) => e.learner_id === u.id)
+        .map((e: any) => {
+          const course = courseMap.get(e.course_id);
+          return {
+            courseId: e.course_id,
+            courseTitle: course ? course.title : "Enrolled Course",
+            progressPercent: Number(e.progress || 0),
+            enrolledAt: e.created_at ? new Date(e.created_at).toISOString().split("T")[0] : "",
+            certificateUrl: e.certificate_url || undefined
+          };
+        });
+
+      // 2. Map tutor details if tutor
+      let tutorDetails = undefined;
+      if (u.role === "tutor") {
+        const tutorVerify = verificationsRes.find((v: any) => v.tutor_id === u.id);
+        const tutorCourses = coursesRes.filter((c: any) => c.tutor_id === u.id);
+        const publishedCoursesCount = tutorCourses.filter((c: any) => c.status === "published" || c.approval_status === "approved").length;
+        
+        // Unique students taught
+        const tutorCourseIds = tutorCourses.map((c: any) => c.id);
+        const tutorEnrollments = enrollmentsRes.filter((e: any) => tutorCourseIds.includes(e.course_id));
+        const uniqueStudents = new Set(tutorEnrollments.map((e: any) => e.learner_id));
+        const studentsTaughtCount = uniqueStudents.size;
+
+        // Total revenue
+        const tutorEarning = earningsRes.find((e: any) => e.tutor_id === u.id)?.total_earnings || 0;
+
+        // Average rating
+        const tutorReviews = reviewsRes.filter((r: any) => tutorCourseIds.includes(r.course_id));
+        const averageRating = tutorReviews.length > 0
+          ? tutorReviews.reduce((sum: number, r: any) => sum + Number(r.rating || 0), 0) / tutorReviews.length
+          : 0;
+
+        tutorDetails = {
+          verificationStatus: tutorVerify ? tutorVerify.status : "Not Applied",
+          publishedCoursesCount,
+          studentsTaughtCount,
+          totalRevenue: Number(tutorEarning),
+          averageRating: Number(averageRating.toFixed(1)),
+          courses: tutorCourses.map((c: any) => {
+            const courseEnr = enrollmentsRes.filter((e: any) => e.course_id === c.id);
+            const courseRev = courseEnr.length * (c.price || 0);
+            return {
+              id: c.id,
+              title: c.title,
+              price: Number(c.price || 0),
+              enrollmentCount: courseEnr.length,
+              revenue: courseRev
+            };
+          })
+        };
+      }
+
+      // 3. Map last activity
+      const userLastLog = logsRes.find((l: any) => l.user_id === u.id);
+      const lastActivity = userLastLog
+        ? `${userLastLog.action} (${new Date(userLastLog.created_at).toLocaleDateString()})`
+        : undefined;
+
+      return {
+        id: u.id,
+        name: u.full_name || u.display_name || "User Account",
+        email: u.email || "",
+        role: u.role === "admin" ? "admin" : (u.role === "tutor" ? "tutor" : "learner"),
+        status: u.status || "Active",
+        createdAt: u.created_at ? new Date(u.created_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+        walletCoins: u.wallet_coins || 0,
+        country: u.country,
+        bio: u.bio,
+        enrollments: userEnrollments.length > 0 ? userEnrollments : undefined,
+        tutorDetails,
+        lastActivity
+      };
+    });
 
     if (search) {
       const term = search.toLowerCase();
@@ -184,6 +304,28 @@ export class SupabaseAdminRepository implements IAdminRepository {
     };
   }
 
+  async updateUserCoins(userId: string, coins: number): Promise<AdminUser> {
+    const supabase = await this.getSupabase();
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({ wallet_coins: coins })
+      .eq("id", userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      name: data.full_name || "User Account",
+      email: data.email || "",
+      role: data.role || "student",
+      status: data.status || "Active",
+      createdAt: data.created_at ? new Date(data.created_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      walletCoins: data.wallet_coins || 0
+    };
+  }
+
   async deleteUser(userId: string): Promise<boolean> {
     const supabase = await this.getSupabase();
     const { error } = await supabase.from("profiles").delete().eq("id", userId);
@@ -222,10 +364,22 @@ export class SupabaseAdminRepository implements IAdminRepository {
       (profilesData || []).map((p: any) => [p.id, p.full_name || "Tutor"])
     );
 
+    // Fetch all enrollments to count them by course
+    const { data: enrollmentsData } = await supabase
+      .from("enrollments")
+      .select("course_id");
+
+    const enrollmentCountMap = new Map<string, number>();
+    (enrollmentsData || []).forEach((e: any) => {
+      enrollmentCountMap.set(e.course_id, (enrollmentCountMap.get(e.course_id) || 0) + 1);
+    });
+
     let list: AdminCourse[] = (coursesData || []).map((c: any) => {
       const price = Number(c.price || 0);
       const tutorShare = Math.round(price * 0.8);
       const platformShare = price - tutorShare;
+      const enrollmentCount = enrollmentCountMap.get(c.id) || 0;
+      const revenue = enrollmentCount * price;
 
       return {
         id: c.id,
@@ -236,11 +390,14 @@ export class SupabaseAdminRepository implements IAdminRepository {
         price,
         tutorEarnings: tutorShare,
         platformEarnings: platformShare,
-        status: (c.approval_status || c.status || "Pending") as any,
+        status: this.mapCourseStatus(c.approval_status || c.status),
         featured: c.featured || false,
         hidden: c.status === "draft",
         assignedSkill: c.category,
-        created_at: c.created_at
+        created_at: c.created_at,
+        thumbnail: c.thumbnail,
+        enrollmentCount,
+        revenue
       };
     });
 
@@ -285,7 +442,7 @@ export class SupabaseAdminRepository implements IAdminRepository {
       price: Number(data.price || 0),
       tutorEarnings: Math.round(Number(data.price || 0) * 0.8),
       platformEarnings: Number(data.price || 0) - Math.round(Number(data.price || 0) * 0.8),
-      status: (data.approval_status || data.status) as any,
+      status: this.mapCourseStatus(data.approval_status || data.status),
       featured: false,
       hidden: data.status === "draft",
       assignedSkill: data.category,
@@ -308,7 +465,7 @@ export class SupabaseAdminRepository implements IAdminRepository {
       price: Number(data.price || 0),
       tutorEarnings: Math.round(Number(data.price || 0) * 0.8),
       platformEarnings: Number(data.price || 0) - Math.round(Number(data.price || 0) * 0.8),
-      status: (data.approval_status || data.status) as any,
+      status: this.mapCourseStatus(data.approval_status || data.status),
       featured,
       hidden: data.status === "draft",
       assignedSkill: data.category,
@@ -336,7 +493,7 @@ export class SupabaseAdminRepository implements IAdminRepository {
       price: Number(data.price || 0),
       tutorEarnings: Math.round(Number(data.price || 0) * 0.8),
       platformEarnings: Number(data.price || 0) - Math.round(Number(data.price || 0) * 0.8),
-      status: (data.approval_status || data.status) as any,
+      status: this.mapCourseStatus(data.approval_status || data.status),
       featured: false,
       hidden: data.status === "draft",
       assignedSkill: data.category,

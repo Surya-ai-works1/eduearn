@@ -66,11 +66,73 @@ export class MockAdminRepository implements IAdminRepository {
   // --- USERS ---
   async getUsers(search?: string, role?: string, status?: string): Promise<AdminUser[]> {
     let list = this.getLocalData<AdminUser[]>("eduearn_mock_admin_users", [
-      { id: "u-1", name: "Rahul Verma", email: "rahul@eduearn.com", role: "learner", status: "Active", createdAt: "2026-06-01", walletCoins: 120 },
-      { id: "u-2", name: "Amit Verma", email: "amit@eduearn.com", role: "tutor", status: "Active", createdAt: "2026-05-15", walletCoins: 450 },
-      { id: "u-3", name: "Priya Patel", email: "priya@eduearn.com", role: "tutor", status: "Active", createdAt: "2026-05-20", walletCoins: 310 },
-      { id: "u-4", name: "Sanjay Dutt", email: "sanjay@eduearn.com", role: "admin", status: "Active", createdAt: "2026-04-10", walletCoins: 0 },
-      { id: "u-5", name: "Surya K", email: "surya@learner.com", role: "learner", status: "Active", createdAt: "2026-06-25", walletCoins: 280 }
+      { 
+        id: "u-1", 
+        name: "Rahul Verma", 
+        email: "rahul@eduearn.com", 
+        role: "learner", 
+        status: "Active", 
+        createdAt: "2026-06-01", 
+        walletCoins: 120,
+        enrollments: [
+          { courseId: "c-1", courseTitle: "Mastering React Native Hooks & Layouts", progressPercent: 65, enrolledAt: "2026-06-02" }
+        ],
+        lastActivity: "Enrolled in React Course (2026-07-28)"
+      },
+      { 
+        id: "u-2", 
+        name: "Amit Verma", 
+        email: "amit@eduearn.com", 
+        role: "tutor", 
+        status: "Active", 
+        createdAt: "2026-05-15", 
+        walletCoins: 450,
+        tutorDetails: {
+          verificationStatus: "Approved",
+          publishedCoursesCount: 1,
+          studentsTaughtCount: 3,
+          totalRevenue: 28400,
+          averageRating: 4.8,
+          courses: [
+            { id: "c-1", title: "Mastering React Native Hooks & Layouts", price: 1200, enrollmentCount: 3, revenue: 3600 }
+          ]
+        },
+        lastActivity: "Created Lesson (2026-07-28)"
+      },
+      { 
+        id: "u-3", 
+        name: "Priya Patel", 
+        email: "priya@eduearn.com", 
+        role: "tutor", 
+        status: "Active", 
+        createdAt: "2026-05-20", 
+        walletCoins: 310,
+        tutorDetails: {
+          verificationStatus: "Approved",
+          publishedCoursesCount: 1,
+          studentsTaughtCount: 1,
+          totalRevenue: 12000,
+          averageRating: 4.5,
+          courses: [
+            { id: "c-2", title: "Kuchipudi Mudras & Coordination Masterclass", price: 1500, enrollmentCount: 1, revenue: 1500 }
+          ]
+        },
+        lastActivity: "Uploaded Video (2026-07-28)"
+      },
+      { id: "u-4", name: "Sanjay Dutt", email: "sanjay@eduearn.com", role: "admin", status: "Active", createdAt: "2026-04-10", walletCoins: 0, lastActivity: "Logged In (2026-07-28)" },
+      { 
+        id: "u-5", 
+        name: "Surya K", 
+        email: "surya@learner.com", 
+        role: "learner", 
+        status: "Active", 
+        createdAt: "2026-06-25", 
+        walletCoins: 280,
+        enrollments: [
+          { courseId: "c-2", courseTitle: "Kuchipudi Mudras & Coordination Masterclass", progressPercent: 100, enrolledAt: "2026-06-26", certificateUrl: "https://example.com/cert.pdf" }
+        ],
+        lastActivity: "Completed Course (2026-07-28)"
+      }
     ]);
 
     if (search) {
@@ -92,6 +154,21 @@ export class MockAdminRepository implements IAdminRepository {
     const newList = list.map((u) => {
       if (u.id === userId) {
         updatedUser = { ...u, status };
+        return updatedUser;
+      }
+      return u;
+    });
+    if (!updatedUser) throw new Error("User not found");
+    this.setLocalData("eduearn_mock_admin_users", newList);
+    return updatedUser;
+  }
+
+  async updateUserCoins(userId: string, coins: number): Promise<AdminUser> {
+    const list = await this.getUsers();
+    let updatedUser: AdminUser | null = null;
+    const newList = list.map((u) => {
+      if (u.id === userId) {
+        updatedUser = { ...u, walletCoins: coins };
         return updatedUser;
       }
       return u;

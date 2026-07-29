@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { AppHeader } from "../../../components/shared/AppHeader";
 import {
   LayoutDashboard,
   Users,
@@ -39,7 +40,8 @@ import {
   Eye,
   CheckCircle2,
   Bookmark,
-  Play
+  Play,
+  RefreshCw
 } from "lucide-react";
 import { RequireAdmin } from "../../../features/auth/components/RouteGuard";
 import { useAuth } from "../../../hooks/useAuth";
@@ -58,13 +60,17 @@ interface DashboardLayoutProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onSearchChange?: (val: string) => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export default function DashboardLayout({
   children,
   activeTab,
   setActiveTab,
-  onSearchChange
+  onSearchChange,
+  onRefresh,
+  isRefreshing
 }: DashboardLayoutProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -313,41 +319,18 @@ export default function DashboardLayout({
         <div className={`flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300 ${
           isSidebarCollapsed ? "md:pl-20" : "md:pl-64"
         }`}>
-          {/* Header row */}
-          <header className="h-16 px-4 sm:px-6 flex items-center justify-between navbar-surface-blur border-b border-border/20 fixed top-16 right-0 z-30 shrink-0 select-none transition-all duration-300 w-full" style={{ paddingLeft: isSidebarCollapsed ? "80px" : "256px" }}>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="md:hidden p-2 hover:bg-muted rounded-button cursor-pointer text-foreground"
-                aria-label="Open mobile menu"
-              >
-                <Menu size={18} />
-              </button>
-              <h1 className="text-sm font-heading font-extrabold tracking-tight uppercase text-foreground">
-                Command Panel / <span className="text-primary">{activeTab.replace("-", " ")}</span>
-              </h1>
-            </div>
-
-            {/* Global search trigger + alerts */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsCommandPaletteOpen(true)}
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 border border-border rounded-button bg-muted/20 text-[10px] text-muted-foreground font-semibold hover:border-primary/40 cursor-pointer"
-              >
-                <Search size={12} />
-                <span>Search dashboard...</span>
-                <span className="bg-muted px-1.5 py-0.5 rounded border border-border/50 text-[9px]">Ctrl+K</span>
-              </button>
-
-              <button className="p-2 hover:bg-muted rounded-full relative cursor-pointer text-foreground" aria-label="View notifications">
-                <Bell size={16} />
-                <span className="w-1.5 h-1.5 bg-rose-500 rounded-full absolute top-1.5 right-1.5 animate-pulse" />
-              </button>
-            </div>
-          </header>
+          <AppHeader
+            activeTab={activeTab}
+            onSearchChange={onSearchChange}
+            onRefresh={onRefresh}
+            isRefreshing={isRefreshing}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+            isSidebarCollapsed={isSidebarCollapsed}
+            setIsCommandPaletteOpen={setIsCommandPaletteOpen}
+          />
 
           {/* PAGE BODY VIEW */}
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-background relative z-10 scroll-smooth pt-36">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-background relative z-10 scroll-smooth pt-20">
             {children}
           </main>
         </div>

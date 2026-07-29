@@ -172,4 +172,19 @@ export class MockNotificationRepository implements INotificationRepository {
     this.saveActivities(all);
     return newActivity;
   }
+
+  async createNotification(userId: string, title: string, content: string, type: string = "general"): Promise<void> {
+    const newNotif: Notification = {
+      id: `noti-${Date.now()}`,
+      studentId: userId,
+      title,
+      message: content,
+      type: type as any,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    };
+    const notifs = this.getNotifs();
+    notifs.unshift(newNotif);
+    this.saveNotifs(notifs);
+  }
 }
