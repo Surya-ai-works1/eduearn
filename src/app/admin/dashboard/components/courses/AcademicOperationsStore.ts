@@ -17,6 +17,13 @@ export interface Course {
   completionRate: number; // calculated average
   revenue: number;
   revisionTimeline: { date: string; actor: string; change: string }[];
+  createdAt?: string;
+  updatedAt?: string;
+  description?: string;
+  duration?: string;
+  level?: string;
+  thumbnailUrl?: string;
+  organization?: string;
 }
 
 export interface Student {

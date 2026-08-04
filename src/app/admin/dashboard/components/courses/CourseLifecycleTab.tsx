@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { 
   Plus, Trash2, Copy, Play, CheckCircle, XCircle, Archive, RotateCcw, Calendar, 
-  Layers, CheckSquare, ShieldCheck, Heart, AlertTriangle, FileText, ArrowRight, Eye, RefreshCw
+  Layers, CheckSquare, ShieldCheck, Heart, AlertTriangle, FileText, ArrowRight, Eye, RefreshCw,
+  Edit2, History
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "../../../../../components/ui/card";
@@ -18,6 +19,8 @@ interface CourseLifecycleTabProps {
   onOpenStudent: (id: string) => void;
   onOpenCourseDetails: (course: Course) => void;
   logAuditAction: (action: string) => void;
+  onEditCourse: (course: Course) => void;
+  onOpenHistory: (course: Course) => void;
 }
 
 export default function CourseLifecycleTab({
@@ -27,7 +30,9 @@ export default function CourseLifecycleTab({
   onOpenTutor,
   onOpenStudent,
   onOpenCourseDetails,
-  logAuditAction
+  logAuditAction,
+  onEditCourse,
+  onOpenHistory
 }: CourseLifecycleTabProps) {
   const [search, setSearch] = useState("");
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -284,6 +289,26 @@ export default function CourseLifecycleTab({
                     Restore to Draft
                   </Button>
                 )}
+                <Button 
+                  onClick={() => onEditCourse(course)} 
+                  size="sm" 
+                  variant="outline" 
+                  aria-label="Edit Course"
+                  title="Edit Course"
+                  className="border-border bg-card font-extrabold text-[10px] h-8 uppercase tracking-wider flex items-center gap-1"
+                >
+                  <Edit2 size={11} /> Edit
+                </Button>
+                <Button 
+                  onClick={() => onOpenHistory(course)} 
+                  size="sm" 
+                  variant="outline" 
+                  aria-label="View History"
+                  title="View History"
+                  className="border-border bg-card font-extrabold text-[10px] h-8 uppercase tracking-wider flex items-center gap-1"
+                >
+                  <History size={11} /> View History
+                </Button>
                 <Button onClick={() => handleDuplicate(course)} size="sm" variant="outline" className="border-border bg-card font-extrabold text-[10px] h-8 uppercase tracking-wider">
                   Clone / Copy
                 </Button>

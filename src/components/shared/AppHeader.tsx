@@ -63,7 +63,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </button>
 
         {/* Platform Logo */}
-        <Link href="/admin/dashboard" className="flex items-center gap-2 shrink-0">
+        <Link href="/" className="flex items-center gap-2 shrink-0">
           <Image
             src={logoSrc}
             alt="EduEarn Admin Console"
