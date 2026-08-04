@@ -25,6 +25,12 @@ import CommunicationTab from "./components/communication/CommunicationTab";
 import SettingsTab from "./components/settings/SettingsTab";
 import RoleTab from "./components/roles/RoleTab";
 import AuditLogsTab from "./components/audit/AuditLogsTab";
+import OrganizationsTab from "./components/organizations/OrganizationsTab";
+import WorkflowCenter from "./components/automation/WorkflowCenter";
+import CertificatesTab from "./components/dashboard/CertificatesTab";
+import ReportsTab from "./components/dashboard/ReportsTab";
+import SecurityTab from "./components/dashboard/SecurityTab";
+import SystemHealthTab from "./components/dashboard/SystemHealthTab";
 
 // TYPES & INTERFACES
 import { AdminUser, TutorVerificationApp as VerificationApp, AdminCourse, AdminActivityLog as AuditLog } from "@/lib/types/admin";
@@ -62,13 +68,41 @@ export default function AdminDashboardPage() {
   };
 
   // 2. Users (Students & Tutors)
-  const [users, setUsers] = useState<AdminUser[]>([
-    { id: "u-1", name: "Rahul Verma", email: "rahul@eduearn.com", role: "learner", status: "Active", createdAt: "2026-06-01", walletCoins: 120 },
-    { id: "u-2", name: "Amit Verma", email: "amit@eduearn.com", role: "tutor", status: "Active", createdAt: "2026-05-15", walletCoins: 450 },
-    { id: "u-3", name: "Priya Patel", email: "priya@eduearn.com", role: "tutor", status: "Active", createdAt: "2026-05-20", walletCoins: 310 },
-    { id: "u-4", name: "Sanjay Dutt", email: "sanjay@eduearn.com", role: "admin", status: "Active", createdAt: "2026-04-10", walletCoins: 0 },
-    { id: "u-5", name: "Surya K", email: "surya@learner.com", role: "learner", status: "Active", createdAt: "2026-06-25", walletCoins: 280 }
-  ]);
+  const [users, setUsers] = useState<AdminUser[]>(() => {
+    const defaults: AdminUser[] = [
+      { id: "u-1", name: "Rahul Verma", email: "rahul@eduearn.com", role: "learner", status: "Active", createdAt: "2026-06-01", walletCoins: 120 },
+      { id: "u-2", name: "Amit Verma", email: "amit@eduearn.com", role: "tutor", status: "Active", createdAt: "2026-05-15", walletCoins: 450 },
+      { id: "u-3", name: "Priya Patel", email: "priya@eduearn.com", role: "tutor", status: "Active", createdAt: "2026-05-20", walletCoins: 310 },
+      { id: "u-4", name: "Sanjay Dutt", email: "sanjay@eduearn.com", role: "admin", status: "Active", createdAt: "2026-04-10", walletCoins: 0 },
+      { id: "u-5", name: "Surya K", email: "surya@learner.com", role: "learner", status: "Active", createdAt: "2026-06-25", walletCoins: 280 }
+    ];
+    if (typeof window === "undefined") return defaults;
+    const saved = localStorage.getItem("eduearn_admin_users");
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    localStorage.setItem("eduearn_admin_users", JSON.stringify(defaults));
+    return defaults;
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && users.length > 0) {
+      localStorage.setItem("eduearn_admin_users", JSON.stringify(users));
+    }
+  }, [users]);
+
+  useEffect(() => {
+    const syncUsers = () => {
+      const saved = localStorage.getItem("eduearn_admin_users");
+      if (saved) {
+        try {
+          setUsers(JSON.parse(saved));
+        } catch (e) {}
+      }
+    };
+    window.addEventListener("storage", syncUsers);
+    return () => window.removeEventListener("storage", syncUsers);
+  }, []);
 
   // 3. Tutor Applications (Verification)
   const [verifications, setVerifications] = useState<VerificationApp[]>(() => {
@@ -482,7 +516,7 @@ export default function AdminDashboardPage() {
           />
         )}
 
-        {(activeTab === "payments" || activeTab === "pricing") && (
+        {(activeTab === "payments" || activeTab === "pricing" || activeTab === "finance") && (
           <FinanceTab logAuditAction={logAuditAction} />
         )}
 
@@ -523,6 +557,30 @@ export default function AdminDashboardPage() {
             auditLogs={auditLogs}
             setAuditLogs={setAuditLogs}
           />
+        )}
+
+        {activeTab === "organizations" && (
+          <OrganizationsTab logAuditAction={logAuditAction} />
+        )}
+
+        {activeTab === "automation" && (
+          <WorkflowCenter logAuditAction={logAuditAction} />
+        )}
+
+        {activeTab === "certificates" && (
+          <CertificatesTab />
+        )}
+
+        {activeTab === "reports" && (
+          <ReportsTab />
+        )}
+
+        {activeTab === "security" && (
+          <SecurityTab />
+        )}
+
+        {activeTab === "system-health" && (
+          <SystemHealthTab />
         )}
 
       </DashboardLayout>

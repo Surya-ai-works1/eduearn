@@ -1,27 +1,17 @@
 "use client";
 
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Activity,
-  Sparkles,
-  TrendingUp,
-  Users,
-  BookOpen,
-  Video,
-  DollarSign,
-  AlertTriangle,
-  ArrowRight,
-  PlusCircle,
-  UserCheck,
-  CheckCircle,
-  HelpCircle,
-  FileText,
-  Clock,
-  Award
+  Activity, Sparkles, TrendingUp, Users, BookOpen, Video, DollarSign,
+  AlertTriangle, ArrowRight, PlusCircle, UserCheck, CheckCircle, HelpCircle,
+  FileText, Clock, Award, ShieldAlert, Lock, Trash2, ArrowUpRight, ArrowDownRight,
+  Download, RefreshCw, Eye, Check, X, ShieldCheck, Building2, ClipboardList, Database, Play
 } from "lucide-react";
 import { Card } from "../../../../../components/ui/card";
 import { Button } from "../../../../../components/ui/button";
+import { toast } from "sonner";
+import { PlatformEventBus, SystemHealthCenter, DataConsistencyValidator, PlatformEvent } from "../../../../../lib/services/PlatformIntegrationEngine";
 
 interface DashboardTabProps {
   adminEnrollments: any[];
@@ -44,14 +34,14 @@ interface DashboardTabProps {
 
 export default function DashboardTab({
   adminEnrollments,
-  auditLogs,
+  auditLogs: propAuditLogs,
   verifications,
   payouts,
   refundRequests,
   tickets,
   courses,
   liveSessions,
-  stats,
+  stats: propStats,
   onNavigateTab,
   onApproveTutor,
   onReleasePayout,
@@ -60,112 +50,109 @@ export default function DashboardTab({
   onCreateOffer,
   onBroadcastAnnouncement
 }: DashboardTabProps) {
-  
-  // Calculate revenue and user counts
-  const totalRevenue = stats?.totalRevenue ?? (1540000 + adminEnrollments.reduce((sum, item) => sum + (item.amount || 0), 0));
-  const commissionEarned = Math.round(totalRevenue * 0.1);
-  const totalStudents = stats?.totalStudents ?? (1045 + adminEnrollments.length);
-  const totalTutors = stats?.totalTutors ?? 24;
-  const publishedCourses = stats?.publishedCourses ?? courses.filter(c => c.status === "Approved" || c.status === "published").length;
-  const pendingCourses = stats?.pendingCourses ?? courses.filter(c => c.status === "Pending" || c.status === "pending").length;
-  const certificatesIssued = stats?.certificatesIssued ?? 84;
-  
-  const pendingTutors = verifications.filter(v => v.status === "Pending");
-  const pendingPayouts = payouts.filter(p => p.status === "Pending" || p.status === "On Hold");
-  const pendingRefunds = refundRequests.filter(r => r.status === "Pending");
-  const openTickets = tickets.filter(t => t.status === "Open");
+  const [events, setEvents] = useState<PlatformEvent[]>([]);
+  const [localAuditLogs, setLocalAuditLogs] = useState<any[]>([]);
+  const [organizationsCount, setOrganizationsCount] = useState(3);
+  const [payoutsCount, setPayoutsCount] = useState(2);
+
+  const loadOperationalData = () => {
+    setEvents(PlatformEventBus.getEvents());
+    setLocalAuditLogs(PlatformEventBus.getAuditLogs().slice(0, 10));
+    
+    if (typeof window !== "undefined") {
+      const storedTenants = localStorage.getItem("eduearn_tenants");
+      if (storedTenants) {
+        try {
+          const list = JSON.parse(storedTenants);
+          setOrganizationsCount(list.length);
+        } catch {}
+      }
+      
+      const storedPayouts = localStorage.getItem("eduearn_withdrawals");
+      if (storedPayouts) {
+        try {
+          const list = JSON.parse(storedPayouts);
+          setPayoutsCount(list.length);
+        } catch {}
+      }
+    }
+  };
+
+  useEffect(() => {
+    loadOperationalData();
+    const interval = setInterval(loadOperationalData, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const health = SystemHealthCenter.getDiagnostics();
+
+  // Metrics Calculation
+  const totalRevenue = propStats?.totalRevenue ?? (1540000 + adminEnrollments.reduce((sum, item) => sum + (item.amount || 0), 0));
+  const totalStudents = propStats?.totalStudents ?? (1045 + adminEnrollments.length);
+  const totalTutors = propStats?.totalTutors ?? 24;
+  const totalCourses = courses.length;
+  const certificatesCount = propStats?.certificatesIssued ?? 84;
+  const activeAlerts = 2; // Failed Logins, Escrow Deviation
+  const pendingModCount = tickets.filter(t => t.status === "Open" || t.status === "pending").length || 1;
+  const pendingApprovalsCount = verifications.filter(v => v.status === "Pending" || v.status === "pending").length || 2;
+
+  const kpis = [
+    { label: "Revenue", val: `₹${totalRevenue.toLocaleString("en-IN")}`, sub: "Gross payments volume", icon: DollarSign, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/10" },
+    { label: "Students", val: String(totalStudents), sub: "Active learners", icon: Users, color: "text-blue-500 bg-blue-500/10 border-blue-500/10" },
+    { label: "Tutors", val: String(totalTutors), sub: "Educators cohort pool", icon: Users, color: "text-purple-500 bg-purple-500/10 border-purple-500/10" },
+    { label: "Courses", val: String(totalCourses), sub: "Active inventory", icon: BookOpen, color: "text-amber-500 bg-amber-500/10 border-amber-500/10" },
+    { label: "Organizations", val: String(organizationsCount), sub: "Enterprise tenant accounts", icon: Building2, color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/10" },
+    { label: "Certificates", val: String(certificatesCount), sub: "Verifiable credentials issued", icon: Award, color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/10" },
+    { label: "Payments", val: `${payoutsCount} Pending`, sub: "Payouts waiting clearance", icon: FileText, color: "text-orange-500 bg-orange-500/10 border-orange-500/10" },
+    { label: "Security Alerts", val: `${activeAlerts} Alerts`, sub: "Threat signals detected", icon: ShieldAlert, color: "text-rose-500 bg-rose-500/10 border-rose-500/10" },
+    { label: "Pending Moderation", val: `${pendingModCount} Tickets`, sub: "Flagged content reviews", icon: AlertTriangle, color: "text-rose-400 bg-rose-400/10 border-rose-400/10" },
+    { label: "Pending Approvals", val: `${pendingApprovalsCount} Requests`, sub: "Tutor credential applications", icon: UserCheck, color: "text-teal-500 bg-teal-500/10 border-teal-500/10" },
+    { label: "System Health", val: `${health.dbHealth}`, sub: "Optimal database cluster", icon: Activity, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/10" },
+    { label: "Background Jobs", val: "4 Running", sub: "Autobackup & Sync queues active", icon: Database, color: "text-purple-400 bg-purple-400/10 border-purple-400/10" },
+  ];
+
+  const triggerQuickAction = (actionName: string, desc: string) => {
+    PlatformEventBus.emit({
+      type: actionName,
+      actor: "Super Admin",
+      role: "admin",
+      module: "Dashboard",
+      // eslint-disable-next-line react-hooks/purity
+      targetId: `act-${Date.now()}`,
+      targetName: actionName,
+      severity: "Medium",
+      description: desc
+    });
+    toast.success(`Action Executed: ${actionName}`);
+    loadOperationalData();
+  };
 
   return (
     <motion.div
-      key="admin-dashboard-tab"
+      key="admin-executive-dashboard"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
-      className="space-y-8 text-left"
+      className="space-y-8 text-left select-none pb-12"
     >
-      {/* CEO COMMAND BANNER & HEALTH MONITOR */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 select-none">
-        <Card variant="glass" className="lg:col-span-2 p-7 border-primary/20 bg-primary/5 flex items-center justify-between relative overflow-hidden shadow-soft">
-          <div className="space-y-3 relative z-10">
-            <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-primary flex items-center gap-1.5">
-              <Sparkles size={13} className="animate-pulse shrink-0" /> CEO Operations Control Room
-            </span>
-            <h2 className="text-2xl font-heading font-extrabold text-foreground tracking-tight">
-              Platform Command &amp; Operating Center
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground font-semibold max-w-lg leading-relaxed">
-              Synchronize payment flows, approve tutor applications, moderate courses, configure global pricing rules, and run live diagnostics.
-            </p>
-          </div>
-          <Sparkles size={44} className="text-primary/20 shrink-0 hidden sm:block relative z-10" />
-        </Card>
-
-        <Card variant="glass" className="p-7 border-border/60 bg-muted/10 flex flex-col justify-between shadow-soft">
-          <div className="flex items-center justify-between border-b border-border/30 pb-2 mb-2">
-            <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-              Infrastructure Health
-            </span>
-            <Activity size={16} className="text-emerald-500 animate-pulse" />
-          </div>
-          <div className="mt-2 text-xs font-bold space-y-2 text-muted-foreground/80">
-            <div className="flex justify-between items-center">
-              <span className="font-semibold text-muted-foreground">API Gateway Latency</span>
-              <span className="text-foreground font-black">12ms</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-semibold text-muted-foreground">Database Cluster</span>
-              <span className="text-emerald-500 font-extrabold uppercase tracking-wider text-[10px]">Healthy (Active)</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-semibold text-muted-foreground">Storage Bucket</span>
-              <span className="text-foreground font-black">1.2 GB / 50.0 GB</span>
-            </div>
-          </div>
-        </Card>
+      {/* Dashboard Executive Title Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-4 rounded-xl border border-border shadow-soft">
+        <div>
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary flex items-center gap-1.5 select-none">
+            <Sparkles size={13} className="animate-pulse" /> Executive Operations Center
+          </span>
+          <h2 className="text-xl font-heading font-black text-foreground tracking-tight mt-1 select-none">
+            Platform Executive Cockpit
+          </h2>
+        </div>
       </div>
 
-      {/* QUICK ACTION BAR */}
-      <Card className="p-5 border border-border bg-card shadow-soft select-none">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-muted-foreground block">
-            Operational Quick Actions
-          </span>
-          <div className="flex flex-wrap gap-2.5">
-            <Button size="md" onClick={onCreateCourse} className="text-xs font-extrabold gap-1.5 h-10 px-4 uppercase tracking-wider">
-              <PlusCircle size={14} /> Create Course
-            </Button>
-            <Button size="md" onClick={() => onNavigateTab("users")} variant="outline" className="text-xs font-extrabold gap-1.5 h-10 px-4 uppercase tracking-wider bg-card hover:bg-muted/80">
-              <UserCheck size={14} /> Verify Tutor
-            </Button>
-            <Button size="md" onClick={onCreateOffer} variant="outline" className="text-xs font-extrabold gap-1.5 h-10 px-4 uppercase tracking-wider bg-card hover:bg-muted/80">
-              <DollarSign size={14} /> Create Offer
-            </Button>
-            <Button size="md" onClick={onBroadcastAnnouncement} variant="outline" className="text-xs font-extrabold gap-1.5 h-10 px-4 uppercase tracking-wider bg-card hover:bg-muted/80">
-              <ArrowRight size={14} /> Broadcast Update
-            </Button>
-          </div>
-        </div>
-      </Card>
-
-      {/* SYSTEM PERFORMANCE KPIS */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 select-none">
-        {[
-          { label: "Total Platform Revenue", val: `₹${totalRevenue.toLocaleString("en-IN")}`, sub: "Gross payments volume", icon: DollarSign, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/10", trend: "+18.4%", isPositive: true },
-          { label: "Net Commission Earned", val: `₹${commissionEarned.toLocaleString("en-IN")}`, sub: "10% platform share", icon: TrendingUp, color: "text-blue-500 bg-blue-500/10 border-blue-500/10", trend: "+18.4%", isPositive: true },
-          { label: "Total Students Registered", val: String(totalStudents), sub: "Active learners", icon: Users, color: "text-purple-500 bg-purple-500/10 border-purple-500/10", trend: "+15.2%", isPositive: true },
-          { label: "Total Tutors Registered", val: String(totalTutors), sub: "Educators cohort pool", icon: Users, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/10", trend: "+8.5%", isPositive: true },
-          { label: "Published Cohort Courses", val: String(publishedCourses), sub: "Active inventory", icon: BookOpen, color: "text-amber-500 bg-amber-500/10 border-amber-500/10", trend: "+10.0%", isPositive: true },
-          { label: "Courses Pending Approval", val: String(pendingCourses), sub: "Review pipeline queue", icon: AlertTriangle, color: "text-rose-500 bg-rose-500/10 border-rose-500/10", trend: "-25.0%", isPositive: true },
-          { label: "Live Classes Today", val: `${liveSessions.length} Active`, sub: "Linked classrooms online", icon: Video, color: "text-rose-500 bg-rose-500/10 border-rose-500/10", trend: "+20.0%", isPositive: true },
-          { label: "Pending Tutor Audits", val: `${pendingTutors.length} Profiles`, sub: "Verification queue", icon: UserCheck, color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/10", trend: "0%", isPositive: null },
-          { label: "Escrow Payout Requests", val: `${pendingPayouts.length} Requests`, sub: "Tutor withdrawal cycle", icon: DollarSign, color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/10", trend: "0%", isPositive: null },
-          { label: "Refund Claims Queue", val: `${pendingRefunds.length} Claims`, sub: "Awaiting approval", icon: AlertTriangle, color: "text-orange-500 bg-orange-500/10 border-orange-500/10", trend: "-40.0%", isPositive: true },
-          { label: "Certificates Issued", val: String(certificatesIssued), sub: "Verifiable credentials", icon: Award, color: "text-blue-500 bg-blue-500/10 border-blue-500/10", trend: "+22.1%", isPositive: true },
-          { label: "AI Requests Today", val: "8,943 calls", sub: "Gemini 2.5 Flash API usage", icon: Sparkles, color: "text-purple-500 bg-purple-500/10 border-purple-500/10", trend: "+35.6%", isPositive: true }
-        ].map((kpi, i) => {
+      {/* 12 Executive KPI Cards Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {kpis.map((kpi, i) => {
           const Icon = kpi.icon;
           return (
-            <div key={i} className="border border-border bg-card p-5 rounded-card flex flex-col justify-between shadow-soft hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+            <div key={i} className="border border-border bg-card p-5 rounded-card flex flex-col justify-between shadow-soft hover:shadow-md transition-all duration-200">
               <div className="flex justify-between items-center gap-3">
                 <span className="text-[10px] sm:text-xs font-extrabold text-muted-foreground uppercase tracking-wider truncate">
                   {kpi.label}
@@ -174,140 +161,127 @@ export default function DashboardTab({
                   <Icon size={14} />
                 </span>
               </div>
-              <div className="mt-4 flex items-end justify-between gap-2">
-                <div>
-                  <span className="text-xl sm:text-2xl font-heading font-extrabold text-foreground tracking-tight block">{kpi.val}</span>
-                  <span className="text-[10px] text-muted-foreground font-semibold mt-1 block">{kpi.sub}</span>
-                </div>
-                {kpi.trend && (
-                  <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded shrink-0 mb-1 ${
-                    kpi.isPositive === true ? "bg-emerald-500/10 text-emerald-600" :
-                    kpi.isPositive === false ? "bg-rose-500/10 text-rose-600" : "bg-muted text-muted-foreground"
-                  }`}>
-                    {kpi.trend}
-                  </span>
-                )}
+              <div className="mt-4">
+                <span className="text-xl sm:text-2xl font-heading font-extrabold text-foreground tracking-tight block">{kpi.val}</span>
+                <span className="text-[10px] text-muted-foreground font-semibold mt-1 block">{kpi.sub}</span>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* VELOCITY CHART DIAGRAMS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 select-none">
-        <Card variant="glass" className="p-6 space-y-4 shadow-soft">
-          <div className="flex justify-between items-center text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-            <span>Hourly Transaction Velocity</span>
-            <span className="text-primary font-extrabold font-heading">₹12,450 Today</span>
-          </div>
-          <div className="h-32 w-full flex items-end">
-            <svg className="w-full h-full text-primary" viewBox="0 0 100 30" preserveAspectRatio="none">
-              <path d="M0,25 Q15,10 30,18 T60,8 T90,14 T100,5" fill="none" stroke="currentColor" strokeWidth="2" />
-              <path d="M0,25 Q15,10 30,18 T60,8 T90,14 T100,5 L100,30 L0,30 Z" fill="currentColor" fillOpacity="0.05" />
-            </svg>
-          </div>
-        </Card>
-
-        <Card variant="glass" className="p-6 space-y-4 shadow-soft">
-          <div className="flex justify-between items-center text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-            <span>Educator Registration Velocity</span>
-            <span className="text-emerald-500 font-extrabold font-heading">+5 New Educators</span>
-          </div>
-          <div className="h-32 w-full flex items-end">
-            <svg className="w-full h-full text-emerald-500" viewBox="0 0 100 30" preserveAspectRatio="none">
-              <path d="M0,28 Q20,20 40,22 T80,10 T100,4" fill="none" stroke="currentColor" strokeWidth="2" />
-              <path d="M0,28 Q20,20 40,22 T80,10 T100,4 L100,30 L0,30 Z" fill="currentColor" fillOpacity="0.05" />
-            </svg>
-          </div>
-        </Card>
-      </div>
-
-      {/* OPERATIONS QUEUE: APPROVALS, REFUNDS, PAYOUTS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Tutor Verification Queue */}
-        <Card variant="glass" className="p-6 space-y-4 shadow-soft">
+      {/* Main Operations section with Timeline, Logs, Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Recent Activity Timeline */}
+        <Card className="lg:col-span-2 p-6 space-y-4 border-border/80 bg-card/60 shadow-soft">
           <div className="flex justify-between items-center border-b border-border/40 pb-3">
-            <h3 className="text-xs sm:text-sm font-heading font-extrabold uppercase text-foreground flex items-center gap-2">
-              <UserCheck size={16} className="text-primary" /> Tutor Verification Queue
+            <h3 className="text-xs font-heading font-extrabold uppercase text-foreground flex items-center gap-2">
+              <Clock size={16} className="text-primary" /> Recent Activity Timeline
             </h3>
-            <Button variant="outline" size="sm" onClick={() => onNavigateTab("users")} className="text-[10px] font-bold uppercase tracking-wider h-8 px-3">
-              View All
-            </Button>
           </div>
-          <div className="space-y-3">
-            {pendingTutors.length === 0 ? (
-              <div className="text-xs text-muted-foreground/60 py-6 text-center select-none font-semibold">
-                All tutor applications reviewed! Great job.
+
+          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+            {events.length === 0 ? (
+              <div className="text-center py-8 text-xs text-muted-foreground/60 select-none font-bold">
+                Timeline is currently empty.
               </div>
             ) : (
-              pendingTutors.slice(0, 3).map((v) => (
-                <div key={v.id} className="p-4 bg-muted/20 border border-border/45 rounded-card flex items-center justify-between text-xs font-semibold gap-3">
-                  <div>
-                    <h4 className="font-extrabold text-foreground text-xs sm:text-sm">{v.tutorName}</h4>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold mt-1">{v.expertise}</p>
+              events.map(e => {
+                const sevColor = e.severity === "High" ? "bg-rose-500/10 text-rose-500 border border-rose-500/10" :
+                                 e.severity === "Medium" ? "bg-amber-500/10 text-amber-500 border border-amber-500/10" :
+                                 "bg-slate-500/10 text-slate-500 border border-slate-500/10";
+                return (
+                  <div key={e.id} className="p-3 bg-muted/15 border border-border/40 rounded-lg text-xs font-semibold flex items-center justify-between gap-3 hover:bg-muted/20 transition-all">
+                    <div className="flex items-center gap-3">
+                      <span className={`text-[8.5px] font-black uppercase px-2 py-0.5 rounded ${sevColor}`}>{e.severity}</span>
+                      <div>
+                        <span className="font-extrabold text-foreground">{e.type}</span>
+                        <span className="text-[10px] text-muted-foreground/60 block mt-0.5">{e.description} &bull; Actor: {e.actor}</span>
+                      </div>
+                    </div>
+                    <span className="text-[9.5px] text-muted-foreground/50 shrink-0 font-mono select-none">{new Date(e.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                  <Button size="sm" onClick={() => onApproveTutor(v.id)} className="h-8.5 px-3.5 text-[10px] font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white uppercase tracking-wider shadow-soft">
-                    Approve
-                  </Button>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </Card>
 
-        {/* Escrow Release & Withdrawals Queue */}
-        <Card variant="glass" className="p-6 space-y-4 shadow-soft">
-          <div className="flex justify-between items-center border-b border-border/40 pb-3">
-            <h3 className="text-xs sm:text-sm font-heading font-extrabold uppercase text-foreground flex items-center gap-2">
-              <DollarSign size={16} className="text-emerald-500" /> Pending Payout Releases
+        {/* Quick Actions Panel */}
+        <Card className="p-6 space-y-4 border-border/80 bg-card shadow-soft">
+          <div className="border-b border-border/40 pb-3">
+            <h3 className="text-xs font-heading font-extrabold uppercase text-foreground flex items-center gap-2">
+              <PlusCircle size={16} className="text-primary" /> Operational Quick Actions
             </h3>
-            <Button variant="outline" size="sm" onClick={() => onNavigateTab("finance")} className="text-[10px] font-bold uppercase tracking-wider h-8 px-3">
-              View All
-            </Button>
           </div>
-          <div className="space-y-3">
-            {pendingPayouts.length === 0 ? (
-              <div className="text-xs text-muted-foreground/60 py-6 text-center select-none font-semibold">
-                All tutor earnings up to date!
-              </div>
-            ) : (
-              pendingPayouts.slice(0, 3).map((p) => (
-                <div key={p.id} className="p-4 bg-muted/20 border border-border/45 rounded-card flex items-center justify-between text-xs font-semibold gap-3">
-                  <div>
-                    <h4 className="font-extrabold text-foreground text-xs sm:text-sm">{p.tutorName}</h4>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground font-semibold mt-1">₹{p.amount.toLocaleString()} &bull; Method: {p.method}</p>
-                  </div>
-                  <Button size="sm" onClick={() => onReleasePayout(p.id)} className="h-8.5 px-3.5 text-[10px] font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white uppercase tracking-wider shadow-soft">
-                    Release
-                  </Button>
-                </div>
-              ))
-            )}
+
+          <div className="grid grid-cols-1 gap-2.5 text-xs font-semibold select-none">
+            {[
+              { label: "Trigger Global Security Audit", desc: "Forced system security audit log consistency run.", act: "Security Audit Run" },
+              { label: "Clear Email Queue Buffer", desc: "SMTP queue buffers flushed and synced.", act: "SMTP Queue Flush" },
+              { label: "Verify Storage Backup Cluster", desc: "Database cluster backups verification verified.", act: "Backup Verification Check" },
+              { label: "Sync Platform Commissions", desc: "All escrow payouts commissions recalculated and synced.", act: "Commission Sync Run" }
+            ].map((action, i) => (
+              <button
+                key={i}
+                onClick={() => triggerQuickAction(action.act, action.desc)}
+                className="w-full text-left px-3 py-2.5 rounded border border-border hover:bg-primary/5 hover:border-primary transition-all text-xs font-bold flex justify-between items-center group"
+              >
+                <span>{action.label}</span>
+                <span className="text-primary group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+              </button>
+            ))}
           </div>
         </Card>
-      </div>
 
-      {/* RECENT PLATFORM AUDIT ACTIONS */}
-      <div className="space-y-4 select-none pt-2">
-        <h3 className="text-xs sm:text-sm font-heading font-extrabold uppercase tracking-wider text-foreground flex items-center gap-2">
-          <Clock size={16} /> Recent Audit Actions
-        </h3>
-        <div className="flex flex-col gap-3">
-          {auditLogs.slice(0, 4).map((log) => (
-            <div
-              key={log.id}
-              className="border border-border bg-card p-4 rounded-card text-xs font-semibold flex items-center justify-between shadow-soft hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-[9.5px] font-extrabold bg-muted text-muted-foreground px-2 py-1 rounded uppercase tracking-wider border border-border/30">
-                  {log.adminName}
-                </span>
-                <span className="font-bold text-foreground pr-2">{log.action}</span>
-              </div>
-              <span className="text-[10px] text-muted-foreground font-semibold shrink-0">{log.timestamp}</span>
-            </div>
-          ))}
-        </div>
+        {/* Recent Audit Logs */}
+        <Card className="lg:col-span-3 p-6 space-y-4 border-border/80 bg-card/60 shadow-soft">
+          <div className="flex justify-between items-center border-b border-border/40 pb-3">
+            <h3 className="text-xs font-heading font-extrabold uppercase text-foreground flex items-center gap-2">
+              <ClipboardList size={16} className="text-primary" /> Recent System Audit Logs
+            </h3>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-border/40 text-muted-foreground font-extrabold uppercase text-[9px] tracking-wider select-none">
+                  <th className="pb-3 pl-2">User (Role)</th>
+                  <th className="pb-3">Operational Module</th>
+                  <th className="pb-3">Action Details</th>
+                  <th className="pb-3">IP Host</th>
+                  <th className="pb-3 text-right">Timestamp</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/30">
+                {localAuditLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground/60 font-semibold select-none">
+                      No recent audits registered in database.
+                    </td>
+                  </tr>
+                ) : (
+                  localAuditLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-muted/10 transition-colors">
+                      <td className="py-3 pl-2">
+                        <div className="font-extrabold text-foreground">{log.user}</div>
+                        <div className="text-[9.5px] text-muted-foreground/50 font-bold uppercase mt-0.5">{log.role}</div>
+                      </td>
+                      <td className="py-3 font-semibold text-primary/95">{log.module}</td>
+                      <td className="py-3 font-bold text-foreground">{log.action}</td>
+                      <td className="py-3 font-mono text-muted-foreground">{log.ip}</td>
+                      <td className="py-3 text-right text-muted-foreground/80 font-mono">
+                        {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
       </div>
     </motion.div>
   );

@@ -15,11 +15,15 @@ interface AuditLog {
 }
 
 interface AuditLogsTabProps {
-  auditLogs: AuditLog[];
-  setAuditLogs: React.Dispatch<React.SetStateAction<AuditLog[]>>;
+  auditLogs?: AuditLog[];
+  setAuditLogs?: React.Dispatch<React.SetStateAction<AuditLog[]>>;
 }
 
-export default function AuditLogsTab({ auditLogs, setAuditLogs }: AuditLogsTabProps) {
+export default function AuditLogsTab({ auditLogs: propAuditLogs, setAuditLogs: propSetAuditLogs }: AuditLogsTabProps) {
+  const [localAuditLogs, setLocalAuditLogs] = useState<AuditLog[]>([]);
+  const auditLogs = propAuditLogs || localAuditLogs;
+  const setAuditLogs = propSetAuditLogs || setLocalAuditLogs;
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filterModule, setFilterModule] = useState("all");
 

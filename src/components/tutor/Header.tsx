@@ -4,7 +4,6 @@ import React, { useState, useCallback } from "react";
 import Link from "next/link";
 import {
   Menu,
-  Bell,
   Plus,
   ChevronRight,
   ChevronDown,
@@ -15,7 +14,6 @@ import {
   DollarSign,
   GraduationCap,
 } from "lucide-react";
-import { ThemeToggle } from "../theme-toggle";
 
 const BREADCRUMB_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
@@ -145,21 +143,6 @@ export const TutorHeader = React.memo(function TutorHeader({
             </>
           )}
         </div>
-
-        {/* Notification Bell — navigates to notifications tab */}
-        <button
-          onClick={() => onTabChange("notifications")}
-          className="relative p-1.5 hover:bg-muted rounded-button transition-colors cursor-pointer"
-          aria-label="View notifications"
-        >
-          <Bell size={17} className="text-muted-foreground" />
-          {notificationCount > 0 && (
-            <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-primary rounded-full border border-card" />
-          )}
-        </button>
-
-        {/* Theme Toggle */}
-        <ThemeToggle />
       </div>
     </header>
   );

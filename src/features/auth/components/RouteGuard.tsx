@@ -4,18 +4,37 @@ import React, { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "../../../hooks/useAuth";
 import { Loader2 } from "lucide-react";
-import { createClient } from "../../../lib/supabase";
+import { resolveRouteDecision, getPermissionsCountForRole } from "../../../utils/rbacResolver";
 
 interface RouteGuardProps {
   children: React.ReactNode;
 }
 
+function logGuardDecision(user: any, pathname: string, allowed: boolean, reason: string) {
+  const isDev = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEV_MODE === "true";
+  if (!isDev) return;
+
+  const userFullName = user?.fullName || "Guest User";
+  const userRole = user?.role || "guest";
+  const permCount = user?.role ? getPermissionsCountForRole(user.role as any) : 0;
+  const lastRepair = localStorage.getItem("eduearn_last_repair_time") || "Never";
+
+  console.log(`[Dev RouteGuard Log]
+------------------------------------
+Current User:      ${userFullName}
+Current Role:      ${userRole}
+Permission Count:  ${permCount}
+Session Source:    LocalStorage (eduearn_session)
+Route:             ${pathname}
+Route Decision:    ${allowed ? "ALLOW" : "BLOCK"}
+Reason:            ${reason}
+Last Repair Time:  ${lastRepair}
+------------------------------------`);
+}
+
 /**
  * RequireAuth Guard
- *
  * Ensures that the user is logged in.
- * If not authenticated, redirects to /login with a redirect query param.
- * If onboarding is incomplete, redirects to the correct onboarding step.
  */
 export function RequireAuth({ children }: RouteGuardProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -25,26 +44,16 @@ export function RequireAuth({ children }: RouteGuardProps) {
   useEffect(() => {
     if (isLoading) return;
 
-    if (!isAuthenticated) {
-      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
-      return;
-    }
+    const decision = resolveRouteDecision(user?.role, pathname, user?.complete !== false);
+    logGuardDecision(user, pathname, decision.allowed, decision.reason);
 
-    // Redirect incomplete profiles to onboarding steps
-    if (user) {
-      if (!user.role) {
-        router.replace("/choose-role");
-      } else if (!user.complete) {
-        if (user.role === "tutor") {
-          router.replace("/tutor/onboarding");
-        } else {
-          router.replace("/complete-profile");
-        }
-      }
+    if (!decision.allowed && decision.redirectPath) {
+      router.replace(decision.redirectPath);
     }
   }, [isLoading, isAuthenticated, user, pathname, router]);
 
-  if (isLoading || !isAuthenticated || (user && (!user.role || !user.complete))) {
+  const decision = resolveRouteDecision(user?.role, pathname, user?.complete !== false);
+  if (isLoading || !decision.allowed) {
     return (
       <div className="flex min-h-[70vh] w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -57,28 +66,26 @@ export function RequireAuth({ children }: RouteGuardProps) {
 
 /**
  * RequireLearner Guard
- *
- * Ensures that the user is authenticated and has either 'student', 'learner', or 'admin' role.
- * Otherwise, redirects to /forbidden.
+ * Ensures that the user has student/admin role.
  */
 export function RequireLearner({ children }: RouteGuardProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (isLoading) return;
 
-    if (!isAuthenticated) {
-      router.replace("/login");
-      return;
-    }
+    const decision = resolveRouteDecision(user?.role, pathname, user?.complete !== false);
+    logGuardDecision(user, pathname, decision.allowed, decision.reason);
 
-    if (user && user.role !== "student" && user.role !== "admin") {
-      router.replace("/forbidden");
+    if (!decision.allowed && decision.redirectPath) {
+      router.replace(decision.redirectPath);
     }
-  }, [isLoading, isAuthenticated, user, router]);
+  }, [isLoading, isAuthenticated, user, pathname, router]);
 
-  if (isLoading || !isAuthenticated || (user && user.role !== "student" && user.role !== "admin")) {
+  const decision = resolveRouteDecision(user?.role, pathname, user?.complete !== false);
+  if (isLoading || !decision.allowed) {
     return (
       <div className="flex min-h-[70vh] w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -91,14 +98,12 @@ export function RequireLearner({ children }: RouteGuardProps) {
 
 /**
  * RequireTutor Guard
- *
- * Ensures that the user is authenticated and has either 'tutor' or 'admin' role.
- * Also enforces onboarding completion — an incomplete tutor is redirected to /tutor/onboarding.
- * Unauthenticated users are sent to /tutor/login (not the student /login page).
+ * Ensures that the user has tutor/admin role.
  */
 export function RequireTutor({ children }: RouteGuardProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (isLoading) return;
@@ -107,37 +112,35 @@ export function RequireTutor({ children }: RouteGuardProps) {
       if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
         const mockUser = {
           id: "dev-tutor-id",
-          email: "dev-tutor@eduearn.com",
+          email: "tutor@eduearn.com",
           fullName: "Tutor Demo",
           role: "tutor" as const,
           complete: true,
         };
+        localStorage.setItem("eduearn_session", JSON.stringify({ user: mockUser, isAuthenticated: true }));
+        const userJson = encodeURIComponent(JSON.stringify(mockUser));
+        document.cookie = `eduearn-bypass-session=1; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `eduearn_dev_role=tutor; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `eduearn_dev_user=${userJson}; path=/; max-age=86400; SameSite=Lax`;
+        
         useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
+        window.location.reload();
         return;
       }
       router.replace("/tutor/login");
       return;
     }
 
-    if (user) {
-      if (user.role !== "tutor" && user.role !== "admin") {
-        router.replace("/forbidden");
-        return;
-      }
-      // Tutors must complete onboarding before accessing the dashboard
-      if (user.role === "tutor" && !user.complete && process.env.NEXT_PUBLIC_DEV_MODE !== "true") {
-        router.replace("/tutor/onboarding");
-        return;
-      }
+    const decision = resolveRouteDecision(user?.role, pathname, user?.complete !== false);
+    logGuardDecision(user, pathname, decision.allowed, decision.reason);
+
+    if (!decision.allowed && decision.redirectPath) {
+      router.replace(decision.redirectPath);
     }
-  }, [isLoading, isAuthenticated, user, router]);
+  }, [isLoading, isAuthenticated, user, pathname, router]);
 
-  const isBlocked =
-    !isAuthenticated ||
-    (user && user.role !== "tutor" && user.role !== "admin") ||
-    (user && user.role === "tutor" && !user.complete && process.env.NEXT_PUBLIC_DEV_MODE !== "true");
-
-  if (isLoading || isBlocked) {
+  const decision = resolveRouteDecision(user?.role, pathname, user?.complete !== false);
+  if (isLoading || !decision.allowed) {
     return (
       <div className="flex min-h-[70vh] w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -150,75 +153,33 @@ export function RequireTutor({ children }: RouteGuardProps) {
 
 /**
  * RequireAdmin Guard
- *
- * Ensures that the user is authenticated and has the 'admin' role.
- * Otherwise, redirects to /forbidden.
+ * Ensures that the user has admin/super-admin role.
  */
 export function RequireAdmin({ children }: RouteGuardProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const [isLoggingInDev, setIsLoggingInDev] = React.useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (isLoading) return;
 
     if (!isAuthenticated) {
       if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
-        setIsLoggingInDev(true);
-        const email = "dev-admin@eduearn.com";
-        const password = "Password123!";
-        const fullName = "Admin Demo";
-        const role = "admin";
+        const mockUser = {
+          id: "dev-admin-id",
+          email: "admin@eduearn.com",
+          fullName: "Admin Demo",
+          role: "admin" as const,
+          complete: true,
+        };
+        localStorage.setItem("eduearn_session", JSON.stringify({ user: mockUser, isAuthenticated: true }));
+        const userJson = encodeURIComponent(JSON.stringify(mockUser));
+        document.cookie = `eduearn-bypass-session=1; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `eduearn_dev_role=admin; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `eduearn_dev_user=${userJson}; path=/; max-age=86400; SameSite=Lax`;
         
-        const supabase = createClient();
-        supabase.auth.signInWithPassword({ email, password }).then(async (signInRes: any) => {
-          let activeSession = signInRes.data?.session;
-          
-          if (signInRes.error) {
-            // Sign up first via dev auth endpoint
-            try {
-              const res = await fetch("/api/dev/auth", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password, fullName, role }),
-              });
-              const regData = await res.json();
-              if (regData.success) {
-                const signRes = await supabase.auth.signInWithPassword({ email, password });
-                activeSession = signRes.data?.session;
-              }
-            } catch (err) {
-              console.error("[RequireAdmin Dev Bypass] Registration failed:", err);
-            }
-          }
-          
-          if (activeSession) {
-            await supabase.auth.updateUser({
-              data: { complete: true, role: "admin", fullName, full_name: fullName }
-            });
-            await supabase.from("profiles").upsert({
-              id: activeSession.user.id,
-              email,
-              full_name: fullName,
-              role: "admin",
-              updated_at: new Date().toISOString()
-            });
-            await supabase.auth.refreshSession();
-            
-            const mockUser = {
-              id: activeSession.user.id,
-              email,
-              fullName,
-              role: "admin" as const,
-              complete: true,
-            };
-            useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
-            window.location.reload();
-          } else {
-            setIsLoggingInDev(false);
-            router.replace("/login");
-          }
-        });
+        useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
+        window.location.reload();
         return;
       }
       
@@ -226,12 +187,16 @@ export function RequireAdmin({ children }: RouteGuardProps) {
       return;
     }
 
-    if (user && user.role !== "admin") {
-      router.replace("/forbidden");
-    }
-  }, [isLoading, isAuthenticated, user, router]);
+    const decision = resolveRouteDecision(user?.role, pathname, user?.complete !== false);
+    logGuardDecision(user, pathname, decision.allowed, decision.reason);
 
-  if (isLoading || isLoggingInDev || !isAuthenticated || (user && user.role !== "admin")) {
+    if (!decision.allowed && decision.redirectPath) {
+      router.replace(decision.redirectPath);
+    }
+  }, [isLoading, isAuthenticated, user, pathname, router]);
+
+  const decision = resolveRouteDecision(user?.role, pathname, user?.complete !== false);
+  if (isLoading || !decision.allowed) {
     return (
       <div className="flex min-h-[70vh] w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

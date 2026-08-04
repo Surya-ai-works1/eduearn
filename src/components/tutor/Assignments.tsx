@@ -966,7 +966,7 @@ export const Assignments = React.memo(function Assignments({
           {/* Title Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-heading font-extrabold text-foreground">Assignment Manager</h2>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">Assignment Manager</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Monitor, grade, and structure all course assignments and assessments.
               </p>
@@ -975,7 +975,7 @@ export const Assignments = React.memo(function Assignments({
               <Button
                 onClick={() => setIsCreatingAsg(true)}
                 size="sm"
-                className="h-9 gap-1.5 shadow-soft bg-primary hover:bg-primary/95 text-white font-bold cursor-pointer"
+                className="h-9 gap-1.5 bg-primary hover:bg-primary/95 text-white font-semibold shadow-sm cursor-pointer"
               >
                 <Plus size={14} /> Create Assignment
               </Button>
@@ -985,16 +985,16 @@ export const Assignments = React.memo(function Assignments({
           {/* Statistics Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { label: "Total Assignments", count: stats.total, color: "text-violet-500 bg-violet-500/10 border-violet-500/20" },
-              { label: "Active Assignments", count: stats.active, color: "text-sky-500 bg-sky-500/10 border-sky-500/20" },
-              { label: "Closed", count: stats.closed, color: "text-rose-500 bg-rose-500/10 border-rose-500/20" },
-              { label: "Due Today", count: stats.dueToday, color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
-              { label: "Pending Reviews", count: stats.pendingReviews, color: "text-amber-500 bg-amber-500/10 border-amber-500/20 animate-pulse" },
-              { label: "Avg Submission Rate", count: `${stats.subRate}%`, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
+              { label: "Total", count: stats.total, color: "text-violet-500" },
+              { label: "Active", count: stats.active, color: "text-sky-500" },
+              { label: "Closed", count: stats.closed, color: "text-rose-500" },
+              { label: "Due Today", count: stats.dueToday, color: "text-amber-500" },
+              { label: "Pending Review", count: stats.pendingReviews, color: "text-amber-500" },
+              { label: "Submission Rate", count: `${stats.subRate}%`, color: "text-emerald-500" },
             ].map((item, idx) => (
-              <Card key={idx} variant="glass" className={`p-3 text-center border font-bold ${item.color}`}>
-                <p className="text-xl font-heading font-extrabold">{item.count}</p>
-                <p className="text-[9px] font-extrabold uppercase mt-1 tracking-wider">{item.label}</p>
+              <Card key={idx} className={`p-3 text-center border border-border bg-card shadow-sm`}>
+                <p className={`text-xl font-bold ${item.color}`}>{item.count}</p>
+                <p className="text-[9px] font-semibold uppercase mt-1 tracking-wider text-muted-foreground">{item.label}</p>
               </Card>
             ))}
           </div>
@@ -1456,7 +1456,7 @@ export const Assignments = React.memo(function Assignments({
               {/* Submission rate chart */}
               <Card variant="glass" className="p-5 space-y-4">
                 <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                  <h4 className="text-xs font-heading font-extrabold uppercase text-foreground">Submission Rate Chart</h4>
+                  <h4 className="text-xs font-bold uppercase text-foreground">Submission Rate Chart</h4>
                   <TrendingUp size={14} className="text-primary" />
                 </div>
                 <div className="space-y-4 h-64 flex flex-col justify-end">
@@ -1487,7 +1487,7 @@ export const Assignments = React.memo(function Assignments({
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <Card variant="glass" className="p-4 text-center border border-border/60">
-                    <p className="text-3xl font-heading font-extrabold text-emerald-500">
+                    <p className="text-3xl font-bold text-emerald-500">
                       {submissions.filter(s => s.status === "Graded" && s.marks !== undefined).length > 0
                         ? `${Math.round(submissions.filter(s => s.status === "Graded" && s.marks !== undefined).reduce((acc, curr) => acc + (curr.marks ?? 0), 0) / submissions.filter(s => s.status === "Graded").length * 10) / 10}`
                         : "0"
@@ -1496,7 +1496,7 @@ export const Assignments = React.memo(function Assignments({
                     <p className="text-[9px] uppercase font-bold text-muted-foreground mt-1">Average Graded Marks</p>
                   </Card>
                   <Card variant="glass" className="p-4 text-center border border-border/60">
-                    <p className="text-3xl font-heading font-extrabold text-rose-500">
+                    <p className="text-3xl font-bold text-rose-500">
                       {submissions.filter(s => s.status !== "Not Submitted").length > 0
                         ? `${Math.round((submissions.filter(s => s.status === "Late Submission" || s.isLate).length / submissions.filter(s => s.status !== "Not Submitted").length) * 100)}%`
                         : "0%"
@@ -1509,7 +1509,7 @@ export const Assignments = React.memo(function Assignments({
                 {/* Top/Lowest Performers */}
                 <Card variant="glass" className="p-5 space-y-4">
                   <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                    <h4 className="text-xs font-heading font-extrabold uppercase text-foreground">Top Performing Students</h4>
+                    <h4 className="text-xs font-bold uppercase text-foreground">Top Performing Students</h4>
                     <Award size={14} className="text-emerald-500" />
                   </div>
                   <div className="space-y-2">
@@ -1531,7 +1531,7 @@ export const Assignments = React.memo(function Assignments({
           {activeTab === "notifications" && (
             <Card variant="glass" className="p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                <h4 className="text-xs font-heading font-extrabold uppercase text-foreground">Notification Dispatch Logs</h4>
+                <h4 className="text-xs font-bold uppercase text-foreground">Notification Dispatch Logs</h4>
                 <BellRing size={14} className="text-primary" />
               </div>
               <div className="space-y-3 max-h-96 overflow-y-auto font-semibold">
@@ -1590,7 +1590,7 @@ export const Assignments = React.memo(function Assignments({
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left: Progress Tracking */}
                 <Card variant="glass" className="p-5 flex flex-col items-center justify-center text-center space-y-4">
-                  <h4 className="text-xs font-heading font-extrabold uppercase text-muted-foreground self-start border-b border-border/30 pb-2 w-full text-left">
+                  <h4 className="text-xs font-bold uppercase text-muted-foreground self-start border-b border-border/30 pb-2 w-full text-left">
                     Student Submission Rate
                   </h4>
                   
@@ -1612,7 +1612,7 @@ export const Assignments = React.memo(function Assignments({
                       />
                     </svg>
                     <div className="absolute text-center space-y-0.5">
-                      <p className="text-xl font-heading font-extrabold text-foreground">{asgStat.rate}%</p>
+                      <p className="text-xl font-bold text-foreground">{asgStat.rate}%</p>
                       <p className="text-[8px] uppercase font-bold text-muted-foreground">Submission Rate</p>
                     </div>
                   </div>
@@ -1644,7 +1644,7 @@ export const Assignments = React.memo(function Assignments({
                       <span className={`text-[8px] font-extrabold uppercase px-2 py-0.5 rounded border mr-2 ${getProgressBg(asgStat.rate)}`}>
                         {selectedAsg.difficulty}
                       </span>
-                      <h3 className="text-sm font-heading font-extrabold text-foreground mt-1.5 inline-block">{selectedAsg.title}</h3>
+                      <h3 className="text-sm font-bold text-foreground mt-1.5 inline-block">{selectedAsg.title}</h3>
                     </div>
                     {renderCountdown(selectedAsg.dueDate, selectedAsg.status === "closed")}
                   </div>
@@ -1702,7 +1702,7 @@ export const Assignments = React.memo(function Assignments({
               {/* Student Submissions List */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                  <h3 className="text-sm font-heading font-extrabold text-foreground">Student Submissions Log</h3>
+                  <h3 className="text-sm font-bold text-foreground">Student Submissions Log</h3>
                   <span className="text-xs text-muted-foreground font-bold">{activeSubs.filter(s => s.status !== "Not Submitted").length} total submissions uploaded</span>
                 </div>
 
@@ -1854,7 +1854,7 @@ export const Assignments = React.memo(function Assignments({
             >
               <form onSubmit={isCreatingAsg ? handleCreateAssignment : handleSaveEdit} className="space-y-4 text-xs font-semibold text-muted-foreground">
                 <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                  <h4 className="text-sm font-heading font-extrabold uppercase text-foreground">
+                  <h4 className="text-sm font-bold uppercase text-foreground">
                     {isCreatingAsg ? "Create Course Assignment" : "Edit Assignment Detail"}
                   </h4>
                   <button type="button" onClick={() => { setIsCreatingAsg(false); setEditingAsg(null); }} className="text-muted-foreground">
@@ -2097,7 +2097,7 @@ export const Assignments = React.memo(function Assignments({
             >
               <div className="p-5 space-y-5 flex-1 overflow-y-auto">
                 <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                  <h3 className="text-sm font-heading font-extrabold uppercase text-foreground">
+                  <h3 className="text-sm font-bold uppercase text-foreground">
                     Assessment Evaluation
                   </h3>
                   <button onClick={() => setActiveReviewSubmission(null)} className="text-muted-foreground hover:text-foreground cursor-pointer">

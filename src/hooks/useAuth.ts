@@ -6,12 +6,14 @@ import { create } from "zustand";
 import { createClient } from "../lib/supabase";
 import { normalizeError } from "../utils/errors";
 import { IS_MOCK } from "../lib/config";
+import { normalizeRole, CanonicalRole } from "../utils/rbacResolver";
+import { repairSessionInDev } from "../utils/sessionRepair";
 
 export interface UserSession {
   id: string;
   email: string;
   fullName: string;
-  role: "student" | "tutor" | "admin" | null;
+  role: CanonicalRole | null;
   complete: boolean;
   emailVerified?: boolean;
   avatarUrl?: string;
@@ -68,15 +70,8 @@ function getAppOrigin() {
 
 function toUserSession(user: User, dbRole?: string | null): UserSession {
   const metadata = user.user_metadata ?? {};
-  
-  // SECURE ROLE MAPPING: map learner -> student, tutor/educator -> tutor, admin -> admin. Default to student.
-  let role: "student" | "tutor" | "admin" = "student";
   const rawRole = dbRole || metadata.role;
-  if (rawRole === "tutor" || rawRole === "educator") {
-    role = "tutor";
-  } else if (rawRole === "admin") {
-    role = "admin";
-  }
+  const role = normalizeRole(rawRole);
 
   return {
     id: user.id,
@@ -162,19 +157,45 @@ export const useAuth = create<AuthStore>((set, get) => ({
 
   initialize: async () => {
     try {
-      if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
-        set({
-          user: {
-            id: "dev-tutor-id",
-            email: "dev-tutor@eduearn.com",
-            fullName: "Tutor Demo",
-            role: "tutor",
-            complete: true,
-          },
-          isAuthenticated: true,
-          isLoading: false,
+      const isDev = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEV_MODE === "true";
+      
+      if (isDev) {
+        repairSessionInDev();
+        
+        // Setup automatic store subscription to sync eduearn_session and dev cookies
+        useAuth.subscribe((state) => {
+          if (typeof window !== "undefined") {
+            if (state.isAuthenticated && state.user) {
+              localStorage.setItem("eduearn_session", JSON.stringify({ user: state.user, isAuthenticated: true }));
+              const userJson = encodeURIComponent(JSON.stringify(state.user));
+              document.cookie = `eduearn-bypass-session=1; path=/; max-age=86400; SameSite=Lax`;
+              document.cookie = `eduearn_dev_role=${state.user.role}; path=/; max-age=86400; SameSite=Lax`;
+              document.cookie = `eduearn_dev_user=${userJson}; path=/; max-age=86400; SameSite=Lax`;
+            } else {
+              localStorage.removeItem("eduearn_session");
+              document.cookie = `eduearn-bypass-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+              document.cookie = `eduearn_dev_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+              document.cookie = `eduearn_dev_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+            }
+          }
         });
-        return;
+
+        const stored = localStorage.getItem("eduearn_session");
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (parsed && parsed.user) {
+              set({
+                user: parsed.user,
+                isAuthenticated: !!parsed.isAuthenticated,
+                isLoading: false,
+              });
+              return;
+            }
+          } catch (e) {
+            console.error("Failed to parse eduearn_session inside initialize", e);
+          }
+        }
       }
       const supabase = getSafeSupabase();
       set({ isLoading: true });

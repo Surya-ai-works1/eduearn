@@ -373,7 +373,7 @@ export const Settings = React.memo(function Settings({
     >
       <div className="flex items-center justify-between border-b border-border/40 pb-5 mb-3">
         <div className="space-y-1">
-          <h2 className="text-2xl font-heading font-extrabold text-foreground tracking-tight">Settings</h2>
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">Settings</h2>
           <p className="text-xs text-muted-foreground font-semibold">
             Configure payout account, creator profile details, and account security.
           </p>
@@ -399,7 +399,7 @@ export const Settings = React.memo(function Settings({
                     <SecIcon size={16} />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-sm font-heading font-extrabold text-foreground block leading-tight">{sec.title}</span>
+                    <span className="text-sm font-bold text-foreground block leading-tight">{sec.title}</span>
                     <span className="text-xs text-muted-foreground font-semibold mt-1 block truncate max-w-[280px] sm:max-w-md">{sec.desc}</span>
                   </div>
                 </div>

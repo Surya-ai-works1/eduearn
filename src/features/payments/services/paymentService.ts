@@ -24,7 +24,7 @@ export interface WithdrawalRequest {
   id: string;
   amount: number;
   method: "UPI" | "Bank";
-  status: "Pending" | "Approved" | "Rejected" | "Cancelled";
+  status: "Pending" | "Approved" | "Rejected" | "Cancelled" | "Processing" | "Paid" | "Failed";
   date: string;
   bankDetails?: string;
 }

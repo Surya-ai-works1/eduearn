@@ -70,13 +70,15 @@ export const EmptyState = React.memo(function EmptyState({
 
 // ─── PRESET EMPTY STATES ──────────────────────────────────────────────────────
 
-export const NoCourses = ({ onAction }: { onAction: () => void }) => (
+export const NoCourses = ({ onAction, onSecondaryAction }: { onAction: () => void; onSecondaryAction?: () => void }) => (
   <EmptyState
     icon={<BookOpen size={28} />}
-    title="No courses yet"
-    description="Create your first course to start earning. Your first published course unlocks full tutor analytics."
+    title="You don't have any active courses yet."
+    description="Create your first course and begin teaching your students."
     actionLabel="Create Course"
     onAction={onAction}
+    secondaryActionLabel="Request Assignment"
+    onSecondaryAction={onSecondaryAction || (() => {})}
   />
 );
 
@@ -84,7 +86,7 @@ export const NoStudents = ({ onAction }: { onAction: () => void }) => (
   <EmptyState
     icon={<Users size={28} />}
     title="No students enrolled"
-    description="Share your course link or publish to the marketplace to attract your first students."
+    description="Share your course link to attract your first students. Students will appear here once they enroll."
     actionLabel="Share Course"
     onAction={onAction}
   />

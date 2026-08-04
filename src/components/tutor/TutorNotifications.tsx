@@ -115,7 +115,7 @@ export default function TutorNotifications() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-heading font-extrabold text-foreground flex items-center gap-2">
+          <h2 className="text-base font-bold text-foreground flex items-center gap-2">
             <Bell size={16} className="text-primary" />
             Notifications
             {unreadCount > 0 && (

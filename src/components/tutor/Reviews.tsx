@@ -48,7 +48,7 @@ export const Reviews = React.memo(function Reviews({
       {/* Rating summary */}
       <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-5 card-surface p-5 rounded-card shadow-soft">
         <div className="flex flex-col items-center justify-center px-6">
-          <span className="text-5xl font-heading font-extrabold text-foreground">{avgRating}</span>
+          <span className="text-5xl font-bold text-foreground">{avgRating}</span>
           <div className="flex mt-1.5">
             {[1, 2, 3, 4, 5].map((s) => (
               <Star

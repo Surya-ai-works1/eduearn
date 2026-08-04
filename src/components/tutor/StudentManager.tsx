@@ -19,7 +19,14 @@ import {
   AlertTriangle,
   Send,
   BarChart3,
-  CalendarDays
+  CalendarDays,
+  User,
+  Phone,
+  Clock,
+  ExternalLink,
+  BookOpen,
+  Filter,
+  CheckCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
@@ -45,8 +52,18 @@ interface LocalStudentProgress extends StudentProgress {
   email?: string;
   enrollmentDate?: string;
   status?: string;
-  gradeHistory?: { name: string; score: string }[];
-  attendanceLogs?: { date: string; present: boolean }[];
+  batch?: string;
+  assignmentsSubmitted?: string;
+  avgMarks?: string;
+  certificateStatus?: string;
+  phone?: string;
+  avatarUrl?: string;
+  gradeHistory?: { name: string; score: string; date?: string; feedback?: string; status?: string }[];
+  attendanceLogs?: { date: string; present: boolean; status?: string }[];
+  presentClasses?: number;
+  absentClasses?: number;
+  lateJoins?: number;
+  recentActivities?: { date: string; desc: string }[];
 }
 
 export const StudentManager = React.memo(function StudentManager({
@@ -65,6 +82,7 @@ export const StudentManager = React.memo(function StudentManager({
   const [selectedStudent, setSelectedStudent] = useState<LocalStudentProgress | null>(null);
   const [isIssuing, setIsIssuing] = useState(false);
   const [statusFilter, setStatusFilter] = useState("All");
+  const [batchFilter, setBatchFilter] = useState("All");
 
   // Chat message state
   const [chatMessage, setChatMessage] = useState("");
@@ -84,19 +102,35 @@ export const StudentManager = React.memo(function StudentManager({
     return students.map((s: any, idx) => {
       const email = s.email || `${s.name.toLowerCase().replace(/\s+/g, ".")}@example.com`;
       const enrollmentDate = s.enrollmentDate || `2026-07-${10 + (idx % 12)}`;
-      const status = s.status || (s.progress === 100 ? "Completed" : s.progress > 0 ? "Active" : "Inactive");
+      const status = s.status || (s.progress === 100 ? "Completed" : s.progress < 30 ? "At Risk" : s.progress > 0 ? "Active" : "Inactive");
+      const batch = s.batch || `Batch ${["A", "B", "C"][idx % 3]}`;
+      const assignmentsSubmitted = s.assignmentsSubmitted || `${Math.min(idx % 4 + 2, 5)}/5`;
+      const avgMarks = s.avgMarks || `${70 + (idx * 4) % 26}/100`;
+      const certificateStatus = s.certificateEarned ? "Issued" : s.progress === 100 ? "Eligible" : "Pending";
+      const phone = s.phone || `+91 98765 ${43210 - idx * 7}`;
       
       const gradeHistory = [
-        { name: "Quiz 1", score: s.quizScore === "A+" ? "95/100" : "82/100" },
-        { name: "Assignment 1", score: s.assignmentStatus === "Graded" ? "90/100" : "78/100" },
-        { name: "Midterm Project", score: s.progress >= 80 ? "92/100" : "70/100" }
+        { name: "Quiz 1", score: s.quizScore === "A+" ? "95/100" : "82/100", date: "2026-07-15", feedback: "Excellent performance", status: "Graded" },
+        { name: "Assignment 1", score: s.assignmentStatus === "Graded" ? "90/100" : "78/100", date: "2026-07-20", feedback: "Well structured code", status: "Graded" },
+        { name: "Midterm Project", score: s.progress >= 80 ? "92/100" : "70/100", date: "2026-07-25", feedback: "Good effort overall", status: "Graded" }
       ];
 
       const attendanceLogs = [
-        { date: "2026-07-20", present: true },
-        { date: "2026-07-22", present: true },
-        { date: "2026-07-24", present: s.attendance > 70 },
-        { date: "2026-07-26", present: s.attendance > 90 }
+        { date: "2026-07-20", present: true, status: "Present" },
+        { date: "2026-07-22", present: true, status: "Present" },
+        { date: "2026-07-24", present: s.attendance > 70, status: s.attendance > 70 ? "Present" : "Absent" },
+        { date: "2026-07-26", present: s.attendance > 90, status: s.attendance > 90 ? "Present" : "Absent" },
+        { date: "2026-07-28", present: true, status: idx % 4 === 0 ? "Late Join" : "Present" }
+      ];
+
+      const presentClasses = Math.round((s.attendance / 100) * 15);
+      const absentClasses = 15 - presentClasses;
+      const lateJoins = idx % 3;
+
+      const recentActivities = [
+        { date: "2026-07-29", desc: "Submitted Assignment 2" },
+        { date: "2026-07-27", desc: "Joined live lecture on React Router" },
+        { date: "2026-07-25", desc: "Completed Quiz 1" }
       ];
 
       return {
@@ -104,24 +138,39 @@ export const StudentManager = React.memo(function StudentManager({
         email,
         enrollmentDate,
         status,
+        batch,
+        assignmentsSubmitted,
+        avgMarks,
+        certificateStatus,
+        phone,
         gradeHistory,
-        attendanceLogs
+        attendanceLogs,
+        presentClasses,
+        absentClasses,
+        lateJoins,
+        recentActivities
       };
     });
   }, [students]);
 
   // Analytics aggregates
   const analytics = useMemo(() => {
-    if (enrichedStudents.length === 0) return { avgProgress: 0, avgAttendance: 0, certified: 0, highRisk: 0 };
+    if (enrichedStudents.length === 0) return { totalStudents: 0, activeStudents: 0, completedCourses: 0, certified: 0, avgAttendance: 0, avgProgress: 0, avgQuizScore: 85, highRisk: 0 };
     const totalProgress = enrichedStudents.reduce((acc, s) => acc + s.progress, 0);
     const totalAttendance = enrichedStudents.reduce((acc, s) => acc + s.attendance, 0);
     const certified = enrichedStudents.filter((s) => s.certificateEarned).length;
-    const highRisk = enrichedStudents.filter((s) => s.progress < 30).length;
+    const activeStudents = enrichedStudents.filter((s) => s.status === "Active").length;
+    const completedCourses = enrichedStudents.filter((s) => s.status === "Completed").length;
+    const highRisk = enrichedStudents.filter((s) => s.status === "At Risk").length;
 
     return {
+      totalStudents: enrichedStudents.length,
+      activeStudents,
+      completedCourses,
+      certified,
       avgProgress: Math.round(totalProgress / enrichedStudents.length),
       avgAttendance: Math.round(totalAttendance / enrichedStudents.length),
-      certified,
+      avgQuizScore: 84,
       highRisk
     };
   }, [enrichedStudents]);
@@ -141,6 +190,9 @@ export const StudentManager = React.memo(function StudentManager({
         const matchesCourse =
           studentFilterCourse === "All" ||
           s.courseTitle.toLowerCase().includes(studentFilterCourse.toLowerCase());
+        const matchesBatch =
+          batchFilter === "All" ||
+          s.batch.toLowerCase() === batchFilter.toLowerCase();
         const matchesStatus =
           statusFilter === "All" ||
           s.status.toLowerCase() === statusFilter.toLowerCase();
@@ -152,16 +204,18 @@ export const StudentManager = React.memo(function StudentManager({
             ? s.progress === 100
             : s.progress < 100;
 
-        return matchesSearch && matchesCourse && matchesStatus && matchesProgress;
+        return matchesSearch && matchesCourse && matchesBatch && matchesStatus && matchesProgress;
       })
       .sort((a, b) => {
-        if (studentSortBy === "name-asc") return a.name.localeCompare(b.name);
-        if (studentSortBy === "name-desc") return b.name.localeCompare(a.name);
+        if (studentSortBy === "newest") return b.enrollmentDate.localeCompare(a.enrollmentDate);
         if (studentSortBy === "progress-desc") return b.progress - a.progress;
         if (studentSortBy === "progress-asc") return a.progress - b.progress;
+        if (studentSortBy === "recently-active") return b.enrollmentDate.localeCompare(a.enrollmentDate);
+        if (studentSortBy === "name-asc") return a.name.localeCompare(b.name);
+        if (studentSortBy === "name-desc") return b.name.localeCompare(a.name);
         return 0;
       });
-  }, [enrichedStudents, studentSearch, studentFilterCourse, statusFilter, studentFilterProgress, studentSortBy]);
+  }, [enrichedStudents, studentSearch, studentFilterCourse, batchFilter, statusFilter, studentFilterProgress, studentSortBy]);
 
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage) || 1;
   const paginatedStudents = useMemo(() => {
@@ -227,39 +281,39 @@ export const StudentManager = React.memo(function StudentManager({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-heading font-extrabold text-foreground">Students Hub</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Students Hub</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Monitor student enrollment metrics, attendance logs, and pedagogical achievements.
+            Monitor enrollment metrics, attendance logs, and student achievements.
           </p>
         </div>
         <Button
           onClick={handleExport}
           size="sm"
-          className="h-9 gap-1.5 shadow-soft bg-primary hover:bg-primary/95 text-white"
+          className="h-9 gap-1.5 bg-primary hover:bg-primary/95 text-white font-semibold shadow-sm"
         >
           <FileSpreadsheet size={14} />
-          Export Student List
+          Export Students
         </Button>
       </div>
 
       {/* Performance Analytics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
         {[
-          { label: "Average Progress", value: `${analytics.avgProgress}%`, icon: TrendingUp, color: "text-violet-500" },
-          { label: "Class Attendance", value: `${analytics.avgAttendance}%`, icon: Percent, color: "text-emerald-500" },
-          { label: "Certificates Issued", value: analytics.certified, icon: Award, color: "text-amber-500" },
-          { label: "Dropout Risk Alert", value: analytics.highRisk, icon: AlertTriangle, color: "text-rose-500" }
+          { label: "Total Students", value: analytics.totalStudents, icon: UserCheck },
+          { label: "Active Students", value: analytics.activeStudents, icon: Clock },
+          { label: "Completed Courses", value: analytics.completedCourses, icon: CheckCircle },
+          { label: "Certificates Issued", value: analytics.certified, icon: Award },
+          { label: "Average Attendance", value: `${analytics.avgAttendance}%`, icon: Percent },
+          { label: "Average Progress", value: `${analytics.avgProgress}%`, icon: TrendingUp }
         ].map((item, idx) => {
           const Icon = item.icon;
           return (
-            <Card key={idx} variant="glass" className="p-4 flex items-center gap-3.5">
-              <div className={`p-2.5 rounded-lg bg-card border border-border/40 ${item.color}`}>
-                <Icon size={18} />
+            <Card key={idx} className="p-3 border border-border bg-card shadow-sm flex items-center justify-between min-w-0">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-muted-foreground truncate">{item.label}</p>
+                <h4 className="text-xl font-extrabold text-foreground mt-0.5">{item.value}</h4>
               </div>
-              <div>
-                <p className="text-[10px] font-extrabold uppercase text-muted-foreground">{item.label}</p>
-                <h4 className="text-lg font-heading font-extrabold text-foreground mt-0.5">{item.value}</h4>
-              </div>
+              <Icon size={16} className="text-primary shrink-0 ml-2" />
             </Card>
           );
         })}
@@ -298,6 +352,20 @@ export const StudentManager = React.memo(function StudentManager({
         </select>
 
         <select
+          value={batchFilter}
+          onChange={(e) => {
+            setBatchFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="h-9 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+        >
+          <option value="All">All Batches</option>
+          <option value="Batch A">Batch A</option>
+          <option value="Batch B">Batch B</option>
+          <option value="Batch C">Batch C</option>
+        </select>
+
+        <select
           value={statusFilter}
           onChange={(e) => {
             setStatusFilter(e.target.value);
@@ -309,6 +377,7 @@ export const StudentManager = React.memo(function StudentManager({
           <option value="Active">Active</option>
           <option value="Completed">Completed</option>
           <option value="Inactive">Inactive</option>
+          <option value="At Risk">At Risk</option>
         </select>
 
         <select
@@ -316,10 +385,12 @@ export const StudentManager = React.memo(function StudentManager({
           onChange={(e) => setStudentSortBy(e.target.value)}
           className="h-9 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none ml-auto"
         >
-          <option value="name-asc">Name A–Z</option>
-          <option value="name-desc">Name Z–A</option>
+          <option value="newest">Newest</option>
           <option value="progress-desc">Highest Progress</option>
           <option value="progress-asc">Lowest Progress</option>
+          <option value="recently-active">Recently Active</option>
+          <option value="name-asc">Name A–Z</option>
+          <option value="name-desc">Name Z–A</option>
         </select>
       </Card>
 
@@ -328,40 +399,53 @@ export const StudentManager = React.memo(function StudentManager({
         <NoStudents onAction={() => toast.info("Share your course link to attract students!")} />
       ) : (
         <div className="space-y-4">
-          <div className="w-full overflow-x-auto border border-border bg-card rounded-card shadow-soft">
-            <table className="w-full text-xs text-left min-w-[950px]" role="table" aria-label="Student progress table">
-              <thead>
-                <tr className="border-b border-border bg-muted/20 text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">
-                  <th className="p-4">Student</th>
-                  <th className="p-4">Email</th>
-                  <th className="p-4">Course</th>
-                  <th className="p-4">Progress</th>
-                  <th className="p-4 text-center">Attendance</th>
-                  <th className="p-4 text-center">Enrollment Date</th>
-                  <th className="p-4 text-center">Status</th>
-                  <th className="p-4 text-center">Actions</th>
+          <div className="w-full overflow-x-auto border border-border bg-card rounded-card shadow-sm">
+            <table className="w-full text-xs text-left min-w-[1200px]" role="table" aria-label="Student progress table">
+              <thead className="bg-muted/30 border-b border-border text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">
+                <tr>
+                  <th className="p-3 w-10">Photo</th>
+                  <th className="p-3">Student</th>
+                  <th className="p-3">Email</th>
+                  <th className="p-3 max-w-[150px]">Course</th>
+                  <th className="p-3 text-center">Batch</th>
+                  <th className="p-3 text-center">Enrolled</th>
+                  <th className="p-3 text-center">Attendance</th>
+                  <th className="p-3 min-w-[110px]">Progress</th>
+                  <th className="p-3 text-center">Assignments</th>
+                  <th className="p-3 text-center">Avg Marks</th>
+                  <th className="p-3 text-center">Certificate</th>
+                  <th className="p-3 text-center">Status</th>
+                  <th className="p-3 text-right pr-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40 font-semibold text-muted-foreground">
                 {paginatedStudents.map((student) => (
                   <tr
                     key={student.id}
-                    className="hover:bg-muted/10 cursor-pointer transition-colors"
+                    className="hover:bg-muted/15 cursor-pointer transition-colors"
                     onClick={() => setSelectedStudent(student)}
                   >
-                    <td className="p-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                          {student.name.charAt(0)}
-                        </div>
-                        <span className="text-foreground font-bold">{student.name}</span>
+                    <td className="p-2.5">
+                      <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-extrabold text-[11px] shrink-0 border border-primary/20 relative overflow-hidden select-none">
+                        {student.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={student.avatarUrl} alt="Student avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          student.name.charAt(0)
+                        )}
                       </div>
                     </td>
-                    <td className="p-4 text-muted-foreground/80 font-medium">{student.email}</td>
-                    <td className="p-4 max-w-[180px] truncate">{student.courseTitle}</td>
-                    <td className="p-4 min-w-[120px]">
+                    <td className="p-2.5">
+                      <span className="text-foreground font-bold text-xs">{student.name}</span>
+                    </td>
+                    <td className="p-2.5 text-muted-foreground/70 text-[11px] font-medium max-w-[150px] truncate">{student.email}</td>
+                    <td className="p-2.5 max-w-[150px] truncate text-[11px]" title={student.courseTitle}>{student.courseTitle}</td>
+                    <td className="p-2.5 text-center text-foreground">{student.batch}</td>
+                    <td className="p-2.5 text-center text-muted-foreground/70 text-[11px]">{student.enrollmentDate}</td>
+                    <td className="p-2.5 text-center text-foreground font-bold">{student.attendance}%</td>
+                    <td className="p-2.5 min-w-[100px]">
                       <div className="flex items-center gap-2">
-                        <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
+                        <div className="h-1 flex-1 bg-muted rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all ${
                               student.progress === 100 ? "bg-emerald-500" : "bg-primary"
@@ -369,38 +453,50 @@ export const StudentManager = React.memo(function StudentManager({
                             style={{ width: `${student.progress}%` }}
                           />
                         </div>
-                        <span className="text-[10px] font-bold text-foreground">{student.progress}%</span>
+                        <span className="text-[10px] font-bold text-foreground shrink-0">{student.progress}%</span>
                       </div>
                     </td>
-                    <td className="p-4 text-center text-foreground font-bold">{student.attendance}%</td>
-                    <td className="p-4 text-center text-muted-foreground/75 font-medium">{student.enrollmentDate}</td>
-                    <td className="p-4 text-center">
+                    <td className="p-2.5 text-center text-foreground">{student.assignmentsSubmitted}</td>
+                    <td className="p-2.5 text-center text-foreground font-bold">{student.avgMarks}</td>
+                    <td className="p-2.5 text-center">
                       <span
-                        className={`text-[8px] font-extrabold uppercase px-2.5 py-0.5 rounded border ${
+                        className={`text-[8px] font-extrabold uppercase px-2 py-0.5 rounded border ${
+                          student.certificateStatus === "Issued"
+                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                            : student.certificateStatus === "Eligible"
+                            ? "bg-amber-500/10 border-amber-500/20 text-amber-550"
+                            : "bg-muted border-border text-muted-foreground"
+                        }`}
+                      >
+                        {student.certificateStatus}
+                      </span>
+                    </td>
+                    <td className="p-2.5 text-center">
+                      <span
+                        className={`text-[8px] font-extrabold uppercase px-2 py-0.5 rounded border ${
                           student.status === "Completed"
                             ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
                             : student.status === "Active"
-                            ? "bg-sky-500/10 border-sky-500/20 text-sky-500 animate-pulse"
+                            ? "bg-sky-500/10 border-sky-500/20 text-sky-500"
+                            : student.status === "At Risk"
+                            ? "bg-rose-500/10 border-rose-500/20 text-rose-500"
                             : "bg-muted border-border text-muted-foreground"
                         }`}
                       >
                         {student.status}
                       </span>
                     </td>
-                    <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-center gap-1.5">
+                    <td className="p-2.5 text-right pr-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1.5">
                         <Button
-                          onClick={() => {
-                            setSelectedStudent(student);
-                          }}
+                          onClick={() => setSelectedStudent(student)}
                           size="sm"
                           variant="outline"
-                          className="h-7 text-[9px] px-2.5 font-bold"
+                          className="h-7 text-[10px] px-2 cursor-pointer font-semibold"
                         >
-                          <MessageSquare size={10} className="mr-1" />
+                          <MessageSquare size={11} className="mr-1" />
                           Message
                         </Button>
-
                         {!student.certificateEarned && student.progress === 100 && onIssueCertificate && (
                           <Button
                             onClick={async () => {
@@ -410,9 +506,9 @@ export const StudentManager = React.memo(function StudentManager({
                             }}
                             disabled={isIssuing}
                             size="sm"
-                            className="h-7 text-[9px] px-2.5 font-bold bg-primary hover:bg-primary/90 text-white shadow-soft"
+                            className="h-7 text-[10px] px-2 bg-primary hover:bg-primary/95 text-white cursor-pointer font-semibold"
                           >
-                            🏅 {isIssuing ? "Issuing..." : "Issue Cert"}
+                            🏅 {isIssuing ? "Issuing..." : "Cert"}
                           </Button>
                         )}
                       </div>
@@ -483,13 +579,19 @@ export const StudentManager = React.memo(function StudentManager({
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 320, damping: 28 }}
-              className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-card border-l border-border z-50 overflow-y-auto shadow-floating flex flex-col justify-between"
+              className="fixed right-0 top-0 bottom-0 w-full sm:w-[460px] bg-card border-l border-border z-50 overflow-y-auto shadow-floating flex flex-col justify-between"
             >
               <div className="p-5 space-y-5 overflow-y-auto flex-1">
+                {/* Header Profile Section */}
                 <div className="flex items-center justify-between border-b border-border/40 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-                      {selectedStudent.name.charAt(0)}
+                    <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-extrabold text-base border border-primary/20 relative overflow-hidden select-none">
+                      {selectedStudent.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={selectedStudent.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        selectedStudent.name.charAt(0)
+                      )}
                     </div>
                     <div>
                       <h3 className="text-sm font-heading font-bold text-foreground">
@@ -498,6 +600,10 @@ export const StudentManager = React.memo(function StudentManager({
                       <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
                         <Mail size={10} />
                         {selectedStudent.email}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Phone size={10} />
+                        {selectedStudent.phone}
                       </p>
                     </div>
                   </div>
@@ -510,7 +616,7 @@ export const StudentManager = React.memo(function StudentManager({
                   </button>
                 </div>
 
-                {/* Subpage tabs inside drawer */}
+                {/* Info Grid */}
                 <div className="space-y-4 text-xs font-semibold">
                   <div className="p-3 bg-muted/30 rounded border border-border/40">
                     <p className="text-[9px] font-bold uppercase text-muted-foreground mb-1">Course Enrolled</p>
@@ -520,11 +626,9 @@ export const StudentManager = React.memo(function StudentManager({
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { label: "Status", value: selectedStudent.status },
-                      { label: "Attendance", value: `${selectedStudent.attendance}%` },
-                      { label: "Progress", value: `${selectedStudent.progress}%` },
-                      { label: "Quiz Score", value: selectedStudent.quizScore },
-                      { label: "Assignment", value: selectedStudent.assignmentStatus },
+                      { label: "Batch", value: selectedStudent.batch },
                       { label: "Enrollment Date", value: selectedStudent.enrollmentDate },
+                      { label: "Certificate", value: selectedStudent.certificateStatus },
                     ].map((item) => (
                       <div key={item.label} className="p-3 bg-muted/20 rounded border border-border/40">
                         <p className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">
@@ -535,48 +639,137 @@ export const StudentManager = React.memo(function StudentManager({
                     ))}
                   </div>
 
-                  {/* Performance charts mock details */}
+                  {/* Attendance Section */}
                   <div className="p-3 bg-muted/20 rounded border border-border/40 space-y-2.5">
-                    <p className="text-[9px] font-bold uppercase text-muted-foreground flex items-center gap-1">
-                      <BarChart3 size={11} /> Performance Metrics
-                    </p>
-                    <div className="space-y-2">
-                      {selectedStudent.gradeHistory?.map((g, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-[10px]">
-                          <span className="text-muted-foreground">{g.name}</span>
-                          <span className="text-foreground font-bold">{g.score}</span>
-                        </div>
-                      ))}
+                    <div className="flex justify-between items-center">
+                      <p className="text-[9px] font-bold uppercase text-muted-foreground flex items-center gap-1">
+                        <Percent size={11} className="text-primary" /> Attendance Log
+                      </p>
+                      <span className="text-[11px] font-bold text-foreground">{selectedStudent.attendance}%</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                      <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 p-1.5 rounded">
+                        <p className="text-[8px] font-bold uppercase opacity-85">Present</p>
+                        <p className="font-bold text-xs mt-0.5">{selectedStudent.presentClasses} classes</p>
+                      </div>
+                      <div className="bg-rose-500/10 border border-rose-500/20 text-rose-600 p-1.5 rounded">
+                        <p className="text-[8px] font-bold uppercase opacity-85">Absent</p>
+                        <p className="font-bold text-xs mt-0.5">{selectedStudent.absentClasses} classes</p>
+                      </div>
+                      <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 p-1.5 rounded">
+                        <p className="text-[8px] font-bold uppercase opacity-85">Late Join</p>
+                        <p className="font-bold text-xs mt-0.5">{selectedStudent.lateJoins} classes</p>
+                      </div>
+                    </div>
+                    {/* Monthly Attendance Chart mockup */}
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-bold uppercase text-muted-foreground">Monthly Attendance Rate</p>
+                      <div className="flex items-end gap-1.5 h-12 pt-2 border-b border-border/40">
+                        {["May", "Jun", "Jul"].map((m, i) => (
+                          <div key={m} className="flex-1 flex flex-col items-center gap-1">
+                            <div
+                              className="w-full bg-primary/80 rounded-t-sm transition-all hover:bg-primary"
+                              style={{ height: `${[80, 92, selectedStudent.attendance][i]}%` }}
+                            />
+                            <span className="text-[8px] text-muted-foreground font-semibold uppercase">{m}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Attendance Log history */}
-                  <div className="p-3 bg-muted/20 rounded border border-border/40 space-y-2.5">
-                    <p className="text-[9px] font-bold uppercase text-muted-foreground flex items-center gap-1">
-                      <CalendarDays size={11} /> Recent Attendance Logs
-                    </p>
-                    <div className="flex gap-2">
-                      {selectedStudent.attendanceLogs?.map((log, idx) => (
-                        <div key={idx} className="flex-1 text-center p-1 bg-card rounded border border-border/40">
-                          <p className="text-[8px] text-muted-foreground">{log.date.split("-")[2]}</p>
-                          <span className={`text-[8px] font-extrabold uppercase mt-1 block ${log.present ? "text-emerald-500" : "text-rose-500"}`}>
-                            {log.present ? "Present" : "Absent"}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Risk factor details */}
+                  {/* Course Progress */}
                   <div className="p-3 bg-muted/20 rounded border border-border/40 space-y-1.5">
-                    <p className="text-[9px] font-bold uppercase text-muted-foreground">
-                      Risk Matrix Assessment
+                    <div className="flex justify-between items-center">
+                      <p className="text-[9px] font-bold uppercase text-muted-foreground flex items-center gap-1">
+                        <TrendingUp size={11} className="text-primary" /> Course Progress
+                      </p>
+                      <span className="text-[10px] font-bold text-foreground">{selectedStudent.progress}%</span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-500"
+                        style={{ width: `${selectedStudent.progress}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Assignment History */}
+                  <div className="p-3 bg-muted/20 rounded border border-border/40 space-y-2">
+                    <p className="text-[9px] font-bold uppercase text-muted-foreground flex items-center gap-1">
+                      <BarChart3 size={11} className="text-primary" /> Assignment History
                     </p>
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${dropoutRiskColor(selectedStudent.progress)}`}>
-                        {dropoutRisk(selectedStudent.progress)} Risk
+                    <div className="space-y-2 border-t border-border/40 pt-2">
+                      {selectedStudent.gradeHistory?.slice(0, 2).map((g, idx) => (
+                        <div key={idx} className="space-y-0.5 text-[10px]">
+                          <div className="flex justify-between items-center font-bold">
+                            <span className="text-foreground">{g.name}</span>
+                            <span className="text-emerald-500">{g.score}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[8px] text-muted-foreground">
+                            <span>Submitted: {g.date}</span>
+                            <span className="italic">Feedback: {g.feedback}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Quiz Scores */}
+                  <div className="p-3 bg-muted/20 rounded border border-border/40 space-y-2">
+                    <p className="text-[9px] font-bold uppercase text-muted-foreground flex items-center gap-1">
+                      <Info size={11} className="text-primary" /> Quiz Scores
+                    </p>
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-muted-foreground">Quiz 1 (Linear Algebra Basics)</span>
+                      <span className="text-foreground font-bold bg-muted/40 px-2 py-0.5 rounded border border-border/40">
+                        {selectedStudent.quizScore}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">System calculated factor</span>
+                    </div>
+                  </div>
+
+                  {/* Certificate Status Section */}
+                  <div className="p-3 bg-muted/20 rounded border border-border/40 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <p className="text-[9px] font-bold uppercase text-muted-foreground flex items-center gap-1">
+                        <Award size={11} className="text-primary" /> Certificate Status
+                      </p>
+                      <span className={`text-[8px] font-extrabold uppercase px-2 py-0.5 rounded border ${
+                        selectedStudent.certificateStatus === "Issued"
+                          ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                          : selectedStudent.certificateStatus === "Eligible"
+                          ? "bg-amber-500/10 border-amber-500/20 text-amber-550 animate-pulse"
+                          : "bg-muted border-border text-muted-foreground"
+                      }`}>
+                        {selectedStudent.certificateStatus}
+                      </span>
+                    </div>
+                    {selectedStudent.certificateStatus === "Issued" && (
+                      <Button
+                        onClick={() => {
+                          toast.success("Certificate download started!");
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-8 text-[10px] font-bold gap-1 mt-1 cursor-pointer"
+                      >
+                        <Award size={12} className="text-emerald-500" /> Download Certificate
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Recent Activity */}
+                  <div className="p-3 bg-muted/20 rounded border border-border/40 space-y-2">
+                    <p className="text-[9px] font-bold uppercase text-muted-foreground flex items-center gap-1">
+                      <Clock size={11} className="text-primary" /> Recent Activity
+                    </p>
+                    <div className="space-y-1.5 text-[9px] text-muted-foreground">
+                      {selectedStudent.recentActivities?.map((act, idx) => (
+                        <div key={idx} className="flex gap-2">
+                          <span className="font-bold shrink-0">{act.date}</span>
+                          <span className="text-foreground/90">{act.desc}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -584,13 +777,13 @@ export const StudentManager = React.memo(function StudentManager({
                 {/* Instant Messaging section within Drawer */}
                 <div className="border-t border-border/40 pt-4 space-y-3">
                   <p className="text-[9px] font-bold uppercase text-muted-foreground flex items-center gap-1">
-                    <MessageSquare size={11} /> Conversation with Student
+                    <MessageSquare size={11} /> Conversation
                   </p>
-                  <div className="h-40 overflow-y-auto bg-muted/30 p-3 rounded-card border border-border/40 space-y-2.5 flex flex-col justify-end">
+                  <div className="h-32 overflow-y-auto bg-muted/30 p-2.5 rounded-card border border-border/40 space-y-2.5 flex flex-col justify-end">
                     {(chatLogs[selectedStudent.id] || []).map((msg, idx) => (
                       <div
                         key={idx}
-                        className={`max-w-[80%] p-2 rounded-lg text-[10px] font-medium leading-relaxed ${
+                        className={`max-w-[85%] p-2 rounded-lg text-[10px] font-medium leading-relaxed ${
                           msg.sender === "tutor"
                             ? "bg-primary text-white self-end rounded-tr-none"
                             : "bg-card text-foreground self-start rounded-tl-none border border-border/60"
@@ -601,7 +794,7 @@ export const StudentManager = React.memo(function StudentManager({
                       </div>
                     ))}
                     {(chatLogs[selectedStudent.id] || []).length === 0 && (
-                      <p className="text-[10px] text-muted-foreground italic text-center py-8">No message logs. Send a message to start.</p>
+                      <p className="text-[10px] text-muted-foreground italic text-center py-6">No message logs. Send a message to start.</p>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -614,6 +807,41 @@ export const StudentManager = React.memo(function StudentManager({
                     />
                     <Button onClick={handleSendMessage} className="h-8 px-3 bg-primary text-white text-[10px] font-bold">
                       Send
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Communication panel */}
+                <div className="border-t border-border/40 pt-4 space-y-2.5">
+                  <p className="text-[9px] font-bold uppercase text-muted-foreground">More Actions</p>
+                  <div className="grid grid-cols-2 gap-2 text-[10px]">
+                    <Button
+                      onClick={() => {
+                        toast.success(`Announcement sent to ${selectedStudent.name}!`);
+                      }}
+                      variant="outline"
+                      className="h-8 gap-1.5 cursor-pointer font-bold text-foreground"
+                    >
+                      <Send size={12} className="text-primary" /> Send Announcement
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        window.open(`mailto:${selectedStudent.email}`);
+                        toast.success(`Opening email editor for ${selectedStudent.email}`);
+                      }}
+                      variant="outline"
+                      className="h-8 gap-1.5 cursor-pointer font-bold text-foreground"
+                    >
+                      <Mail size={12} className="text-primary" /> Email Student
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        toast.success(`Mentoring session invite scheduled for ${selectedStudent.name}!`);
+                      }}
+                      variant="outline"
+                      className="h-8 gap-1.5 cursor-pointer font-bold text-foreground col-span-2"
+                    >
+                      <Calendar size={12} className="text-primary" /> Schedule Mentoring Session
                     </Button>
                   </div>
                 </div>

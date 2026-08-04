@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createMiddlewareClient } from "./lib/supabase/server";
+import { resolveRouteDecision, getPermissionsCountForRole } from "./utils/rbacResolver";
 
 /**
  * EduEarn Proxy
@@ -60,6 +61,44 @@ function createRedirectResponse(url: URL, baseResponse: NextResponse) {
 export async function proxy(request: NextRequest) {
   if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
     const { response } = createMiddlewareClient(request);
+    const devRole = request.cookies.get("eduearn_dev_role")?.value;
+    const devUserStr = request.cookies.get("eduearn_dev_user")?.value;
+    
+    if (devRole) {
+      let complete = true;
+      let userFullName = "Dev User";
+      if (devUserStr) {
+        try {
+          const parsedUser = JSON.parse(decodeURIComponent(devUserStr));
+          complete = parsedUser.complete !== false;
+          userFullName = parsedUser.fullName || parsedUser.full_name || "Dev User";
+        } catch {}
+      }
+      
+      const pathname = request.nextUrl.pathname;
+      const decision = resolveRouteDecision(devRole, pathname, complete);
+      const permCount = getPermissionsCountForRole(devRole as any);
+      
+      console.log(`[Dev Middleware Log]
+------------------------------------
+Current User:      ${userFullName}
+Current Role:      ${devRole}
+Permission Count:  ${permCount}
+Session Source:    Cookie (eduearn_dev_user)
+Route:             ${pathname}
+Route Decision:    ${decision.allowed ? "ALLOW" : "BLOCK"}
+Reason:            ${decision.reason}
+------------------------------------`);
+
+      if (!decision.allowed && decision.redirectPath) {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = decision.redirectPath;
+        if (decision.redirectPath === "/login" || decision.redirectPath === "/tutor/login") {
+          redirectUrl.searchParams.set("redirect", pathname);
+        }
+        return createRedirectResponse(redirectUrl, response);
+      }
+    }
     return response;
   }
 

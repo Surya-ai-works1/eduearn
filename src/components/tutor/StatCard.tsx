@@ -8,7 +8,7 @@ interface StatCardProps {
   label: string;
   value: string;
   icon: LucideIcon;
-  colorClass: string;
+  colorClass?: string;
   trend?: string;
   trendUp?: boolean;
   onClick?: () => void;
@@ -19,7 +19,6 @@ export const StatCard = React.memo(function StatCard({
   label,
   value,
   icon: Icon,
-  colorClass,
   trend,
   trendUp,
   onClick,
@@ -27,28 +26,28 @@ export const StatCard = React.memo(function StatCard({
 }: StatCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
+      transition={{ delay, duration: 0.15 }}
       onClick={onClick}
-      className={`flex flex-col justify-between border border-border bg-card p-5 rounded-card shadow-soft transition-all duration-200 ${
-        onClick ? "cursor-pointer hover:shadow-md hover:-translate-y-0.5" : ""
+      className={`flex flex-col justify-between border border-border bg-card p-4 rounded-card shadow-sm hover:shadow-md transition-all duration-150 ${
+        onClick ? "cursor-pointer hover:-translate-y-0.5" : ""
       }`}
     >
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[10px] sm:text-xs font-extrabold text-muted-foreground uppercase tracking-wider truncate pr-2 select-none">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[13px] font-medium text-muted-foreground select-none">
           {label}
         </span>
-        <div className={`p-2 rounded-lg border ${colorClass} shrink-0`}>
-          <Icon size={15} />
+        <div className="text-primary shrink-0">
+          <Icon size={18} />
         </div>
       </div>
-      <div className="flex items-end justify-between">
-        <span className="text-xl sm:text-2xl font-heading font-extrabold text-foreground leading-none">
+      <div className="flex items-end justify-between mt-1">
+        <span className="text-2xl font-bold text-foreground tracking-tight leading-none">
           {value}
         </span>
         {trend && (
-          <span className={`text-[9px] font-extrabold ${trendUp ? "text-emerald-500" : "text-rose-500"}`}>
+          <span className={`text-[11px] font-semibold ${trendUp ? "text-emerald-600" : "text-rose-600"}`}>
             {trendUp ? "▲" : "▼"} {trend}
           </span>
         )}

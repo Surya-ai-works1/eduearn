@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -218,7 +219,7 @@ export const TutorSidebar = React.memo(function TutorSidebar({
         </button>
 
         {/* Logo area */}
-        <div className={`flex items-center gap-2.5 p-4 border-b border-border/40 shrink-0 ${
+        <Link href="/tutor/dashboard" className={`flex items-center gap-2.5 p-4 border-b border-border/40 shrink-0 hover:opacity-90 transition-opacity ${
           isSidebarCollapsed ? "justify-center" : ""
         }`}>
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
@@ -229,7 +230,7 @@ export const TutorSidebar = React.memo(function TutorSidebar({
               EduEarn
             </span>
           )}
-        </div>
+        </Link>
 
         <SidebarContent
           activeTab={activeTab}
@@ -261,13 +262,15 @@ export const TutorSidebar = React.memo(function TutorSidebar({
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className="fixed inset-y-0 left-0 w-64 bg-card border-r border-border z-50 flex flex-col md:hidden"
             >
-              <div className="flex items-center gap-2.5 p-4 border-b border-border/40">
-                <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                  <GraduationCap size={14} className="text-white" />
-                </div>
-                <span className="text-sm font-heading font-extrabold text-foreground tracking-tight flex-1">
-                  EduEarn
-                </span>
+              <div className="flex items-center justify-between p-4 border-b border-border/40">
+                <Link href="/tutor/dashboard" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity">
+                  <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
+                    <GraduationCap size={14} className="text-white" />
+                  </div>
+                  <span className="text-sm font-heading font-extrabold text-foreground tracking-tight">
+                    EduEarn
+                  </span>
+                </Link>
                 <button onClick={onCloseMobile} className="p-1 hover:bg-muted rounded cursor-pointer">
                   <X size={14} />
                 </button>

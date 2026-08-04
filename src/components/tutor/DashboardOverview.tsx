@@ -373,50 +373,6 @@ export const DashboardOverview = React.memo(function DashboardOverview({
             </div>
           )}
 
-          {/* Recent Enrollments Table */}
-          {recentEnrollments && (
-            <div className="space-y-4 pt-4 border-t border-border/40">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm sm:text-base font-heading font-extrabold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <span>🎓</span> Recent Enrollments
-                </h3>
-              </div>
-              {recentEnrollments.length === 0 ? (
-                <Card className="p-6 text-center text-xs text-muted-foreground bg-card/50">
-                  No recent enrollments.
-                </Card>
-              ) : (
-                <div className="border border-border rounded-card overflow-hidden bg-card">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="bg-muted/50 border-b border-border text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                          <th className="p-3">Student Name</th>
-                          <th className="p-3">Course</th>
-                          <th className="p-3">Enrolled At</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/60">
-                        {recentEnrollments.map((e) => (
-                          <tr key={e.id} className="hover:bg-muted/30">
-                            <td className="p-3 font-bold text-foreground">{e.studentName}</td>
-                            <td className="p-3 text-muted-foreground">{e.courseName}</td>
-                            <td className="p-3 text-muted-foreground/80">
-                              {new Date(e.enrolledAt).toLocaleDateString("en-IN", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Right column: Quick Actions + Resource Usage */}

@@ -24,12 +24,14 @@ export interface AdminUser {
   id: string;
   name: string;
   email: string;
-  role: "learner" | "tutor" | "admin";
-  status: "Active" | "Suspended";
+  role: string;
+  status: string;
   createdAt: string;
   walletCoins: number;
   country?: string;
   bio?: string;
+  learnerTypeId?: string;
+  futureAcademiesInterested?: string[];
   enrollments?: Array<{
     courseId: string;
     courseTitle: string;

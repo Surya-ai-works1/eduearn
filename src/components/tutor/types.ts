@@ -9,7 +9,8 @@ export interface TutorCourse {
   duration: string;
   studentsCount: number;
   rating: number;
-  status: "published" | "draft" | "archived" | "pending";
+  status: "published" | "draft" | "archived" | "pending" | "completed";
+  thumbnail?: string;
 }
 
 export interface CurriculumLesson {
@@ -60,7 +61,19 @@ export interface LiveSession {
   notes?: string;
   studentsCount?: number;
   attendanceCount?: number;
-  status?: "Scheduled" | "Completed" | "Cancelled";
+  status?: "Scheduled" | "Completed" | "Cancelled" | "Live Now";
+  course?: string;
+  batch?: string;
+  duration?: string;
+  maxParticipants?: number;
+  waitingRoom?: boolean;
+  recordingEnabled?: boolean;
+  attendanceTrackingEnabled?: boolean;
+  instructor?: string;
+  description?: string;
+  endTime?: string;
+  timezone?: string;
+  recordingViews?: number;
 }
 
 export interface Review {

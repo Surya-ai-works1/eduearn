@@ -29,6 +29,7 @@ import { FaqSection } from "../components/layout/FaqSection";
 import { Newsletter } from "../components/layout/Newsletter";
 import { useAuth } from "../hooks/useAuth";
 
+
 import {
   HoverLift,
   FloatingAnimation,
@@ -39,6 +40,14 @@ import {
 export default function RootLandingPage() {
   const router = useRouter();
   const { user } = useAuth();
+  
+  // Redirect authenticated admins directly to the enterprise dashboard
+  useEffect(() => {
+    if (user?.role === "admin" || user?.role === "super-admin") {
+      router.replace("/admin/dashboard");
+    }
+  }, [user, router]);
+
   const [isDemoOpen, setIsDemoOpen] = useState(false);
 
   // Active index for headline words highlight cycling (0: Learn, 1: Teach, 2: Earn)

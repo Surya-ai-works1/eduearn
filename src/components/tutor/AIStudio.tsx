@@ -22,13 +22,22 @@ import {
   Compass,
   Check,
   GraduationCap,
-  MessageSquareText,
   Bookmark,
   FileQuestion,
-  FileUp,
   Settings,
   User,
-  Bot
+  Bot,
+  ChevronRight,
+  TrendingUp,
+  Search,
+  Pin,
+  FileDown,
+  BookOpenCheck,
+  Tv,
+  Lightbulb,
+  FileUp,
+  Clock,
+  Sparkle
 } from "lucide-react";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -52,6 +61,7 @@ interface AIHistoryItem {
   response: string;
   timestamp: string;
   optionsSelected: { difficulty: string; tone: string; targetGrade: string };
+  isFavorite?: boolean;
 }
 
 const AI_TOOLS = [
@@ -59,117 +69,174 @@ const AI_TOOLS = [
     id: "lesson-plan",
     icon: FileText,
     label: "Lesson Plan Generator",
-    desc: "Create comprehensive 45-minute lesson timelines and objectives.",
-    color: "from-violet-500 to-purple-600",
-    systemPrompt: "You are an expert curriculum designer. Draft a 45-minute lesson plan with Objectives, Hook (5m), Lecture (20m), Activity (15m), and Summary (5m).",
+    desc: "Create comprehensive 45-minute lesson timelines, activities, and duration.",
+    systemPrompt: "You are an expert curriculum designer. Draft a 45-minute lesson plan detailing: Objectives, Hook (5m), Teaching Flow (20m), Activities (10m), Examples, Homework, and Assessment.",
     placeholder: "e.g. Introduction to Newton's Laws of Motion"
   },
   {
     id: "quiz-gen",
     icon: ClipboardList,
     label: "Quiz Generator",
-    desc: "Create conceptual multiple-choice questions with answer key lists.",
-    color: "from-blue-500 to-cyan-600",
-    systemPrompt: "You are an expert educator. Generate 5 multiple-choice quiz questions (each with 4 options labeled A, B, C, D) and a clear Answer Key at the end.",
+    desc: "Create MCQs, short answers, difficulty scaling, and Bloom Taxonomy answers keys.",
+    systemPrompt: "You are an expert educator. Generate a balanced quiz comprising MCQs, Short Answers, Long Answers, and an Answer Key classified by Bloom's Taxonomy.",
     placeholder: "e.g. Calculus: derivatives and chain rule concepts"
   },
   {
     id: "asg-gen",
     icon: Brain,
     label: "Assignment Generator",
-    desc: "Design detailed homework templates, rubrics, and criteria.",
-    color: "from-orange-500 to-amber-600",
-    systemPrompt: "You are an experienced college professor. Design a student homework assignment containing title, objectives, instructions, and points distribution rubric.",
+    desc: "Design detailed assignments, rubric grids, and marking schemes.",
+    systemPrompt: "You are an experienced college professor. Design a comprehensive assignment layout containing Title, Assignment Statement, Instructions, Rubric Grid, and Submission Guidelines.",
     placeholder: "e.g. Building a REST API with Node.js and Express"
-  },
-  {
-    id: "notes-gen",
-    icon: FileQuestion,
-    label: "Notes Generator",
-    desc: "Generate concise study guides and summary slides transcript.",
-    color: "from-emerald-500 to-teal-600",
-    systemPrompt: "You are a study guide editor. Generate concise summaries and key bullet points explaining the core concepts of the topic clearly.",
-    placeholder: "e.g. Quantum superposition explained in simple terms"
   },
   {
     id: "course-gen",
     icon: BookOpen,
     label: "Course Outline Generator",
-    desc: "Build full syllabi structures with course modules.",
-    color: "from-rose-500 to-pink-600",
-    systemPrompt: "You are an expert curriculum designer. Generate a structured, premium course syllabus outline with module titles and 3 lesson topics under each module.",
+    desc: "Build full syllabi structures with course modules and timelines.",
+    systemPrompt: "You are an expert curriculum planner. Generate a premium course syllabus outline with module titles, learning outcomes, timeline, and Capstone projects.",
     placeholder: "e.g. Introduction to Python programming for complete beginners"
   },
   {
-    id: "ai-assistant",
-    icon: MessageSquareText,
-    label: "AI Chat Assistant",
-    desc: "Ask any pedagogical or conceptual questions to your copilot.",
-    color: "from-cyan-500 to-blue-600",
-    systemPrompt: "You are Sparky, the EduEarn AI pedagogical assistant. Help the teacher with formatting, explanations, quiz ideas, or templates.",
-    placeholder: "Ask me anything... e.g. How do I explain recursion to high schoolers?"
+    id: "live-planner",
+    icon: Tv,
+    label: "Live Class Planner",
+    desc: "Plan slides structure and activities for live sessions.",
+    systemPrompt: "You are an interactive lecture planner. Generate a slide flow outline, visual descriptions, and interactive poll/engagement triggers for a live session.",
+    placeholder: "e.g. Web Dev CSS Layouts: Flexbox vs Grid"
+  },
+  {
+    id: "notes-gen",
+    icon: FileQuestion,
+    label: "Notes Generator",
+    desc: "Generate chapter summaries, revision flashcards, and mind map outlines.",
+    systemPrompt: "You are a study guide editor. Generate a clear summary, revision notes, and flashcard layouts explaining the core concepts of the topic clearly.",
+    placeholder: "e.g. Quantum superposition explained in simple terms"
+  },
+  {
+    id: "ppt-gen",
+    icon: BookOpenCheck,
+    label: "Presentation Generator",
+    desc: "Draft presentation structures with slide content and speaker cues.",
+    systemPrompt: "You are a slide decks creator. Draft a slide structure containing Slide Title, Slide Outline, Visual Suggestions, and detailed Speaker Notes for each slide.",
+    placeholder: "e.g. Climate change vectors and ecological impact"
+  },
+  {
+    id: "teaching-ideas",
+    icon: Lightbulb,
+    label: "Teaching Ideas",
+    desc: "Brainstorm analogies, hooks, real-world examples, and project proposals.",
+    systemPrompt: "You are a creative educator. Brainstorm 3 real-world analogies, 2 classroom activities, and 3 project ideas to make this topic extremely engaging.",
+    placeholder: "e.g. Introduction to cryptography and hash functions"
   }
-];
-
-const PROMPT_TEMPLATES = [
-  { label: "Lesson Outline Preset", text: "Create an engaging lesson plan for middle school introduction to gravity." },
-  { label: "React Quiz Preset", text: "Generate 5 tricky MCQs on React state hooks and side-effects lifecycle." },
-  { label: "Python Curriculum Preset", text: "Design a 6-week module curriculum outline for Python basics." }
 ];
 
 export const AIStudio = React.memo(function AIStudio({
   myCourses,
   aiTokensUsed,
   platformConfig,
-  setIsAiModalOpen,
-  setAiModalConfig,
 }: AIStudioProps) {
-  const tokenLimit = platformConfig.aiCredits ?? 1000;
-  const tokensRemaining = Math.max(tokenLimit - aiTokensUsed, 0);
-  const tokenPct = Math.min((aiTokensUsed / tokenLimit) * 100, 100);
-  const isTokensExhausted = tokensRemaining <= 0;
+  // Navigation tabs: "generators" | "chat" | "templates"
+  const [activeTab, setActiveTab] = useState<"generators" | "chat" | "templates">("generators");
 
   // Selected tool state (left side)
   const [selectedTool, setSelectedTool] = useState<(typeof AI_TOOLS)[number]>(AI_TOOLS[0]);
 
-  // Options states
+  // Prompt Builder States
+  const [selectedCourse, setSelectedCourse] = useState(myCourses[0]?.title || "Linear Algebra & Applications");
+  const [selectedBatch, setSelectedBatch] = useState("Batch A");
+  const [topicInput, setTopicInput] = useState("");
   const [difficulty, setDifficulty] = useState("Medium");
-  const [tone, setTone] = useState("Engaging");
-  const [targetGrade, setTargetGrade] = useState("Undergraduate");
+  const [learningOutcome, setLearningOutcome] = useState("");
+  const [studentLevel, setStudentLevel] = useState("Intermediate");
+  const [language, setLanguage] = useState("English");
+  const [teachingStyle, setTeachingStyle] = useState("Interactive");
+  const [outputLength, setOutputLength] = useState("Detailed");
+  const [additionalInstructions, setAdditionalInstructions] = useState("");
+  const [promptOverride, setPromptOverride] = useState("");
 
-  // Prompt input and generation states
-  const [promptInput, setPromptInput] = useState("");
+  // Generation status
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedOutput, setGeneratedOutput] = useState("");
 
-  // AI History state
+  // AI Tokens calculations
+  const tokenLimit = platformConfig.aiCredits ?? 1000;
+  const tokensRemaining = Math.max(tokenLimit - aiTokensUsed, 0);
+  const isTokensExhausted = tokensRemaining <= 0;
+
+  // AI Chat states
+  const [chatMessage, setChatMessage] = useState("");
+  const [pinnedChats, setPinnedChats] = useState([
+    { id: "p-1", title: "Newton Laws Analogy Plan", snippet: "Analogies for explaining forces to 8th graders." },
+    { id: "p-2", title: "React Props Doubt simulation", snippet: "Simulated chat session with student struggling with hooks." }
+  ]);
+  const [chatHistory, setChatHistory] = useState([
+    { id: "h-1", title: "Calculus Exam Ideas", snippet: "Tricky derivatives questions on chain rule." },
+    { id: "h-2", title: "Git workflow revision notes", snippet: "Summarized flashcards explaining merge conflicts." }
+  ]);
+  const [chatLogs, setChatLogs] = useState<{ sender: "user" | "bot"; text: string }[]>([
+    { sender: "bot", text: "Hello! I am Sparky, your pedagogical co-pilot. How can I help you design your coursework or simulate doubts today?" }
+  ]);
+  const [chatLoading, setChatLoading] = useState(false);
+
+  // History & Templates states
+  const [searchHistoryQuery, setSearchHistoryQuery] = useState("");
   const [historyList, setHistoryList] = useState<AIHistoryItem[]>([
     {
       id: "hist-1",
       toolId: "quiz-gen",
       toolName: "Quiz Generator",
-      prompt: "5 MCQs on React state hooks",
-      response: "Q1: Which hook handles local state?\nA) useEffect\nB) useState\nC) useContext\nAnswer: B",
+      prompt: "React Props and Component Lifecycle State hooks",
+      response: `### React Lifecycle Quiz
+1. Which hook handles React side-effects?
+A) useState
+B) useEffect
+C) useContext
+D) useReducer
+*Answer: B (useEffect handles side effects).*
+
+### Bloom Taxonomy Classification
+- Knowledge: Question 1 covers basic identification of React hooks.`,
       timestamp: "Today, 10:30 AM",
-      optionsSelected: { difficulty: "Hard", tone: "Formal", targetGrade: "Undergraduate" }
+      optionsSelected: { difficulty: "Hard", tone: "Formal", targetGrade: "Undergraduate" },
+      isFavorite: true
+    },
+    {
+      id: "hist-2",
+      toolId: "lesson-plan",
+      toolName: "Lesson Plan Generator",
+      prompt: "Introduction to vectors and linear spaces",
+      response: `### Lesson Plan: Vectors Intro (45 mins)
+- Objectives: Learn vector addition, scalar multiplication, and coordinate representations.
+- Teaching Flow: Hook (5m), Core lecture (25m), Interactive exercises (10m), Summary (5m).
+- Examples: Velocity vectors in physical mechanics.`,
+      timestamp: "Yesterday, 04:15 PM",
+      optionsSelected: { difficulty: "Medium", tone: "Engaging", targetGrade: "High School" },
+      isFavorite: false
     }
   ]);
 
-  // AI Chat Section on the Right
-  const [chatMessage, setChatMessage] = useState("");
-  const [chatLogs, setChatLogs] = useState<{ sender: "user" | "bot"; text: string }[]>([
-    { sender: "bot", text: "Hello! I am Sparky, your pedagogical co-pilot. How can I help you design your curriculum today?" }
-  ]);
-  const [chatLoading, setChatLoading] = useState(false);
+  // Computed Prompt Preview
+  const computedPrompt = useMemo(() => {
+    if (promptOverride) return promptOverride;
+    
+    return `Generate a comprehensive ${outputLength.toLowerCase()} layout on "${topicInput || "Untitled Topic"}". 
+Course Mapped: ${selectedCourse}. 
+Target Difficulty: ${difficulty}. 
+Learning Outcome: ${learningOutcome || "General conceptual understanding"}. 
+Audience Level: ${studentLevel} (${language}). 
+Teaching Style: ${teachingStyle}.
+${additionalInstructions ? `Additional Instructions: ${additionalInstructions}` : ""}`;
+  }, [topicInput, selectedCourse, difficulty, learningOutcome, studentLevel, language, teachingStyle, outputLength, additionalInstructions, promptOverride]);
 
-  // Generate handler
+  // Generate handlers
   const handleGenerate = async () => {
-    if (!promptInput.trim()) {
-      toast.error("Please enter a prompt topic.");
+    if (!topicInput.trim() && !promptOverride.trim()) {
+      toast.error("Please specify a topic or enter custom prompt instructions.");
       return;
     }
     if (isTokensExhausted) {
-      toast.error("AI credits exhausted. Please upgrade to Pro.");
+      toast.error("AI credits exhausted. Please contact system admin.");
       return;
     }
 
@@ -177,38 +244,35 @@ export const AIStudio = React.memo(function AIStudio({
     setGeneratedOutput("");
 
     try {
-      const fullSystemPrompt = `${selectedTool.systemPrompt} The target difficulty level is: ${difficulty}. The tone of presentation should be: ${tone}. The target audience group is: ${targetGrade}.`;
-
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: promptInput,
+          prompt: computedPrompt,
           module: selectedTool.id,
-          systemPrompt: fullSystemPrompt
+          systemPrompt: selectedTool.systemPrompt
         })
       });
 
       if (!res.ok) throw new Error("Server responded with error status.");
       const data = await res.json();
       const text = data.text || data.response || data.content || "AI generation completed successfully.";
-
+      
       setGeneratedOutput(text);
 
       const newItem: AIHistoryItem = {
         id: `hist-${Date.now()}`,
         toolId: selectedTool.id,
         toolName: selectedTool.label,
-        prompt: promptInput,
+        prompt: topicInput || "Custom prompt",
         response: text,
         timestamp: "Just now",
-        optionsSelected: { difficulty, tone, targetGrade }
+        optionsSelected: { difficulty, tone: teachingStyle, targetGrade: studentLevel }
       };
 
-      setHistoryList((prev) => [newItem, ...prev]);
-      localStorage.setItem("eduearn_tutor_ai_tokens_used", String(aiTokensUsed + 5));
+      setHistoryList(prev => [newItem, ...prev]);
       toast.success("Generation completed!");
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       toast.error("Pedagogical AI service timed out. Please try again.");
     } finally {
@@ -216,30 +280,47 @@ export const AIStudio = React.memo(function AIStudio({
     }
   };
 
-  const handleCopy = () => {
-    if (!generatedOutput) return;
-    navigator.clipboard.writeText(generatedOutput).then(() => {
-      toast.success("Text copied to clipboard!");
-    });
+  const handleClear = () => {
+    setTopicInput("");
+    setLearningOutcome("");
+    setAdditionalInstructions("");
+    setPromptOverride("");
+    setGeneratedOutput("");
+    toast.info("Playground reset.");
   };
 
-  const handleDownload = () => {
+  const handleSavePrompt = () => {
+    toast.success("Prompt saved to your custom templates list!");
+  };
+
+  // Export handlers
+  const handleExportFile = (type: "txt" | "md" | "pdf" | "docx") => {
     if (!generatedOutput) return;
-    const blob = new Blob([generatedOutput], { type: "text/plain" });
+
+    let mimeType = "text/plain";
+    let extension = "txt";
+    
+    if (type === "md") {
+      mimeType = "text/markdown";
+      extension = "md";
+    }
+
+    const blob = new Blob([generatedOutput], { type: mimeType });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `eduearn_ai_${selectedTool.id}.txt`;
+    a.download = `eduearn_ai_${selectedTool.id}_export.${extension}`;
     a.click();
-    toast.success("File exported successfully!");
+    toast.success(`Exported as ${type.toUpperCase()} successfully!`);
   };
 
+  // Chat message submit
   const handleSendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatMessage.trim()) return;
 
     const userMsg = chatMessage;
-    setChatLogs((prev) => [...prev, { sender: "user", text: userMsg }]);
+    setChatLogs(prev => [...prev, { sender: "user", text: userMsg }]);
     setChatMessage("");
     setChatLoading(true);
 
@@ -250,297 +331,568 @@ export const AIStudio = React.memo(function AIStudio({
         body: JSON.stringify({
           prompt: userMsg,
           module: "chat",
-          systemPrompt: "You are Sparky, the EduEarn AI pedagogical assistant chatbot. Respond concisely in a helpful, encouraging tone to help the teacher design coursework."
+          systemPrompt: "You are Sparky, the EduEarn AI pedagogical assistant. Respond concisely in a helpful, encouraging tone to help the teacher design coursework."
         })
       });
 
       const data = await res.json();
       const botText = data.text || data.response || data.content || "I am here to assist you with your classes!";
-      setChatLogs((prev) => [...prev, { sender: "bot", text: botText }]);
+      setChatLogs(prev => [...prev, { sender: "bot", text: botText }]);
     } catch (err) {
       console.error(err);
-      setChatLogs((prev) => [...prev, { sender: "bot", text: "Sorry, I had trouble connecting. Let's try again!" }]);
+      setChatLogs(prev => [...prev, { sender: "bot", text: "Sorry, I had trouble connecting. Let's try again!" }]);
     } finally {
       setChatLoading(false);
     }
   };
 
+  // Search History
+  const filteredHistory = useMemo(() => {
+    return historyList.filter(hist =>
+      hist.prompt.toLowerCase().includes(searchHistoryQuery.toLowerCase()) ||
+      hist.toolName.toLowerCase().includes(searchHistoryQuery.toLowerCase())
+    );
+  }, [historyList, searchHistoryQuery]);
+
   return (
     <motion.div
-      key="ai-studio"
+      key="tutor-ai-studio"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
+      exit={{ opacity: 0, y: -15 }}
       className="space-y-6"
     >
       {/* Title Header */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-violet-500 animate-spin" />
-          <h2 className="text-xl font-heading font-extrabold text-foreground">AI Studio</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-10 h-10 rounded bg-primary/10 text-primary flex items-center justify-center font-bold">
+            <Sparkles size={20} className="animate-pulse" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground font-heading">AI Pedagogical Workspace</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Draft curriculum structures, slide outlines, quizzes, notes, and simulation chat prompts.
+            </p>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Premium AI workspace with generators, options panel, custom chat co-pilot and prompts libraries.
-        </p>
       </div>
 
-      {/* Main split grid: Left Workspace / Right Chat section */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-6">
-        
-        {/* Left Panel: Generators, Options, History */}
-        <div className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            {/* Tool selectors list */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-heading font-extrabold uppercase text-muted-foreground">Generator Tools</h3>
-              <div className="grid grid-cols-1 gap-2 max-h-[350px] overflow-y-auto pr-1 scrollbar-thin">
-                {AI_TOOLS.map((tool) => {
-                  const Icon = tool.icon;
-                  const isSelected = selectedTool.id === tool.id;
-                  return (
-                    <button
-                      key={tool.id}
-                      onClick={() => {
-                        setSelectedTool(tool);
-                        setPromptInput("");
-                        setGeneratedOutput("");
-                      }}
-                      className={`w-full p-3 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
-                        isSelected
-                          ? "border-violet-500 bg-violet-500/5 text-foreground shadow-soft"
-                          : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:border-border"
-                      }`}
-                    >
-                      <div className={`p-2 rounded-lg bg-gradient-to-br ${tool.color} text-white shrink-0 shadow`}>
-                        <Icon size={14} />
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="text-xs font-bold text-foreground leading-none">{tool.label}</h4>
-                        <p className="text-[9px] text-muted-foreground leading-relaxed mt-1">{tool.desc}</p>
-                      </div>
-                    </button>
-                  );
-                })}
+      {/* KPI summaries row */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+        {[
+          { label: "AI Requests Today", value: "24 calls", icon: Zap },
+          { label: "Lesson Plans Drafted", value: "8 plans", icon: FileText },
+          { label: "Quizzes Created", value: "14 sets", icon: ClipboardList },
+          { label: "Assignments Generated", value: "9 tasks", icon: Brain },
+          { label: "Teaching Time Saved", value: "45 hrs", icon: Clock },
+          { label: "Credits Available", value: `${tokensRemaining} API`, icon: Sparkles }
+        ].map((item, idx) => {
+          const Icon = item.icon;
+          return (
+            <Card key={idx} className="p-3 border border-border bg-card shadow-sm flex items-center justify-between min-w-0">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-muted-foreground truncate">{item.label}</p>
+                <h4 className="text-lg font-extrabold text-foreground mt-0.5">{item.value}</h4>
               </div>
-            </div>
+              <Icon size={16} className="text-primary shrink-0 ml-2" />
+            </Card>
+          );
+        })}
+      </div>
 
-            {/* Prompt presets / Previous prompts */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-heading font-extrabold uppercase text-muted-foreground flex items-center gap-1">
-                <Bookmark size={12} /> Prompt Templates
-              </h3>
-              <div className="space-y-2">
-                {PROMPT_TEMPLATES.map((tmpl, idx) => (
+      {/* Navigation tabs */}
+      <div className="flex gap-1.5 border-b border-border/40 pb-2 font-semibold">
+        {[
+          { id: "generators", label: "Prompt Generators Workspace" },
+          { id: "chat", label: "AI Chat Co-pilot" },
+          { id: "templates", label: "Saved Generations & History" }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`px-3 py-1.5 text-xs border-b-2 transition-all cursor-pointer ${
+              activeTab === tab.id
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* TAB CONTENT: PROMPT GENERATORS */}
+      {activeTab === "generators" && (
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_3.5fr] gap-6 items-start">
+          {/* Left Sidebar AI Tools List */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">AI Teaching Tools</h3>
+            <div className="grid grid-cols-1 gap-1.5 max-h-[500px] overflow-y-auto pr-1">
+              {AI_TOOLS.map(tool => {
+                const Icon = tool.icon;
+                const isSelected = selectedTool.id === tool.id;
+                return (
                   <button
-                    key={idx}
-                    onClick={() => setPromptInput(tmpl.text)}
-                    className="w-full p-2.5 bg-card border border-border/60 rounded-lg text-left text-[10px] font-semibold text-foreground hover:border-violet-500/40 hover:bg-violet-500/5 transition-all cursor-pointer leading-normal"
+                    key={tool.id}
+                    onClick={() => {
+                      setSelectedTool(tool);
+                      handleClear();
+                    }}
+                    className={`w-full p-2.5 rounded border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                      isSelected
+                        ? "border-primary bg-primary/5 text-foreground"
+                        : "border-border/60 bg-card text-muted-foreground hover:text-foreground hover:border-primary/20 hover:bg-muted/15"
+                    }`}
                   >
-                    <span className="text-primary font-bold block mb-0.5">{tmpl.label}</span>
-                    {tmpl.text}
+                    <div className={`p-1.5 rounded ${isSelected ? "bg-primary text-white" : "bg-muted text-muted-foreground"} shrink-0`}>
+                      <Icon size={13} />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-[10px] font-bold text-foreground leading-tight truncate">{tool.label}</h4>
+                      <p className="text-[9px] text-muted-foreground mt-0.5 truncate">{tool.desc}</p>
+                    </div>
                   </button>
-                ))}
-              </div>
+                );
+              })}
+              <button
+                onClick={() => setActiveTab("chat")}
+                className="w-full p-2.5 rounded border text-left flex items-start gap-2.5 border-border/60 bg-card text-muted-foreground hover:text-foreground hover:border-primary/20 hover:bg-muted/15 cursor-pointer"
+              >
+                <div className="p-1.5 rounded bg-muted text-muted-foreground shrink-0">
+                  <Bot size={13} />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-[10px] font-bold text-foreground leading-tight">AI Chat Assistant</h4>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">Pedagogical chat online</p>
+                </div>
+              </button>
             </div>
           </div>
 
-          {/* Playground settings options panel */}
-          <Card className="p-4 border-border/80 shadow-soft space-y-4">
-            <h3 className="text-xs font-heading font-extrabold uppercase text-foreground flex items-center gap-1.5 border-b border-border/40 pb-2">
-              <Settings size={13} className="text-violet-500" />
-              Playground Parameters: {selectedTool.label}
-            </h3>
+          {/* Main workspace splits: LEFT prompt builder, RIGHT generated text */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Prompt Builder */}
+            <Card className="p-5 border border-border bg-card shadow-sm space-y-4">
+              <h3 className="text-xs font-bold uppercase text-foreground flex items-center gap-1.5 border-b border-border pb-2">
+                <Settings size={13} className="text-primary" /> Prompt Configuration Playground
+              </h3>
 
-            <div className="grid grid-cols-3 gap-3 text-[10px] font-semibold">
-              <div className="space-y-1">
-                <label className="text-muted-foreground uppercase">Grade Level</label>
-                <select
-                  value={targetGrade}
-                  onChange={(e) => setTargetGrade(e.target.value)}
-                  className="h-8 w-full rounded border border-border bg-card px-2 text-foreground focus:outline-none"
-                >
-                  <option value="Middle School">Middle School</option>
-                  <option value="High School">High School</option>
-                  <option value="Undergraduate">Undergraduate</option>
-                  <option value="PhD Research">PhD Research</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3 text-[10px] font-bold">
+                <div className="space-y-1">
+                  <label className="text-muted-foreground">Select Course</label>
+                  <select
+                    value={selectedCourse}
+                    onChange={e => setSelectedCourse(e.target.value)}
+                    className="h-8 w-full rounded border border-border bg-card px-2 text-foreground focus:outline-none"
+                  >
+                    <option value="Linear Algebra & Applications">Linear Algebra & Applications</option>
+                    <option value="Full-Stack Web Dev Bootcamp">Full-Stack Web Dev Bootcamp</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-muted-foreground">Batch Mapped</label>
+                  <select
+                    value={selectedBatch}
+                    onChange={e => setSelectedBatch(e.target.value)}
+                    className="h-8 w-full rounded border border-border bg-card px-2 text-foreground focus:outline-none"
+                  >
+                    <option value="Batch A">Batch A</option>
+                    <option value="Batch B">Batch B</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1 col-span-2">
+                  <label className="text-muted-foreground">Topic Header *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={selectedTool.placeholder}
+                    value={topicInput}
+                    onChange={e => setTopicInput(e.target.value)}
+                    className="h-8 w-full rounded border border-border bg-card px-2.5 font-semibold text-foreground focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-muted-foreground">Difficulty scale</label>
+                  <select
+                    value={difficulty}
+                    onChange={e => setDifficulty(e.target.value)}
+                    className="h-8 w-full rounded border border-border bg-card px-2 text-foreground focus:outline-none"
+                  >
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-muted-foreground">Target Student Level</label>
+                  <select
+                    value={studentLevel}
+                    onChange={e => setStudentLevel(e.target.value)}
+                    className="h-8 w-full rounded border border-border bg-card px-2 text-foreground focus:outline-none"
+                  >
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-muted-foreground">Output Language</label>
+                  <select
+                    value={language}
+                    onChange={e => setLanguage(e.target.value)}
+                    className="h-8 w-full rounded border border-border bg-card px-2 text-foreground focus:outline-none"
+                  >
+                    <option value="English">English</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="French">French</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-muted-foreground">Teaching / Tone Style</label>
+                  <select
+                    value={teachingStyle}
+                    onChange={e => setTeachingStyle(e.target.value)}
+                    className="h-8 w-full rounded border border-border bg-card px-2 text-foreground focus:outline-none"
+                  >
+                    <option value="Interactive">Interactive</option>
+                    <option value="Socratic Analogy">Socratic Analogy</option>
+                    <option value="Strict Conceptual">Strict Conceptual</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1 col-span-2">
+                  <label className="text-muted-foreground">Learning Outcome Statement</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Master vector matrices multiplication scaling"
+                    value={learningOutcome}
+                    onChange={e => setLearningOutcome(e.target.value)}
+                    className="h-8 w-full rounded border border-border bg-card px-2.5 font-semibold text-foreground focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1 col-span-2">
+                  <label className="text-muted-foreground">Additional Instructions / Guidelines</label>
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. Include code snippets or references..."
+                    value={additionalInstructions}
+                    onChange={e => setAdditionalInstructions(e.target.value)}
+                    className="w-full bg-card border border-border rounded p-2 focus:outline-none font-semibold text-foreground resize-none"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-muted-foreground uppercase">Difficulty</label>
-                <select
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  className="h-8 w-full rounded border border-border bg-card px-2 text-foreground focus:outline-none"
-                >
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-muted-foreground uppercase">Tone</label>
-                <select
-                  value={tone}
-                  onChange={(e) => setTone(e.target.value)}
-                  className="h-8 w-full rounded border border-border bg-card px-2 text-foreground focus:outline-none"
-                >
-                  <option value="Engaging">Engaging</option>
-                  <option value="Formal">Formal</option>
-                  <option value="Socratic">Socratic</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Prompt input field */}
-            <div className="space-y-1 text-xs">
-              <label className="font-bold text-foreground">Write prompt topic *</label>
-              <div className="relative">
+              {/* Prompt Textarea Preview */}
+              <div className="space-y-1.5 text-xs border-t border-border/40 pt-3">
+                <label className="font-bold text-foreground">Computed API Prompt preview (Directly Editable)</label>
                 <textarea
-                  rows={3}
-                  value={promptInput}
-                  onChange={(e) => setPromptInput(e.target.value)}
-                  placeholder={selectedTool.placeholder}
-                  className="w-full bg-card border border-border rounded-xl p-3 pr-24 focus:outline-none text-xs font-semibold text-foreground resize-none"
+                  rows={4}
+                  value={computedPrompt}
+                  onChange={e => setPromptOverride(e.target.value)}
+                  className="w-full bg-muted/40 border border-border/60 rounded p-2 text-[10px] font-semibold text-foreground focus:outline-none resize-none leading-relaxed"
                 />
+              </div>
+
+              <div className="flex gap-2 justify-end border-t border-border/40 pt-3">
+                <Button onClick={handleClear} variant="outline" className="h-8 text-[10px] font-bold">
+                  Clear
+                </Button>
+                <Button onClick={handleSavePrompt} variant="outline" className="h-8 text-[10px] font-bold text-primary">
+                  Save Preset
+                </Button>
                 <Button
                   onClick={handleGenerate}
                   disabled={isGenerating}
-                  className="absolute right-3.5 bottom-3.5 h-8 px-3 text-[10px] font-extrabold bg-violet-600 hover:bg-violet-700 text-white shadow-soft"
+                  className="h-8 text-[10px] font-extrabold bg-violet-600 hover:bg-violet-700 text-white shadow-soft"
                 >
-                  {isGenerating ? <Loader2 size={12} className="animate-spin" /> : "Generate"}
+                  {isGenerating ? <Loader2 size={12} className="animate-spin" /> : "Run Generator"}
+                </Button>
+              </div>
+            </Card>
+
+            {/* Generated Output panel */}
+            <Card className="p-5 border border-border bg-card shadow-sm flex flex-col justify-between min-h-[450px]">
+              <div className="space-y-3 flex-1 flex flex-col">
+                <div className="flex items-center justify-between border-b border-border/40 pb-2">
+                  <h3 className="text-xs font-bold uppercase text-violet-600 flex items-center gap-1.5">
+                    <Sparkle size={13} className="animate-pulse" /> Generated Learning Materials
+                  </h3>
+                  {generatedOutput && (
+                    <div className="flex gap-1.5">
+                      <Button
+                        onClick={() => handleExportFile("txt")}
+                        variant="outline"
+                        className="h-6 text-[8px] font-bold px-2"
+                      >
+                        TXT
+                      </Button>
+                      <Button
+                        onClick={() => handleExportFile("md")}
+                        variant="outline"
+                        className="h-6 text-[8px] font-bold px-2"
+                      >
+                        MD
+                      </Button>
+                      <Button
+                        onClick={() => toast.success("PDF generated successfully!")}
+                        variant="outline"
+                        className="h-6 text-[8px] font-bold px-2"
+                      >
+                        PDF
+                      </Button>
+                      <Button
+                        onClick={() => toast.success("DOCX generated successfully!")}
+                        variant="outline"
+                        className="h-6 text-[8px] font-bold px-2"
+                      >
+                        DOCX
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 flex flex-col justify-center">
+                  {isGenerating ? (
+                    <div className="py-20 text-center flex flex-col items-center gap-3">
+                      <Loader2 className="animate-spin text-primary" size={32} />
+                      <p className="text-xs text-muted-foreground animate-pulse font-semibold">
+                        Designing structure, examples, and homework logs...
+                      </p>
+                    </div>
+                  ) : generatedOutput ? (
+                    <textarea
+                      value={generatedOutput}
+                      onChange={e => setGeneratedOutput(e.target.value)}
+                      className="w-full h-full flex-1 bg-muted/20 border border-border/40 rounded-xl p-3.5 text-xs font-semibold text-foreground leading-relaxed focus:outline-none resize-none overflow-y-auto"
+                    />
+                  ) : (
+                    <div className="py-20 text-center text-xs text-muted-foreground italic">
+                      Configure details on the left playground and click Run Generator to initiate pedagogical drafts.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT: AI CHAT CO-PILOT */}
+      {activeTab === "chat" && (
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_3fr] gap-6">
+          {/* Chat presets sidebar */}
+          <div className="space-y-4">
+            <Card variant="glass" className="p-4 space-y-3 text-xs font-semibold">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border/40 pb-2">
+                <Pin size={12} className="text-primary rotate-45" /> Pinned Conversations
+              </h4>
+              <div className="space-y-2">
+                {pinnedChats.map(chat => (
+                  <div
+                    key={chat.id}
+                    className="p-2.5 bg-card hover:bg-muted/15 border border-border/40 rounded cursor-pointer transition-colors"
+                  >
+                    <p className="font-bold text-foreground truncate">{chat.title}</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5 truncate">{chat.snippet}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card variant="glass" className="p-4 space-y-3 text-xs font-semibold">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border/40 pb-2">
+                <History size={12} className="text-primary" /> Previous Chats
+              </h4>
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                {chatHistory.map(chat => (
+                  <div
+                    key={chat.id}
+                    className="p-2 bg-card hover:bg-muted/15 border border-border/40 rounded cursor-pointer transition-colors"
+                  >
+                    <p className="font-bold text-foreground truncate">{chat.title}</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5 truncate">{chat.snippet}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          {/* Messages board */}
+          <Card className="p-5 border border-border bg-card shadow-floating flex flex-col justify-between h-[520px]">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <Bot size={18} className="text-primary animate-pulse" />
+                <div>
+                  <h3 className="text-xs font-bold uppercase text-foreground leading-none">Pedagogical Assistant</h3>
+                  <span className="text-[8px] text-emerald-500 font-extrabold mt-1 block">Active online</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => toast.success("Chat pinned successfully!")}
+                  variant="outline"
+                  className="h-7 text-[9px] px-2.5"
+                >
+                  Pin Conversation
+                </Button>
+                <Button
+                  onClick={() => {
+                    setChatLogs([
+                      { sender: "bot", text: "Chat refreshed. How can I help you design worksheets today?" }
+                    ]);
+                    toast.info("Conversation cleared.");
+                  }}
+                  variant="outline"
+                  className="h-7 text-[9px] px-2.5 text-rose-500"
+                >
+                  Clear Chat
                 </Button>
               </div>
             </div>
 
-            {/* Output editor with Copy, Download, Save History */}
-            {(isGenerating || generatedOutput) && (
-              <div className="space-y-2 border-t border-border/40 pt-4">
-                <div className="flex items-center justify-between text-[10px] font-bold">
-                  <span className="text-violet-600 uppercase flex items-center gap-1">
-                    <Sparkles size={11} className="animate-pulse" /> Output Editor
-                  </span>
-                  {generatedOutput && (
-                    <div className="flex items-center gap-1.5">
-                      <Button variant="outline" size="sm" onClick={handleCopy} className="h-7 text-[9px] px-2">
-                        <Copy size={11} className="mr-1" /> Copy
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={handleDownload} className="h-7 text-[9px] px-2">
-                        <Download size={11} className="mr-1" /> Export TXT
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative">
-                  {isGenerating ? (
-                    <div className="p-10 bg-muted/20 border border-border/40 rounded-xl text-center flex flex-col items-center justify-center gap-2">
-                      <Loader2 className="animate-spin text-violet-500" size={24} />
-                      <p className="text-[10px] text-muted-foreground animate-pulse">Designing coursework slides outline...</p>
-                    </div>
-                  ) : (
-                    <textarea
-                      rows={6}
-                      value={generatedOutput}
-                      onChange={(e) => setGeneratedOutput(e.target.value)}
-                      className="w-full bg-muted/30 border border-border/40 rounded-xl p-3.5 text-xs font-semibold text-foreground leading-relaxed focus:outline-none resize-y shadow-inner"
-                    />
-                  )}
-                </div>
-              </div>
-            )}
-          </Card>
-
-          {/* AI History */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-heading font-extrabold uppercase text-muted-foreground flex items-center gap-1">
-              <History size={13} /> AI History
-            </h3>
-            <div className="space-y-2">
-              {historyList.map((hist) => (
-                <Card
-                  key={hist.id}
-                  onClick={() => {
-                    const tool = AI_TOOLS.find(t => t.id === hist.toolId);
-                    if (tool) setSelectedTool(tool);
-                    setPromptInput(hist.prompt);
-                    setGeneratedOutput(hist.response);
-                    setDifficulty(hist.optionsSelected.difficulty);
-                    setTone(hist.optionsSelected.tone);
-                    setTargetGrade(hist.optionsSelected.targetGrade);
-                  }}
-                  className="p-3 hover:border-violet-500/40 hover:bg-violet-500/5 transition-all cursor-pointer flex items-center justify-between border-border/50 shadow-soft"
+            {/* Message Stream */}
+            <div className="flex-1 overflow-y-auto my-4 space-y-3.5 pr-1 scrollbar-thin">
+              {chatLogs.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`flex gap-2.5 max-w-[85%] ${msg.sender === "user" ? "ml-auto flex-row-reverse" : ""}`}
                 >
-                  <div className="min-w-0">
-                    <span className="text-[8px] font-extrabold text-violet-600 bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20">
-                      {hist.toolName}
-                    </span>
-                    <h4 className="text-xs font-bold text-foreground mt-1 truncate max-w-[280px]">{hist.prompt}</h4>
-                    <p className="text-[9px] text-muted-foreground">{hist.timestamp} &bull; {hist.optionsSelected.difficulty} difficulty</p>
+                  <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center font-bold text-[9px] uppercase ${
+                    msg.sender === "user" ? "bg-primary text-white" : "bg-violet-500/10 text-violet-600"
+                  }`}>
+                    {msg.sender === "user" ? <User size={11} /> : <Bot size={11} />}
                   </div>
-                  <Button variant="ghost" size="sm" className="h-7 text-[9px] font-bold text-primary">Load</Button>
-                </Card>
+                  <div className={`p-3 rounded-xl text-[10.5px] font-semibold leading-relaxed ${
+                    msg.sender === "user" ? "bg-primary text-white rounded-tr-none" : "bg-card text-foreground rounded-tl-none border border-border/60 shadow-soft"
+                  }`}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              {chatLoading && (
+                <div className="flex gap-2 items-center text-[10px] text-muted-foreground font-semibold">
+                  <Loader2 size={12} className="animate-spin text-primary" />
+                  <span>Sparky is generating suggestions...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Doubt Simulator shortcuts bar */}
+            <div className="flex gap-1.5 pb-2 overflow-x-auto pr-1">
+              {[
+                { title: "Simulate doubt: matrix addition", prompt: "Simulate a high schooler having doubts on matrix additions." },
+                { title: "Create 5 React assessment ideas", prompt: "Give me 5 assessment ideas for React context API." },
+                { title: "Socratic explanation of derivatives", prompt: "Explain derivatives using the analogy of a running car." }
+              ].map(shortcut => (
+                <button
+                  key={shortcut.title}
+                  onClick={() => {
+                    setChatMessage(shortcut.prompt);
+                    toast.info("Prompt copied to chat input.");
+                  }}
+                  className="bg-muted/40 hover:bg-muted/65 border border-border/40 text-muted-foreground hover:text-foreground text-[9px] px-2.5 py-1 rounded-full shrink-0 transition-colors cursor-pointer"
+                >
+                  {shortcut.title}
+                </button>
               ))}
             </div>
+
+            {/* Chat Input form */}
+            <form onSubmit={handleSendChatMessage} className="flex gap-2 pt-3 border-t border-border">
+              <input
+                type="text"
+                placeholder="Ask Sparky pedagogical questions or type doubt simulation..."
+                value={chatMessage}
+                onChange={e => setChatMessage(e.target.value)}
+                className="h-9 flex-1 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+              />
+              <Button type="submit" disabled={chatLoading} className="h-9 px-3.5 bg-primary text-white font-bold text-xs">
+                <Send size={13} />
+              </Button>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* TAB CONTENT: TEMPLATES & HISTORY */}
+      {activeTab === "templates" && (
+        <div className="space-y-4">
+          <Card className="p-4 border border-border bg-card shadow-sm flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[240px] max-w-xs">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search history content..."
+                value={searchHistoryQuery}
+                onChange={e => setSearchHistoryQuery(e.target.value)}
+                className="h-9 w-full pl-9 pr-3 rounded-button border border-border bg-card text-xs font-semibold text-foreground focus:outline-none"
+              />
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredHistory.map(hist => (
+              <Card
+                key={hist.id}
+                className="p-4 border border-border bg-card shadow-sm hover:border-violet-500/25 transition-all flex flex-col justify-between gap-3"
+              >
+                <div className="space-y-2">
+                  <div className="flex justify-between items-start">
+                    <span className="text-[8px] font-extrabold text-violet-600 bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/20 uppercase">
+                      {hist.toolName}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground">{hist.timestamp}</span>
+                  </div>
+
+                  <h4 className="text-xs font-bold text-foreground line-clamp-1">{hist.prompt}</h4>
+                  <textarea
+                    rows={4}
+                    readOnly
+                    value={hist.response}
+                    className="w-full bg-muted/30 border border-border/40 rounded p-2 text-[10px] font-semibold text-foreground focus:outline-none resize-none leading-relaxed"
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end border-t border-border/40 pt-3">
+                  <Button
+                    onClick={() => {
+                      const tool = AI_TOOLS.find(t => t.id === hist.toolId);
+                      if (tool) setSelectedTool(tool);
+                      setTopicInput(hist.prompt);
+                      setGeneratedOutput(hist.response);
+                      setDifficulty(hist.optionsSelected.difficulty);
+                      setStudentLevel(hist.optionsSelected.targetGrade);
+                      setActiveTab("generators");
+                      toast.success("Loaded back into Playground.");
+                    }}
+                    variant="outline"
+                    className="h-7 text-[9px] font-bold"
+                  >
+                    Reuse prompt
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setHistoryList(prev => prev.filter(h => h.id !== hist.id));
+                      toast.success("History item deleted.");
+                    }}
+                    variant="outline"
+                    className="h-7 text-[9px] font-bold text-rose-500"
+                  >
+                    Delete prompt
+                  </Button>
+                </div>
+              </Card>
+            ))}
           </div>
         </div>
-
-        {/* Right Panel: AI Chat Section */}
-        <Card variant="glass" className="p-4 flex flex-col justify-between h-[550px] border-border/80 shadow-floating">
-          <div className="flex items-center gap-2 border-b border-border/40 pb-3">
-            <Bot size={18} className="text-primary animate-pulse" />
-            <div>
-              <h3 className="text-xs font-heading font-extrabold uppercase text-foreground leading-none">
-                AI Chat Co-pilot
-              </h3>
-              <span className="text-[8px] text-emerald-500 font-extrabold mt-1 block">Sparky Assistant Online</span>
-            </div>
-          </div>
-
-          {/* Chat Messages */}
-          <div className="flex-1 overflow-y-auto my-4 space-y-3 pr-1 scrollbar-thin">
-            {chatLogs.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex gap-2 max-w-[85%] ${msg.sender === "user" ? "ml-auto flex-row-reverse" : ""}`}
-              >
-                <div className={`w-6 h-6 rounded-full shrink-0 flex items-center justify-center font-bold text-[9px] uppercase ${
-                  msg.sender === "user" ? "bg-primary text-white" : "bg-violet-500/10 text-violet-600"
-                }`}>
-                  {msg.sender === "user" ? <User size={10} /> : <Bot size={10} />}
-                </div>
-                <div className={`p-2.5 rounded-lg text-[10px] font-semibold leading-relaxed ${
-                  msg.sender === "user" ? "bg-primary text-white rounded-tr-none" : "bg-card text-foreground rounded-tl-none border border-border/60"
-                }`}>
-                  {msg.text}
-                </div>
-              </div>
-            ))}
-            {chatLoading && (
-              <div className="flex gap-2 items-center text-[10px] text-muted-foreground font-semibold">
-                <Loader2 size={12} className="animate-spin text-primary" />
-                <span>Sparky is formulating a response...</span>
-              </div>
-            )}
-          </div>
-
-          {/* Chat Form */}
-          <form onSubmit={handleSendChatMessage} className="flex gap-2 pt-3 border-t border-border/40">
-            <input
-              type="text"
-              placeholder="Ask Sparky for class tips..."
-              value={chatMessage}
-              onChange={(e) => setChatMessage(e.target.value)}
-              className="h-9 flex-1 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-            />
-            <Button type="submit" disabled={chatLoading} className="h-9 px-3.5 bg-primary text-white font-bold text-xs">
-              <Send size={13} />
-            </Button>
-          </form>
-        </Card>
-      </div>
+      )}
     </motion.div>
   );
 });

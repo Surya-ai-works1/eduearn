@@ -41,7 +41,7 @@ const CALLBACK_ERRORS: Record<string, string> = {
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isLoading } = useAuth();
+  const { login, user, isAuthenticated, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
 
   // Read callback errors at render time
@@ -52,6 +52,19 @@ export default function LoginPage() {
       : null;
 
   const [formError, setFormError] = useState<string | null>(callbackError);
+
+  // Auto-redirect already authenticated users to their correct journeys
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role === "tutor") {
+        router.replace("/tutor/dashboard");
+      } else if (user.role === "admin") {
+        router.replace("/admin/dashboard");
+      } else {
+        router.replace("/student/dashboard");
+      }
+    }
+  }, [user, isAuthenticated, router]);
 
   const {
     register,
@@ -91,9 +104,15 @@ export default function LoginPage() {
       }
 
       toast.success(result.message);
-      const redirect = searchParams.get("redirect") ?? "/welcome";
-      // Use replace so /login is removed from the back-stack after authentication.
-      router.replace(redirect);
+      const userObj = useAuth.getState().user;
+      if (userObj?.role === "tutor") {
+        router.replace("/tutor/dashboard");
+      } else if (userObj?.role === "admin") {
+        router.replace("/admin/dashboard");
+      } else {
+        const redirect = searchParams.get("redirect") ?? "/welcome";
+        router.replace(redirect);
+      }
     } catch (err) {
       setFormError(normalizeError(err));
     }

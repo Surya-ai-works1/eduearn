@@ -26,7 +26,7 @@ export const Messages = React.memo(function Messages() {
     >
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-heading font-extrabold text-foreground">Messages</h2>
+          <h2 className="text-base font-bold text-foreground">Messages</h2>
           <p className="text-[10px] text-muted-foreground mt-0.5">
             {MOCK_CONVERSATIONS.length} conversations
             {unreadCount > 0 && ` · ${unreadCount} unread`}

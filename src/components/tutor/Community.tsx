@@ -16,7 +16,7 @@ export const Community = React.memo(function Community() {
       className="space-y-5"
     >
       <div>
-        <h2 className="text-base font-heading font-extrabold text-foreground">Community</h2>
+        <h2 className="text-base font-bold text-foreground">Community</h2>
         <p className="text-[10px] text-muted-foreground mt-0.5">Connect with students and other tutors</p>
       </div>
 

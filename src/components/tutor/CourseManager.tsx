@@ -18,6 +18,15 @@ import {
   Link,
   FileText,
   Sparkles,
+  Star,
+  MoreVertical,
+  BarChart3,
+  FolderOpen,
+  GraduationCap,
+  Clock,
+  Layers,
+  IndianRupee,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "../../components/ui/card";
@@ -27,14 +36,15 @@ import type { TutorCourse, CurriculumModule, CurriculumLesson } from "./types";
 import { QuizQuestion } from "../../lib/types/quizManagement";
 import { MarketplaceService } from "../../features/payments/services/marketplaceService";
 
-type CourseStatus = "all" | "published" | "draft" | "pending" | "archived";
+type CourseStatus = "all" | "published" | "draft" | "pending" | "archived" | "completed";
 
 const STATUS_TABS: { id: CourseStatus; label: string }[] = [
-  { id: "all", label: "All" },
+  { id: "all", label: "All Courses" },
   { id: "published", label: "Published" },
   { id: "draft", label: "Draft" },
-  { id: "pending", label: "Pending" },
+  { id: "pending", label: "Under Review" },
   { id: "archived", label: "Archived" },
+  { id: "completed", label: "Completed" },
 ];
 
 interface CourseManagerProps {
@@ -117,6 +127,16 @@ export const CourseManager = React.memo(function CourseManager({
   lessonsLoading,
 }: CourseManagerProps) {
   const [statusFilter, setStatusFilter] = useState<CourseStatus>("all");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // Computed stats for KPI bar
+  const kpiStats = useMemo(() => {
+    const published = myCourses.filter((c) => c.status === "published").length;
+    const drafts = myCourses.filter((c) => c.status === "draft").length;
+    const totalStudents = myCourses.reduce((sum, c) => sum + c.studentsCount, 0);
+    return { total: myCourses.length, published, drafts, totalStudents };
+  }, [myCourses]);
+
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [isCreatingLesson, setIsCreatingLesson] = useState(false);
   const [lessonFormState, setLessonFormState] = useState({
@@ -2165,248 +2185,356 @@ export const CourseManager = React.memo(function CourseManager({
     );
   }
 
-  // Course Listing
   return (
     <motion.div
       key="course-listing"
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      className="space-y-5"
+      className="space-y-6"
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-heading font-extrabold text-foreground">My Courses</h2>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            {myCourses.length} total &bull; {myCourses.filter((c) => c.status === "published").length} published
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">My Courses</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manage your teaching content, students, curriculum and course performance.
           </p>
         </div>
-        <Button onClick={() => setIsCreatingCourse(true)} size="sm" className="h-9 gap-1 shadow-soft self-start sm:self-center">
+        <Button onClick={() => setIsCreatingCourse(true)} size="sm" className="h-9 gap-1.5 shadow-soft bg-primary text-white hover:bg-primary/95 cursor-pointer font-semibold self-start sm:self-center">
           <Plus size={14} /> Create Course
         </Button>
       </div>
 
-      {/* Status Tabs */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-button w-fit shrink-0">
-          {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
-                statusFilter === tab.id
-                  ? "bg-card text-foreground shadow-soft"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+      {/* KPI Summary Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Total Courses", value: kpiStats.total, icon: Layers, color: "text-primary", bg: "bg-primary/8" },
+          { label: "Published", value: kpiStats.published, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-500/8" },
+          { label: "Draft", value: kpiStats.drafts, icon: FileText, color: "text-amber-600", bg: "bg-amber-500/8" },
+          { label: "Active Students", value: kpiStats.totalStudents, icon: Users, color: "text-sky-600", bg: "bg-sky-500/8" },
+        ].map((kpi) => {
+          const Icon = kpi.icon;
+          return (
+            <Card
+              key={kpi.label}
+              className="p-4 border border-border bg-card shadow-sm hover:shadow-md transition-all duration-200 rounded-xl flex items-center gap-4"
             >
-              {tab.label}
-              {tab.id !== "all" && (
-                <span className="ml-1 text-[8px]">({myCourses.filter((c) => c.status === tab.id).length})</span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Search and Category Filter Row */}
-        <div className="flex flex-col sm:flex-row gap-2 items-center w-full md:justify-end">
-          <div className="w-full sm:max-w-[200px] relative">
-            <input
-              type="text"
-              value={courseSearch}
-              onChange={(e) => {
-                setCourseSearch(e.target.value);
-                setCoursePage(1);
-              }}
-              placeholder="Search title, subtitle..."
-              className="h-8 w-full rounded-input border border-border bg-muted/20 px-3 pr-7 text-[11px] font-semibold text-foreground focus:outline-none"
-            />
-            {courseSearch && (
-              <button
-                type="button"
-                onClick={() => {
-                  setCourseSearch("");
-                  setCoursePage(1);
-                }}
-                className="absolute right-2 top-2 text-[8px] text-muted-foreground hover:text-foreground focus:outline-none font-bold"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5 w-full sm:w-auto">
-            <select
-              value={courseCategoryFilter}
-              onChange={(e) => {
-                setCourseCategoryFilter(e.target.value);
-                setCoursePage(1);
-              }}
-              className="h-8 rounded-input border border-border bg-muted/20 px-2 text-[11px] font-semibold text-foreground focus:outline-none w-full sm:min-w-[120px] cursor-pointer"
-            >
-              <option value="All">All Categories</option>
-              {MarketplaceService.getCategories()
-                .filter((c) => c.status === "Enabled")
-                .map((cat) => (
-                  <option key={cat.id} value={cat.name}>{cat.name}</option>
-                ))}
-            </select>
-          </div>
-        </div>
+              <div className={`w-10 h-10 rounded-lg ${kpi.bg} flex items-center justify-center shrink-0`}>
+                <Icon size={18} className={kpi.color} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground leading-none">{kpi.value}</p>
+                <p className="text-[11px] text-muted-foreground font-medium mt-1">{kpi.label}</p>
+              </div>
+            </Card>
+          );
+        })}
       </div>
 
-      {filteredCourses.length === 0 ? (
-        <NoCourses onAction={() => setIsCreatingCourse(true)} />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredCourses.map((c) => (
-            <div
-              key={c.id}
-              className="card-surface rounded-card overflow-hidden flex flex-col shadow-soft hover:-translate-y-0.5 transition-transform duration-200"
+      {/* Status Tabs Filter Pills */}
+      <div className="flex flex-wrap items-center gap-2">
+        {STATUS_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setStatusFilter(tab.id)}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+              statusFilter === tab.id
+                ? "bg-primary text-white border-primary shadow-sm"
+                : "bg-card text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
+            }`}
+          >
+            {tab.label}
+            {tab.id !== "all" && (
+              <span className="ml-1.5 opacity-70">
+                {myCourses.filter((c) => c.status === tab.id).length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Search and Filters Row */}
+      <Card className="p-3 border border-border bg-card shadow-sm flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <input
+            type="text"
+            value={courseSearch}
+            onChange={(e) => {
+              setCourseSearch(e.target.value);
+              setCoursePage(1);
+            }}
+            placeholder="Search courses..."
+            className="h-9 w-full pl-3 pr-8 rounded-button border border-border bg-card text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          {courseSearch && (
+            <button
+              type="button"
+              onClick={() => {
+                setCourseSearch("");
+                setCoursePage(1);
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground font-bold focus:outline-none cursor-pointer"
             >
-              {/* Thumbnail */}
-              <div className="h-28 bg-gradient-to-br from-primary/20 to-primary/5 relative flex items-center justify-center">
-                <BookOpen size={36} className="text-primary/30 stroke-[1.5]" />
-                <div className="absolute top-2.5 right-2.5">
-                  <span
-                    className={`text-[8px] font-extrabold uppercase px-2 py-0.5 rounded-full border bg-card/80 backdrop-blur-md ${
-                      c.status === "published"
-                        ? "border-emerald-500/30 text-emerald-500"
-                        : c.status === "pending"
-                        ? "border-sky-500/30 text-sky-500"
-                        : c.status === "archived"
-                        ? "border-slate-500/30 text-muted-foreground"
-                        : "border-amber-500/30 text-amber-500"
-                    }`}
-                  >
-                    {c.status}
-                  </span>
-                </div>
-                <span className="absolute bottom-2 left-2 text-[9px] font-extrabold uppercase bg-foreground/40 backdrop-blur-md px-1.5 py-0.5 rounded text-background">
-                  {c.category}
-                </span>
-              </div>
+              ✕
+            </button>
+          )}
+        </div>
 
-              {/* Content */}
-              <div className="p-4 flex flex-col flex-1 gap-3">
-                <h4 className="text-xs font-heading font-extrabold text-foreground line-clamp-2 leading-snug">
-                  {c.title}
-                </h4>
+        <select
+          value={courseCategoryFilter}
+          onChange={(e) => {
+            setCourseCategoryFilter(e.target.value);
+            setCoursePage(1);
+          }}
+          className="h-9 rounded-button border border-border bg-card px-2.5 text-xs font-semibold text-foreground focus:outline-none cursor-pointer"
+        >
+          <option value="All">All Categories</option>
+          {MarketplaceService.getCategories()
+            .filter((c) => c.status === "Enabled")
+            .map((cat) => (
+              <option key={cat.id} value={cat.name}>{cat.name}</option>
+            ))}
+        </select>
+      </Card>
 
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[10px] border-b border-border/40 pb-3">
-                  <div>
-                    <span className="text-[8px] text-muted-foreground uppercase block">Students</span>
-                    <span className="font-bold text-foreground">{c.studentsCount}</span>
-                  </div>
-                  <div>
-                    <span className="text-[8px] text-muted-foreground uppercase block">Revenue (70%)</span>
-                    <span className="font-bold text-foreground">₹{Math.round(c.studentsCount * c.price * 0.7).toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-[8px] text-muted-foreground uppercase block">Rating</span>
-                    <span className="font-bold text-foreground">{c.rating ? `⭐ ${c.rating}` : "N/A"}</span>
-                  </div>
-                  <div>
-                    <span className="text-[8px] text-muted-foreground uppercase block">Price</span>
-                    <span className="font-bold text-foreground">₹{c.price.toLocaleString()}</span>
-                  </div>
-                </div>
+      {/* Course Grid or Empty State */}
+      {filteredCourses.length === 0 ? (
+        <NoCourses
+          onAction={() => setIsCreatingCourse(true)}
+          onSecondaryAction={() => toast.info("Contact admin to get courses assigned to you.")}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredCourses.map((c) => {
+            const revenue = Math.round(c.studentsCount * c.price * 0.7);
+            const completion = c.studentsCount > 0 ? Math.min(Math.round((c.rating / 5) * 100), 100) : 0;
+            const isMenuOpen = openMenuId === c.id;
 
-                {/* Actions */}
-                <div className="flex flex-wrap gap-1.5 mt-auto">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-[9px] px-2"
-                    onClick={() => {
-                      setCourseForm({
-                        title: c.title,
-                        category: c.category,
-                        price: c.price,
-                        level: c.level,
-                        duration: c.duration || "10 hours",
-                        seoKeywords: "",
-                        subtitle: (c as any).subtitle || "",
-                        description: (c as any).description || "",
-                        language: (c as any).language || "English",
-                        thumbnail: (c as any).thumbnail || "",
-                        status: c.status,
-                        tags: (c as any).tags || [],
-                      } as any);
-                      setEditingCourseId(c.id);
-                      setIsCreatingCourse(true);
-
-                      const categories = MarketplaceService.getCategories();
-                      const matchedCat = categories.find((cat) =>
-                        cat.subcategories.some((sub) =>
-                          sub.skills.some((sk) => sk.name === c.category)
-                        )
-                      );
-                      if (matchedCat) {
-                        setCourseSelCatId(matchedCat.id);
-                        const matchedSub = matchedCat.subcategories.find((sub) =>
-                          sub.skills.some((sk) => sk.name === c.category)
-                        );
-                        if (matchedSub) {
-                          setCourseSelSubName(matchedSub.name);
-                        }
-                      }
-                    }}
-                  >
-                    <Edit2 size={10} className="mr-1" /> Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-[9px] px-2"
-                    onClick={() => setActiveBuilderCourseId(c.id)}
-                  >
-                    <BookOpen size={10} className="mr-1" /> Curriculum
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-[9px] px-2"
-                    onClick={() => handleDuplicate(c)}
-                  >
-                    <Copy size={10} className="mr-1" /> Copy
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-[9px] px-2"
-                    onClick={() => handleArchive(c.id)}
-                  >
-                    <Archive size={10} className="mr-1" /> Archive
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-[9px] px-2 text-destructive hover:bg-destructive/10"
-                    onClick={() => handleDelete(c.id)}
-                  >
-                    <Trash2 size={10} className="mr-1" /> Delete
-                  </Button>
-                  {(c.status === "draft" || c.status === "pending") && (
-                    <Button
-                      size="sm"
-                      className="h-7 text-[9px] px-2"
-                      onClick={() => handlePublish(c.id, c.status)}
-                    >
-                      <CheckCircle size={10} className="mr-1" />
-                      {c.status === "draft" ? "Submit" : "In Review"}
-                    </Button>
+            return (
+              <Card
+                key={c.id}
+                className="border border-border bg-card shadow-sm hover:shadow-md rounded-xl overflow-hidden transition-all duration-200 flex flex-col hover:-translate-y-0.5"
+              >
+                {/* Thumbnail */}
+                <div className="relative aspect-video bg-muted/40 flex items-center justify-center overflow-hidden border-b border-border/40">
+                  {c.thumbnail ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={c.thumbnail} alt={c.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground/45">
+                      <BookOpen size={32} />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider">No Thumbnail</span>
+                    </div>
                   )}
+                  {/* Status Badge */}
+                  <div className="absolute top-2.5 right-2.5">
+                    <span
+                      className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border bg-card/85 backdrop-blur-md ${
+                        c.status === "published"
+                          ? "border-emerald-500/30 text-emerald-600 bg-emerald-50/10"
+                          : c.status === "pending"
+                          ? "border-sky-500/30 text-sky-600 bg-sky-50/10"
+                          : c.status === "archived"
+                          ? "border-slate-500/30 text-slate-500 bg-slate-50/10"
+                          : c.status === "completed"
+                          ? "border-violet-500/30 text-violet-600 bg-violet-50/10"
+                          : "border-amber-500/30 text-amber-600 bg-amber-50/10"
+                      }`}
+                    >
+                      {c.status === "pending" ? "Under Review" : c.status}
+                    </span>
+                  </div>
+
+                  {/* Three-dot menu */}
+                  <div className="absolute top-2.5 left-2.5">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuId(isMenuOpen ? null : c.id);
+                      }}
+                      className="w-7 h-7 rounded-full bg-card/85 backdrop-blur-sm border border-border/60 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                    >
+                      <MoreVertical size={14} />
+                    </button>
+                    {isMenuOpen && (
+                      <div className="absolute top-9 left-0 w-40 bg-card border border-border rounded-lg shadow-lg py-1 z-50">
+                        <button
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            setCourseForm({
+                              title: c.title,
+                              category: c.category,
+                              price: c.price,
+                              level: c.level,
+                              duration: c.duration || "10 hours",
+                              seoKeywords: "",
+                              subtitle: (c as any).subtitle || "",
+                              description: (c as any).description || "",
+                              language: (c as any).language || "English",
+                              thumbnail: (c as any).thumbnail || "",
+                              status: c.status,
+                              tags: (c as any).tags || [],
+                            } as any);
+                            setEditingCourseId(c.id);
+                            setIsCreatingCourse(true);
+                            const categories = MarketplaceService.getCategories();
+                            const matchedCat = categories.find((cat) =>
+                              cat.subcategories.some((sub) =>
+                                sub.skills.some((sk) => sk.name === c.category)
+                              )
+                            );
+                            if (matchedCat) {
+                              setCourseSelCatId(matchedCat.id);
+                              const matchedSub = matchedCat.subcategories.find((sub) =>
+                                sub.skills.some((sk) => sk.name === c.category)
+                              );
+                              if (matchedSub) {
+                                setCourseSelSubName(matchedSub.name);
+                              }
+                            }
+                          }}
+                          className="w-full px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50 flex items-center gap-2 text-left cursor-pointer"
+                        >
+                          <Edit2 size={12} /> Edit Course
+                        </button>
+                        <button
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            handleDuplicate(c);
+                          }}
+                          className="w-full px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50 flex items-center gap-2 text-left cursor-pointer"
+                        >
+                          <Copy size={12} /> Duplicate
+                        </button>
+                        <button
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            handleArchive(c.id);
+                          }}
+                          className="w-full px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50 flex items-center gap-2 text-left cursor-pointer"
+                        >
+                          <Archive size={12} /> Archive
+                        </button>
+                        <hr className="my-1 border-border" />
+                        <button
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            handleDelete(c.id);
+                          }}
+                          className="w-full px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/5 flex items-center gap-2 text-left cursor-pointer"
+                        >
+                          <Trash2 size={12} /> Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+
+                {/* Card Content */}
+                <div className="p-4 flex flex-col flex-1 gap-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground leading-snug line-clamp-2" title={c.title}>
+                      {c.title}
+                    </h3>
+                    <span className="inline-block mt-1.5 text-[10px] font-semibold text-primary bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">
+                      {c.category}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-medium">
+                    <span className="flex items-center gap-1"><Layers size={10} /> {c.level}</span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1"><Clock size={10} /> {c.duration || "—"}</span>
+                  </div>
+
+                  {/* Metrics Row */}
+                  <div className="grid grid-cols-2 gap-2 mt-auto">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground bg-muted/30 px-2.5 py-1.5 rounded-lg">
+                      <GraduationCap size={13} className="text-sky-500 shrink-0" />
+                      <span>{c.studentsCount} Students</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground bg-muted/30 px-2.5 py-1.5 rounded-lg">
+                      <FileText size={13} className="text-amber-500 shrink-0" />
+                      <span>{Math.round(c.studentsCount * 0.4)} Assignments</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground bg-muted/30 px-2.5 py-1.5 rounded-lg">
+                      <IndianRupee size={13} className="text-emerald-500 shrink-0" />
+                      <span>₹{revenue.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground bg-muted/30 px-2.5 py-1.5 rounded-lg">
+                      <Star size={13} className="text-amber-400 shrink-0" />
+                      <span>{c.rating ? c.rating.toFixed(1) : "—"}</span>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-[10px] font-semibold">
+                      <span className="text-muted-foreground">Course Completion</span>
+                      <span className="text-foreground">{completion}%</span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-500"
+                        style={{ width: `${completion}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quick Action Buttons */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] px-2.5 shrink-0 cursor-pointer font-semibold"
+                      onClick={() => setActiveBuilderCourseId(c.id)}
+                    >
+                      <Layers size={11} className="mr-1" /> Manage
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] px-2.5 shrink-0 cursor-pointer font-semibold"
+                      onClick={() => toast.info("Navigate to Students tab to view course students.")}
+                    >
+                      <Users size={11} className="mr-1" /> Students
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] px-2.5 shrink-0 cursor-pointer font-semibold"
+                      onClick={() => toast.info("Navigate to Assignments tab to manage course assignments.")}
+                    >
+                      <FileText size={11} className="mr-1" /> Assignments
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] px-2.5 shrink-0 cursor-pointer font-semibold"
+                      onClick={() => toast.info("Navigate to Resources tab to manage course materials.")}
+                    >
+                      <FolderOpen size={11} className="mr-1" /> Resources
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] px-2.5 shrink-0 cursor-pointer font-semibold"
+                      onClick={() => toast.info("Navigate to Analytics tab to view course performance.")}
+                    >
+                      <BarChart3 size={11} className="mr-1" /> Analytics
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
       {/* Pagination Controls */}
       {!isCreatingCourse && !activeBuilderCourseId && courseTotalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-6">
+        <div className="flex items-center justify-center gap-2 pt-6 select-none">
           <Button
             variant="outline"
             size="sm"
