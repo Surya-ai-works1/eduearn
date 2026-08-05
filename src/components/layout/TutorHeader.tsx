@@ -132,24 +132,7 @@ export function TutorHeader() {
       completeProfile({
         fullName: profileForm.fullName,
         email: profileForm.email,
-        avatarUrl: profileForm.profilePhoto || user?.avatarUrl,
       });
-
-      // Synchronize dev cookies/storage
-      const savedUserStr = localStorage.getItem("eduearn_session");
-      if (savedUserStr) {
-        try {
-          const parsed = JSON.parse(savedUserStr);
-          parsed.fullName = profileForm.fullName;
-          parsed.email = profileForm.email;
-          parsed.avatarUrl = profileForm.profilePhoto || parsed.avatarUrl;
-          localStorage.setItem("eduearn_session", JSON.stringify(parsed));
-          
-          if (document) {
-            document.cookie = `eduearn_dev_user=${encodeURIComponent(JSON.stringify(parsed))}; path=/; max-age=31536000; SameSite=Lax`;
-          }
-        } catch {}
-      }
     }
 
     setIsProfileDrawerOpen(false);

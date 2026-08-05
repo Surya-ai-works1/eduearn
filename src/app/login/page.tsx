@@ -119,18 +119,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleQuickLogin = (email: string, password: string) => {
-    setValue("email", email, { shouldValidate: true });
-    setValue("password", password, { shouldValidate: true });
-    // Execute submit
-    const values: LoginFields = { email, password, rememberMe: true };
-    onSubmit(values);
-  };
 
-  const demoAccounts = [
-    { label: "Student", email: "student@eduearn.dev", password: "Student@123" },
-    { label: "Tutor", email: "tutor@eduearn.dev", password: "Tutor@123" },
-  ];
 
   return (
     <AuthShell
@@ -219,28 +208,7 @@ export default function LoginPage() {
         </motion.div>
       </form>
 
-      {/* Quick Sandbox Login in Development Mode */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="mt-6 border-t border-border/60 pt-5 space-y-3">
-          <div className="flex items-center justify-center gap-2">
-            <span className="h-px w-6 bg-border/60"></span>
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Quick Sandbox Login</span>
-            <span className="h-px w-6 bg-border/60"></span>
-          </div>
-          <div className="grid grid-cols-3 gap-2.5">
-            {demoAccounts.map((account) => (
-              <button
-                key={account.label}
-                type="button"
-                onClick={() => handleQuickLogin(account.email, account.password)}
-                className="flex h-9 items-center justify-center rounded-button border border-border bg-card hover:bg-muted/10 text-[10px] font-bold text-foreground transition-all active:scale-[0.97]"
-              >
-                {account.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       <motion.p
         custom={4}

@@ -157,46 +157,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
 
   initialize: async () => {
     try {
-      const isDev = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEV_MODE === "true";
-      
-      if (isDev) {
-        repairSessionInDev();
-        
-        // Setup automatic store subscription to sync eduearn_session and dev cookies
-        useAuth.subscribe((state) => {
-          if (typeof window !== "undefined") {
-            if (state.isAuthenticated && state.user) {
-              localStorage.setItem("eduearn_session", JSON.stringify({ user: state.user, isAuthenticated: true }));
-              const userJson = encodeURIComponent(JSON.stringify(state.user));
-              document.cookie = `eduearn-bypass-session=1; path=/; max-age=86400; SameSite=Lax`;
-              document.cookie = `eduearn_dev_role=${state.user.role}; path=/; max-age=86400; SameSite=Lax`;
-              document.cookie = `eduearn_dev_user=${userJson}; path=/; max-age=86400; SameSite=Lax`;
-            } else {
-              localStorage.removeItem("eduearn_session");
-              document.cookie = `eduearn-bypass-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
-              document.cookie = `eduearn_dev_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
-              document.cookie = `eduearn_dev_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
-            }
-          }
-        });
-
-        const stored = localStorage.getItem("eduearn_session");
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            if (parsed && parsed.user) {
-              set({
-                user: parsed.user,
-                isAuthenticated: !!parsed.isAuthenticated,
-                isLoading: false,
-              });
-              return;
-            }
-          } catch (e) {
-            console.error("Failed to parse eduearn_session inside initialize", e);
-          }
-        }
-      }
+      repairSessionInDev();
       const supabase = getSafeSupabase();
       set({ isLoading: true });
 
@@ -794,12 +755,18 @@ export const useAuth = create<AuthStore>((set, get) => ({
     // Clear stale auth storage and cookies
     if (typeof window !== "undefined") {
       localStorage.removeItem("eduearn_mock_user");
+      localStorage.removeItem("eduearn_session");
+      localStorage.removeItem("eduearn_mock_session");
       localStorage.removeItem("tutor_onboarding_state");
       
       const rememberMe = localStorage.getItem("eduearn_remember_me");
       if (rememberMe !== "true") {
         localStorage.removeItem("eduearn_remembered_email");
       }
+
+      document.cookie = `eduearn-bypass-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+      document.cookie = `eduearn_dev_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+      document.cookie = `eduearn_dev_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
 
       // Explicitly delete all Supabase auth cookies to prevent Next.js middleware session restoration
       document.cookie.split(";").forEach((c) => {

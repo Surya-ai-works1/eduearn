@@ -4,7 +4,6 @@ import Providers from "../providers";
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
 import { constructMetadata } from "../config/metadata";
-import { DevBadge } from "../components/ui/DevBadge";
 import "../styles/globals.css";
 
 const inter = Inter({
@@ -39,7 +38,6 @@ export default function RootLayout({
           </React.Suspense>
           <div className="flex-grow w-full">{children}</div>
           <Footer />
-          <DevBadge />
         </Providers>
       </body>
     </html>

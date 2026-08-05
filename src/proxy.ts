@@ -59,47 +59,7 @@ function createRedirectResponse(url: URL, baseResponse: NextResponse) {
 }
 
 export async function proxy(request: NextRequest) {
-  if (process.env.NEXT_PUBLIC_DEV_MODE === "true" && process.env.NODE_ENV !== "production") {
-    const { response } = createMiddlewareClient(request);
-    const devRole = request.cookies.get("eduearn_dev_role")?.value;
-    const devUserStr = request.cookies.get("eduearn_dev_user")?.value;
-    
-    const pathname = request.nextUrl.pathname;
-    if (devRole && devRole !== "admin" && !pathname.startsWith("/admin")) {
-      let complete = true;
-      let userFullName = "Dev User";
-      if (devUserStr) {
-        try {
-          const parsedUser = JSON.parse(decodeURIComponent(devUserStr));
-          complete = parsedUser.complete !== false;
-          userFullName = parsedUser.fullName || parsedUser.full_name || "Dev User";
-        } catch {}
-      }
-      const decision = resolveRouteDecision(devRole, pathname, complete);
-      const permCount = getPermissionsCountForRole(devRole as any);
-      
-      console.log(`[Dev Middleware Log]
-------------------------------------
-Current User:      ${userFullName}
-Current Role:      ${devRole}
-Permission Count:  ${permCount}
-Session Source:    Cookie (eduearn_dev_user)
-Route:             ${pathname}
-Route Decision:    ${decision.allowed ? "ALLOW" : "BLOCK"}
-Reason:            ${decision.reason}
-------------------------------------`);
 
-      if (!decision.allowed && decision.redirectPath) {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = decision.redirectPath;
-        if (decision.redirectPath === "/login" || decision.redirectPath === "/tutor/login") {
-          redirectUrl.searchParams.set("redirect", pathname);
-        }
-        return createRedirectResponse(redirectUrl, response);
-      }
-    }
-    return response;
-  }
 
   // 1. Rate Limiting Protection Check
   const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
@@ -167,25 +127,13 @@ Reason:            ${decision.reason}
   // getUser() is authoritative — it validates the token with the Supabase server.
   // This also silently refreshes the access token when it is close to expiry.
   let user = null;
-  let dbRole: string | null = null;
   try {
     const {
       data: { user: fetchedUser },
     } = await supabase.auth.getUser();
     user = fetchedUser;
-
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-      if (profile) {
-        dbRole = profile.role;
-      }
-    }
   } catch (err) {
-    console.error("Supabase session or profile verification failed:", err);
+    console.error("Supabase session verification failed:", err);
     if (isProtectedPage) {
       const loginUrl = request.nextUrl.clone();
       if (request.nextUrl.pathname.startsWith("/tutor")) {
@@ -199,28 +147,8 @@ Reason:            ${decision.reason}
     }
   }
 
-  const role = dbRole || "student";
-  const isComplete = user?.user_metadata?.complete === true;
-
-  // ── Admin Redirect Enforcement ─────────────────────────────────────────────
-  if (user && role === "admin") {
-    const isAdminPath = url.pathname.startsWith("/admin");
-    const isAuthBypass =
-      url.pathname.startsWith("/verify-email") ||
-      url.pathname.startsWith("/verify-otp") ||
-      url.pathname.startsWith("/auth/callback") ||
-      url.pathname.startsWith("/api/");
-
-    if (!isAdminPath && !isAuthBypass && (isProtectedPage || isAuthPage)) {
-      url.pathname = "/admin/dashboard";
-      return createRedirectResponse(url, response);
-    }
-  }
-
   // ── Email Verification Guard ─────────────────────────────────────────────
   if (user) {
-    // Development mode: disable email verification if env var is set
-    const devDisableEmailVerification = process.env.DEV_DISABLE_EMAIL_VERIFICATION === 'true';
     const isVerificationBypassPath =
       url.pathname.startsWith("/verify-email") ||
       url.pathname.startsWith("/verify-otp") ||
@@ -230,7 +158,7 @@ Reason:            ${decision.reason}
       url.pathname.startsWith("/reset-password") ||
       url.pathname.startsWith("/auth/callback") ||
       url.pathname.startsWith("/api/");
-    const isEmailConfirmed = devDisableEmailVerification ? true : !!user.email_confirmed_at;
+    const isEmailConfirmed = !!user.email_confirmed_at;
     // If email is not confirmed, redirect any non-bypass page request to /verify-otp
     if (!isEmailConfirmed) {
       if (!isVerificationBypassPath) {
@@ -241,11 +169,14 @@ Reason:            ${decision.reason}
     } else {
       // If email IS confirmed, and they try to visit /verify-email or /verify-otp, bypass it
       if (url.pathname.startsWith("/verify-email") || url.pathname.startsWith("/verify-otp")) {
+        const metadata = user.user_metadata ?? {};
+        const role = metadata.role as string | undefined;
         const hasRole =
           role === "learner" ||
           role === "student" ||
           role === "tutor" ||
           role === "admin";
+        const isComplete = metadata.complete === true;
 
         if (!hasRole) {
           url.pathname = "/choose-role";
@@ -278,11 +209,14 @@ Reason:            ${decision.reason}
 
   // ── 2. Authenticated → auth page ─────────────────────────────────────────
   if (user && isAuthPage) {
+    const metadata = user.user_metadata ?? {};
+    const role = metadata.role as string | undefined;
     const hasRole =
       role === "learner" ||
       role === "student" ||
       role === "tutor" ||
       role === "admin";
+    const isComplete = metadata.complete === true;
 
     if (!hasRole) {
       url.pathname = "/choose-role";
@@ -308,11 +242,13 @@ Reason:            ${decision.reason}
 
   // ── 3. Authenticated + incomplete onboarding ──────────────────────────────
   if (user && isProtectedPage) {
+    const metadata = user.user_metadata ?? {};
     const hasRole =
-      role === "learner" ||
-      role === "student" ||
-      role === "tutor" ||
-      role === "admin";
+      metadata.role === "learner" ||
+      metadata.role === "student" ||
+      metadata.role === "tutor" ||
+      metadata.role === "admin";
+    const isComplete = metadata.complete === true;
 
     if (!hasRole && url.pathname !== "/choose-role") {
       url.pathname = "/choose-role";
@@ -321,7 +257,7 @@ Reason:            ${decision.reason}
 
     // Tutors go to /tutor/onboarding, Students go to /complete-profile
     if (hasRole && !isComplete) {
-      if (role === "tutor") {
+      if (metadata.role === "tutor") {
         if (url.pathname !== "/tutor/onboarding") {
           url.pathname = "/tutor/onboarding";
           return createRedirectResponse(url, response);
@@ -336,6 +272,7 @@ Reason:            ${decision.reason}
 
     // Redirect already completed users away from onboarding pages
     if (hasRole && isComplete && (url.pathname === "/choose-role" || url.pathname === "/complete-profile" || url.pathname === "/tutor/onboarding")) {
+      const role = metadata.role;
       if (role === "admin") {
         url.pathname = "/admin/dashboard";
       } else if (role === "tutor") {
@@ -349,6 +286,9 @@ Reason:            ${decision.reason}
 
   // ── 4. Role-based Access Control (RBAC) security checks ─────────────────
   if (user && isProtectedPage) {
+    const metadata = user.user_metadata ?? {};
+    const role = metadata.role;
+
     // Learner/Student cannot access tutor/admin paths (except tutor onboarding)
     if (role === "learner" || role === "student") {
       if (

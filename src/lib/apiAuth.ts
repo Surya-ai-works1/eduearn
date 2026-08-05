@@ -5,6 +5,24 @@ import { createClient } from "./supabase/server";
 import { IS_MOCK } from "./config";
 
 export async function getApiUser(requiredRole?: "student" | "tutor" | "admin") {
+  if (IS_MOCK) {
+    const role = requiredRole || "admin";
+    // Simulated mock user structure mapping auth and profile properties
+    return {
+      user: {
+        id: role === "admin" ? "mock-admin-id" : role === "tutor" ? "mock-tutor-id" : "mock-student-id",
+        email: `${role}@eduearn.com`,
+        user_metadata: {
+          fullName: `Mock ${role.charAt(0).toUpperCase() + role.slice(1)}`,
+          role: role,
+          complete: true
+        }
+      },
+      profile: {
+        role: role
+      }
+    };
+  }
 
   try {
     const supabase = await createClient();
