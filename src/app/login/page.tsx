@@ -130,7 +130,6 @@ export default function LoginPage() {
   const demoAccounts = [
     { label: "Student", email: "student@eduearn.dev", password: "Student@123" },
     { label: "Tutor", email: "tutor@eduearn.dev", password: "Tutor@123" },
-    { label: "Admin", email: "admin@eduearn.dev", password: "Admin@123" },
   ];
 
   return (

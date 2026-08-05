@@ -109,24 +109,6 @@ export function RequireTutor({ children }: RouteGuardProps) {
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
-        const mockUser = {
-          id: "dev-tutor-id",
-          email: "tutor@eduearn.com",
-          fullName: "Tutor Demo",
-          role: "tutor" as const,
-          complete: true,
-        };
-        localStorage.setItem("eduearn_session", JSON.stringify({ user: mockUser, isAuthenticated: true }));
-        const userJson = encodeURIComponent(JSON.stringify(mockUser));
-        document.cookie = `eduearn-bypass-session=1; path=/; max-age=86400; SameSite=Lax`;
-        document.cookie = `eduearn_dev_role=tutor; path=/; max-age=86400; SameSite=Lax`;
-        document.cookie = `eduearn_dev_user=${userJson}; path=/; max-age=86400; SameSite=Lax`;
-        
-        useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
-        window.location.reload();
-        return;
-      }
       router.replace("/tutor/login");
       return;
     }
@@ -164,25 +146,6 @@ export function RequireAdmin({ children }: RouteGuardProps) {
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
-        const mockUser = {
-          id: "dev-admin-id",
-          email: "admin@eduearn.com",
-          fullName: "Admin Demo",
-          role: "admin" as const,
-          complete: true,
-        };
-        localStorage.setItem("eduearn_session", JSON.stringify({ user: mockUser, isAuthenticated: true }));
-        const userJson = encodeURIComponent(JSON.stringify(mockUser));
-        document.cookie = `eduearn-bypass-session=1; path=/; max-age=86400; SameSite=Lax`;
-        document.cookie = `eduearn_dev_role=admin; path=/; max-age=86400; SameSite=Lax`;
-        document.cookie = `eduearn_dev_user=${userJson}; path=/; max-age=86400; SameSite=Lax`;
-        
-        useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
-        window.location.reload();
-        return;
-      }
-      
       router.replace("/login");
       return;
     }
