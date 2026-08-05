@@ -34,6 +34,7 @@ const CALLBACK_ERRORS: Record<string, string> = {
   missing_code: "The authentication link is invalid or has already been used.",
   exchange_failed: "Your session link has expired. Please request a new one.",
   configuration: "Authentication is not configured. Contact support.",
+  connection_error: "Authentication service is temporarily unavailable. Please try again later.",
 };
 
 // ─── LoginPage ────────────────────────────────────────────────────────────────

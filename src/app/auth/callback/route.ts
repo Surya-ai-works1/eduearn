@@ -53,21 +53,28 @@ export async function GET(request: NextRequest) {
   });
 
   // 1. Exchange the one-time code for a persistent session
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  try {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-  if (error || !data.session) {
-    console.error("[DIAGNOSTIC CALLBACK] Code exchange failed:", error);
+    if (error || !data.session) {
+      console.error("[DIAGNOSTIC CALLBACK] Code exchange failed:", error);
+      const loginUrl = new URL("/login", origin);
+      loginUrl.searchParams.set("error", "exchange_failed");
+      return NextResponse.redirect(loginUrl);
+    }
+
+    console.log("[DIAGNOSTIC CALLBACK] Code exchange succeeded:", {
+      sessionExists: !!data.session,
+      userId: data.session.user.id,
+      email: data.session.user.email,
+      exchangeSuccess: true
+    });
+  } catch (err) {
+    console.error("[DIAGNOSTIC CALLBACK] Code exchange connection failure:", err);
     const loginUrl = new URL("/login", origin);
-    loginUrl.searchParams.set("error", "exchange_failed");
+    loginUrl.searchParams.set("error", "connection_error");
     return NextResponse.redirect(loginUrl);
   }
-
-  console.log("[DIAGNOSTIC CALLBACK] Code exchange succeeded:", {
-    sessionExists: !!data.session,
-    userId: data.session.user.id,
-    email: data.session.user.email,
-    exchangeSuccess: true
-  });
 
   // Success — return the redirect response containing the session cookies
   return response;

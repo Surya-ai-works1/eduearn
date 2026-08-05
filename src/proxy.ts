@@ -59,7 +59,7 @@ function createRedirectResponse(url: URL, baseResponse: NextResponse) {
 }
 
 export async function proxy(request: NextRequest) {
-  if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
+  if (process.env.NEXT_PUBLIC_DEV_MODE === "true" && process.env.NODE_ENV !== "production") {
     const { response } = createMiddlewareClient(request);
     const devRole = request.cookies.get("eduearn_dev_role")?.value;
     const devUserStr = request.cookies.get("eduearn_dev_user")?.value;
@@ -167,9 +167,26 @@ Reason:            ${decision.reason}
 
   // getUser() is authoritative — it validates the token with the Supabase server.
   // This also silently refreshes the access token when it is close to expiry.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const {
+      data: { user: fetchedUser },
+    } = await supabase.auth.getUser();
+    user = fetchedUser;
+  } catch (err) {
+    console.error("Supabase session verification failed:", err);
+    if (isProtectedPage) {
+      const loginUrl = request.nextUrl.clone();
+      if (request.nextUrl.pathname.startsWith("/tutor")) {
+        loginUrl.pathname = "/tutor/login";
+      } else {
+        loginUrl.pathname = "/login";
+      }
+      loginUrl.searchParams.set("error", "connection_error");
+      loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
+      return createRedirectResponse(loginUrl, response);
+    }
+  }
 
   // ── Email Verification Guard ─────────────────────────────────────────────
   if (user) {
