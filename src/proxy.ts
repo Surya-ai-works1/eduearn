@@ -194,6 +194,7 @@ Reason:            ${decision.reason}
     const devDisableEmailVerification = process.env.DEV_DISABLE_EMAIL_VERIFICATION === 'true';
     const isVerificationBypassPath =
       url.pathname.startsWith("/verify-email") ||
+      url.pathname.startsWith("/verify-otp") ||
       url.pathname.startsWith("/login") ||
       url.pathname.startsWith("/register") ||
       url.pathname.startsWith("/forgot-password") ||
@@ -201,16 +202,16 @@ Reason:            ${decision.reason}
       url.pathname.startsWith("/auth/callback") ||
       url.pathname.startsWith("/api/");
     const isEmailConfirmed = devDisableEmailVerification ? true : !!user.email_confirmed_at;
-    // If email is not confirmed, redirect any non-bypass page request to /verify-email
+    // If email is not confirmed, redirect any non-bypass page request to /verify-otp
     if (!isEmailConfirmed) {
       if (!isVerificationBypassPath) {
-        url.pathname = "/verify-email";
+        url.pathname = "/verify-otp";
         url.searchParams.set("email", user.email || "");
         return createRedirectResponse(url, response);
       }
     } else {
-      // If email IS confirmed, and they try to visit /verify-email, bypass it
-      if (url.pathname.startsWith("/verify-email")) {
+      // If email IS confirmed, and they try to visit /verify-email or /verify-otp, bypass it
+      if (url.pathname.startsWith("/verify-email") || url.pathname.startsWith("/verify-otp")) {
         const metadata = user.user_metadata ?? {};
         const role = metadata.role as string | undefined;
         const hasRole =

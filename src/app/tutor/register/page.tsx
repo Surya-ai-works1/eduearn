@@ -82,8 +82,8 @@ export default function TutorRegisterPage() {
         await chooseRole("tutor");
         router.replace("/tutor/onboarding");
       } else {
-        // If email verification is required, redirect to the verify-email page
-        router.push(`/verify-email?email=${encodeURIComponent(values.email)}`);
+        // If email verification is required, redirect to the verify-otp page
+        router.push(`/verify-otp?email=${encodeURIComponent(values.email)}`);
       }
     } catch (err: any) {
       setFormError(normalizeError(err));

@@ -1,23 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Container } from "../../components/layout/Container";
 import { PageWrapper } from "../../components/layout/PageWrapper";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../hooks/useAuth";
+import { createClient } from "../../lib/supabase";
 import { toast } from "sonner";
-import { ShieldCheck, RotateCcw } from "lucide-react";
+import { ShieldCheck, RotateCcw, Loader2 } from "lucide-react";
 
-export default function VerifyOtpPage() {
-  const { user } = useAuth();
+function VerifyOtpContent() {
+  const { initialize } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email") || "";
+  
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
-  // NOTE: verifyOtp is a Phase 4.3 feature. This page is a placeholder.
-  // The sandbox simulation below keeps the UI functional during development.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (code.length !== 6) {
@@ -26,20 +29,59 @@ export default function VerifyOtpPage() {
     }
 
     setIsLoading(true);
-    // Sandbox simulation — real Supabase OTP verification is Phase 4.3
-    await new Promise<void>((resolve) => setTimeout(resolve, 800));
-    setIsLoading(false);
+    const supabase = createClient();
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: "signup"
+      });
 
-    const success = code === "123456";
-    if (success) {
+      setIsLoading(false);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
       toast.success("OTP verified successfully!");
-      if (user && !user.role) {
+      
+      // Authoritatively initialize session store state
+      await initialize();
+      
+      const sessionUser = useAuth.getState().user;
+      if (sessionUser && !sessionUser.role) {
         router.push("/choose-role");
       } else {
         router.push("/complete-profile");
       }
-    } else {
-      toast.error("Invalid OTP code. Use 123456 for sandbox testing.");
+    } catch (err: any) {
+      setIsLoading(false);
+      toast.error(err?.message || "Verification connection failed.");
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email) {
+      toast.error("No email address found to resend verification code.");
+      return;
+    }
+    setIsResending(true);
+    const supabase = createClient();
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+      });
+      setIsResending(false);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Verification code resent to your inbox!");
+      }
+    } catch (err: any) {
+      setIsResending(false);
+      toast.error(err?.message || "Failed to resend code.");
     }
   };
 
@@ -58,9 +100,9 @@ export default function VerifyOtpPage() {
                 OTP Verification
               </h1>
               <p className="text-[10px] text-muted-foreground mt-1 max-w-xs mx-auto leading-relaxed">
-                {"Enter the 6-digit verification code sent to your mobile phone or university inbox. Try code "}
-                <span className="font-extrabold text-foreground">123456</span>
-                {" for local sandbox testing."}
+                {"Enter the 6-digit verification code sent to "}
+                <span className="font-extrabold text-foreground">{email || "your inbox"}</span>
+                {". Please check your email to verify your account."}
               </p>
             </div>
 
@@ -83,16 +125,30 @@ export default function VerifyOtpPage() {
             </form>
 
             <button
-              onClick={() => toast.success("OTP verification code resent!")}
-              className="text-[9px] text-muted-foreground/80 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1 hover:text-foreground cursor-pointer focus:outline-none bg-transparent"
+              onClick={handleResend}
+              disabled={isResending}
+              className="text-[9px] text-muted-foreground/80 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1 hover:text-foreground cursor-pointer focus:outline-none bg-transparent disabled:opacity-50"
             >
-              <RotateCcw size={10} />
-              Resend OTP Code
+              <RotateCcw size={10} className={isResending ? "animate-spin" : ""} />
+              {isResending ? "Resending..." : "Resend OTP Code"}
             </button>
 
           </Card>
         </Container>
       </section>
     </PageWrapper>
+  );
+}
+
+export default function VerifyOtpPage() {
+  return (
+    <Suspense fallback={
+      <div className="py-24 flex flex-col items-center justify-center gap-2 min-h-[80vh]">
+        <Loader2 className="animate-spin text-primary" size={32} />
+        <span className="text-xs text-muted-foreground font-bold">Loading OTP verification...</span>
+      </div>
+    }>
+      <VerifyOtpContent />
+    </Suspense>
   );
 }

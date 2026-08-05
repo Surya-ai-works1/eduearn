@@ -91,8 +91,8 @@ export default function RegisterPage() {
           router.replace("/choose-role");
         }
       } else {
-        console.log("[DIAGNOSTIC] Verification required. Redirecting to verify-email for:", values.email);
-        router.replace(`/verify-email?email=${encodeURIComponent(values.email)}`);
+        console.log("[DIAGNOSTIC] Verification required. Redirecting to verify-otp for:", values.email);
+        router.replace(`/verify-otp?email=${encodeURIComponent(values.email)}`);
       }
     } catch (err: any) {
       console.error("[DIAGNOSTIC] Exception caught during register onSubmit execution:", err);
