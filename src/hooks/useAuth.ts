@@ -83,7 +83,7 @@ function toUserSession(user: User, dbRole?: string | null): UserSession {
           ? metadata.full_name
           : "Student Learner",
     role,
-    complete: metadata.complete === true,
+    complete: metadata.complete !== false,
     emailVerified: !!user.email_confirmed_at,
     avatarUrl: typeof metadata.avatar_url === "string" ? metadata.avatar_url : undefined,
     bio: typeof metadata.bio === "string" ? metadata.bio : undefined,
@@ -241,7 +241,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
       // Synchronous wait for profile sync to ensure authoritative role and completion status are available
       const profile = await syncProfile(supabase, data.user);
       const userRole = profile?.role || data.user.user_metadata?.role || "student";
-      const isComplete = (data.user.user_metadata?.complete === true);
+      const isComplete = (data.user.user_metadata?.complete !== false);
 
       // Set authenticated state immediately
       set({ user: toUserSession(data.user, userRole), isAuthenticated: true, isLoading: false });

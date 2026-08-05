@@ -50,10 +50,18 @@ function VerifyOtpContent() {
       await initialize();
       
       const sessionUser = useAuth.getState().user;
-      if (sessionUser && !sessionUser.role) {
+      if (!sessionUser?.role) {
         router.push("/choose-role");
-      } else {
+      } else if (sessionUser.complete === false) {
         router.push("/complete-profile");
+      } else {
+        if (sessionUser.role === "admin" || sessionUser.role === "super-admin") {
+          router.push("/admin/dashboard");
+        } else if (sessionUser.role === "tutor") {
+          router.push("/tutor/dashboard");
+        } else {
+          router.push("/student/dashboard");
+        }
       }
     } catch (err: any) {
       setIsLoading(false);

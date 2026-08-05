@@ -176,7 +176,7 @@ export async function proxy(request: NextRequest) {
           role === "student" ||
           role === "tutor" ||
           role === "admin";
-        const isComplete = metadata.complete === true;
+        const isComplete = metadata.complete !== false;
 
         if (!hasRole) {
           url.pathname = "/choose-role";
@@ -216,7 +216,7 @@ export async function proxy(request: NextRequest) {
       role === "student" ||
       role === "tutor" ||
       role === "admin";
-    const isComplete = metadata.complete === true;
+    const isComplete = metadata.complete !== false;
 
     if (!hasRole) {
       url.pathname = "/choose-role";
@@ -248,7 +248,7 @@ export async function proxy(request: NextRequest) {
       metadata.role === "student" ||
       metadata.role === "tutor" ||
       metadata.role === "admin";
-    const isComplete = metadata.complete === true;
+    const isComplete = metadata.complete !== false;
 
     if (!hasRole && url.pathname !== "/choose-role") {
       url.pathname = "/choose-role";

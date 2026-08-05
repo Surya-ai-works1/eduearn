@@ -106,13 +106,24 @@ export default function LoginPage() {
 
       toast.success(result.message);
       const userObj = useAuth.getState().user;
-      if (userObj?.role === "tutor") {
-        router.replace("/tutor/dashboard");
-      } else if (userObj?.role === "admin") {
+      const role = result.role || userObj?.role || "student";
+      const isComplete = result.complete !== false && userObj?.complete !== false;
+
+      if (role === "admin" || role === "super-admin") {
         router.replace("/admin/dashboard");
+      } else if (role === "tutor") {
+        if (isComplete) {
+          router.replace("/tutor/dashboard");
+        } else {
+          router.replace("/tutor/onboarding");
+        }
       } else {
-        const redirect = searchParams.get("redirect") ?? "/welcome";
-        router.replace(redirect);
+        if (!isComplete) {
+          router.replace("/complete-profile");
+        } else {
+          const redirect = searchParams.get("redirect") ?? "/student/dashboard";
+          router.replace(redirect);
+        }
       }
     } catch (err) {
       setFormError(normalizeError(err));
