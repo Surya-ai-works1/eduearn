@@ -9,6 +9,7 @@ import { Card } from "../../../../components/ui/card";
 import { Button } from "../../../../components/ui/button";
 import { Badge } from "../../../../components/ui/badge";
 import { toast } from "sonner";
+import { useAuth } from "../../../../hooks/useAuth";
 import {
   BookOpen,
   Star,
@@ -50,6 +51,7 @@ export default function SchoolSubjectPage({ params }: PageProps) {
 }
 
 function SubjectContent({ params }: PageProps) {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const boardSlug = searchParams.get("board") || "cbse";
   const classSlug = searchParams.get("class") || "class-10";
@@ -213,9 +215,24 @@ function SubjectContent({ params }: PageProps) {
                 <div className="text-2xl font-extrabold text-primary mt-1">₹999</div>
                 <div className="text-[10px] text-muted-foreground">per month</div>
               </div>
-              <Button className="w-full" size="sm" onClick={() => toast.success("Redirecting to enrollment checkout...")}>
-                Enroll Now
-              </Button>
+              {user?.role === "tutor" ? (
+                <Button
+                  aria-disabled="true"
+                  title="Tutor accounts cannot enroll in courses. Switch to a Student account to purchase this course."
+                  onClick={() => {
+                    toast.error("Enrollment is available only for Student accounts.");
+                  }}
+                  className="w-full opacity-60 cursor-not-allowed"
+                  size="sm"
+                  aria-label="Enroll Now. Tutor accounts cannot enroll in courses. Switch to a Student account to purchase this course."
+                >
+                  Enroll Now
+                </Button>
+              ) : (
+                <Button className="w-full" size="sm" onClick={() => toast.success("Redirecting to enrollment checkout...")}>
+                  Enroll Now
+                </Button>
+              )}
               <button
                 onClick={() => toast.info("Free trial demo class booked! You will receive a confirmation shortly.")}
                 className="w-full text-[10px] text-primary font-bold hover:underline text-center block"
@@ -450,9 +467,23 @@ function SubjectContent({ params }: PageProps) {
             >
               Free Trial
             </button>
-            <Button onClick={() => toast.success("Redirecting to checkout...")}>
-              Enroll Now – From ₹999/mo
-            </Button>
+            {user?.role === "tutor" ? (
+              <Button
+                aria-disabled="true"
+                title="Tutor accounts cannot enroll in courses. Switch to a Student account to purchase this course."
+                onClick={() => {
+                  toast.error("Enrollment is available only for Student accounts.");
+                }}
+                className="opacity-60 cursor-not-allowed"
+                aria-label="Enroll Now. Tutor accounts cannot enroll in courses. Switch to a Student account to purchase this course."
+              >
+                Enroll Now – From ₹999/mo
+              </Button>
+            ) : (
+              <Button onClick={() => toast.success("Redirecting to checkout...")}>
+                Enroll Now – From ₹999/mo
+              </Button>
+            )}
           </div>
         </Container>
       </section>

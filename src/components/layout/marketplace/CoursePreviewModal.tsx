@@ -8,6 +8,7 @@ import { Divider } from "../../ui/divider";
 import { Star, Clock, User, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "../../../utils/formatCurrency";
+import { useAuth } from "../../../hooks/useAuth";
 
 interface CourseType {
   id: string;
@@ -34,6 +35,7 @@ export function CoursePreviewModal({
   isOpen,
   onClose,
 }: CoursePreviewModalProps) {
+  const { user } = useAuth();
   if (!course) return null;
 
   // Render mock curriculum preview lectures based on course title
@@ -141,9 +143,24 @@ export function CoursePreviewModal({
             <Button variant="outline" size="sm" onClick={onClose}>
               Cancel
             </Button>
-            <Button size="sm" onClick={handleEnroll}>
-              Enroll Now
-            </Button>
+            {user?.role === "tutor" ? (
+              <Button
+                aria-disabled="true"
+                title="Tutor accounts cannot enroll in courses. Switch to a Student account to purchase this course."
+                onClick={() => {
+                  toast.error("Enrollment is available only for Student accounts.");
+                }}
+                size="sm"
+                className="opacity-60 cursor-not-allowed"
+                aria-label="Enroll Now. Tutor accounts cannot enroll in courses. Switch to a Student account to purchase this course."
+              >
+                Enroll Now
+              </Button>
+            ) : (
+              <Button size="sm" onClick={handleEnroll}>
+                Enroll Now
+              </Button>
+            )}
           </div>
         </div>
 

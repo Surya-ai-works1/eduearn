@@ -297,6 +297,86 @@ export const DashboardOverview = React.memo(function DashboardOverview({
         </div>
       )}
 
+      {/* Tutor Quick Actions Grid Section */}
+      <div className="space-y-4 select-none">
+        <h3 className="text-sm sm:text-base font-heading font-extrabold uppercase tracking-wider text-foreground">
+          Tutor Quick Actions
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[
+            {
+              title: "Create Course",
+              description: "Build a new learning program",
+              icon: Plus,
+              action: onCreateCourse,
+              color: "text-purple-500 bg-purple-500/10 border-purple-500/20",
+            },
+            {
+              title: "Manage Courses",
+              description: "Manage lessons & curriculum",
+              icon: BookOpenCheck,
+              action: () => onTabChange("courses"),
+              color: "text-primary bg-primary/10 border-primary/20",
+            },
+            {
+              title: "Students",
+              description: "Track enrollments & grades",
+              icon: Users,
+              action: () => onTabChange("students"),
+              color: "text-teal-500 bg-teal-500/10 border-teal-500/20",
+            },
+            {
+              title: "Reviews",
+              description: "Check ratings & feedback",
+              icon: Heart,
+              action: () => onTabChange("reviews"),
+              color: "text-pink-500 bg-pink-500/10 border-pink-500/20",
+            },
+            {
+              title: "Analytics",
+              description: "Analyze metrics & reach",
+              icon: Activity,
+              action: () => onTabChange("analytics"),
+              color: "text-rose-500 bg-rose-500/10 border-rose-500/20",
+            },
+            {
+              title: "Finance",
+              description: "Track payouts & wallet",
+              icon: Wallet,
+              action: () => onTabChange("finance"),
+              color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+            },
+          ].map((card, idx) => {
+            const Icon = card.icon;
+            return (
+              <Card
+                key={idx}
+                variant="glass"
+                onClick={card.action}
+                className="p-4 border-border hover:border-primary/40 hover:shadow-md cursor-pointer transition-all duration-300 flex flex-col justify-between text-left group"
+              >
+                <div className="space-y-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${card.color}`}>
+                    <Icon size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-foreground group-hover:text-primary transition-colors">
+                      {card.title}
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground mt-1 font-semibold leading-relaxed">
+                      {card.description}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-1 text-[9px] font-black text-primary uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                  Launch Action →
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Main content grid */}
       <div className="grid grid-cols-1 xl:grid-cols-[1.8fr_1fr] gap-6">
         <div className="space-y-8">

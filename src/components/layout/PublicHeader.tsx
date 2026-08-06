@@ -195,7 +195,13 @@ export function PublicHeader() {
       <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8 w-full flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <Link 
-          href="/" 
+          href={
+            user?.role === "tutor"
+              ? "/tutor/dashboard"
+              : user?.role === "admin" || user?.role === "super-admin"
+              ? "/admin/dashboard"
+              : "/"
+          }
           className="shrink-0 flex items-center gap-2 relative z-50 pointer-events-auto"
         >
           {mounted ? (
@@ -459,7 +465,13 @@ export function PublicHeader() {
                       </div>
                       
                       <Link
-                        href={user?.role === "admin" || user?.role === "super-admin" ? "/admin/dashboard" : "/student/dashboard"}
+                        href={
+                          user?.role === "admin" || user?.role === "super-admin"
+                            ? "/admin/dashboard"
+                            : user?.role === "tutor"
+                            ? "/tutor/dashboard"
+                            : "/student/dashboard"
+                        }
                         onClick={() => setActiveDropdown(null)}
                         className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-button transition-colors"
                       >

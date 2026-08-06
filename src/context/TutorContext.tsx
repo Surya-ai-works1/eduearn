@@ -183,11 +183,16 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCreatingCourse, setIsCreatingCourse] = useState(false);
 
   // Sync activeTab based on pathname
   useEffect(() => {
     if (pathname.includes("/tutor/courses")) {
       setActiveTab("courses");
+      if (searchParams.get("create") === "true") {
+        setIsCreatingCourse(true);
+        router.replace("/tutor/courses");
+      }
     } else if (pathname.includes("/tutor/students")) {
       setActiveTab("students");
     } else if (pathname.includes("/tutor/live-classes")) {
@@ -286,7 +291,6 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Course Management ─────────────────────────────────────────────────────
   const [myCourses, setMyCourses] = useState<TutorCourse[]>([]);
-  const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [courseForm, setCourseForm] = useState({
     title: "",

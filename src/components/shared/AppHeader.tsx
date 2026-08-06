@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Search, RefreshCw, Bell, Menu, ChevronDown, User as UserIcon, Settings, LogOut, Shield } from "lucide-react";
+import { Search, RefreshCw, Bell, Menu, ChevronDown, User as UserIcon, Settings, LogOut, Shield, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { ThemeToggle } from "../theme-toggle";
@@ -63,7 +63,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </button>
 
         {/* Platform Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
+        <Link href="/admin/dashboard" className="flex items-center gap-2 shrink-0">
           <Image
             src={logoSrc}
             alt="EduEarn Admin Console"
@@ -74,9 +74,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           />
         </Link>
         <span className="hidden sm:inline text-muted-foreground/30 text-lg font-light mx-1">|</span>
-        <h1 className="hidden sm:block text-[10px] font-heading font-extrabold tracking-widest uppercase text-muted-foreground">
-          Command Panel / <span className="text-primary">{activeTab.replace("-", " ")}</span>
-        </h1>
+        <nav className="hidden sm:flex items-center gap-1.5 text-[10px] font-heading font-extrabold tracking-widest uppercase text-muted-foreground" aria-label="Breadcrumb">
+          <span className="text-muted-foreground">Admin</span>
+          <ChevronRight size={10} className="text-muted-foreground/60" />
+          <span className="text-primary">{activeTab.replace("-", " ")}</span>
+        </nav>
       </div>
 
       <div className="flex items-center gap-3">

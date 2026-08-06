@@ -14,6 +14,7 @@ import { Avatar } from "../../ui/avatar";
 import { toast } from "sonner";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import { CheckoutModal } from "../../../features/payments/components/CheckoutModal";
+import { useAuth } from "../../../hooks/useAuth";
 
 import { MOCK_COURSES, MOCK_TUTORS, MOCK_REVIEWS } from "../../../constants/mockData";
 import {
@@ -47,6 +48,7 @@ export function CourseDetailsClient({
   courseReviews,
   isEnrolled = false,
 }: CourseDetailsClientProps) {
+  const { user } = useAuth();
   const router = useRouter();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
@@ -624,6 +626,24 @@ export function CourseDetailsClient({
                   >
                     Continue Learning
                   </Button>
+                ) : user?.role === "tutor" ? (
+                  <div className="space-y-1.5 w-full">
+                    <Button
+                      aria-disabled="true"
+                      title="Tutor accounts cannot enroll in courses. Switch to a Student account to purchase this course."
+                      onClick={() => {
+                        toast.error("Enrollment is available only for Student accounts.");
+                      }}
+                      size="md"
+                      className="w-full opacity-60 cursor-not-allowed"
+                      aria-label={`${course.price === 0 ? "Enroll Now" : "Buy Now"}. Tutor accounts cannot enroll in courses. Switch to a Student account to purchase this course.`}
+                    >
+                      {course.price === 0 ? "Enroll Now" : `Buy Now for ₹${course.price}`}
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground font-semibold leading-relaxed text-center">
+                      Tutor accounts cannot enroll in courses. Switch to a Student account to purchase this course.
+                    </p>
+                  </div>
                 ) : (
                   <Button
                     onClick={() => {

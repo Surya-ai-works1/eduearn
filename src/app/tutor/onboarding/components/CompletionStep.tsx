@@ -24,8 +24,9 @@ export default function CompletionStep() {
     resetOnboarding();
     if (typeof window !== 'undefined') {
       localStorage.removeItem('tutor_onboarding_state');
+      sessionStorage.setItem("onboardingJustCompleted", "true");
     }
-    router.push('/tutor/dashboard');
+    router.push('/welcome');
   };
 
   return (

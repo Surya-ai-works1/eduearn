@@ -7,12 +7,40 @@ import { PageWrapper } from "../../components/layout/PageWrapper";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../hooks/useAuth";
-import { Sparkles, ArrowRight, BookOpen } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Sparkles, ArrowRight, BookOpen, Plus, BookOpenCheck } from "lucide-react";
 
 export default function WelcomePage() {
   const { user } = useAuth();
+  const router = useRouter();
   const name = user?.fullName || "Student Learner";
   const role = user?.role || "learner";
+  const [checkingAccess, setCheckingAccess] = React.useState(true);
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (role === "admin" || role === "super-admin") {
+      setIsRedirecting(true);
+      router.replace("/admin/dashboard");
+      return;
+    }
+
+    if (role === "tutor") {
+      const justCompleted = sessionStorage.getItem("onboardingJustCompleted") === "true";
+      if (!justCompleted) {
+        setIsRedirecting(true);
+        router.replace("/tutor/dashboard");
+        return;
+      }
+      sessionStorage.removeItem("onboardingJustCompleted");
+    }
+
+    setCheckingAccess(false);
+  }, [role, router]);
+
+  if (role === "admin" || role === "super-admin" || isRedirecting || checkingAccess) {
+    return null;
+  }
 
   return (
     <PageWrapper>
@@ -34,37 +62,51 @@ export default function WelcomePage() {
               </span>
               
               <h1 className="text-2xl font-heading font-extrabold text-foreground tracking-tight mt-2">
-                {"Welcome to EduEarn, "}{name}!
+                {"Welcome to EduEarn, "}{name}
               </h1>
               
               <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto mt-1">
                 {role === "tutor"
-                  ? "Your tutor application has been logged! While our administrators audit your university credentials, you can explore peer courses."
+                  ? "Your tutor workspace is ready. Create, manage, and publish your courses, engage with learners, and monitor your teaching performance."
                   : "Your learner account is fully active. Start browsing Calculus roadmaps, programming sandboxes, and competitive tests."}
               </p>
             </div>
 
             <div className="flex flex-col gap-3 mt-4 w-full">
-              <Link href="/courses" className="w-full">
-                <Button className="w-full flex items-center justify-center gap-1.5 shadow-premium">
-                  <BookOpen size={14} />
-                  Explore Course Catalog
-                  <ArrowRight size={13} />
-                </Button>
-              </Link>
-              
               {role === "tutor" ? (
-                <Link href="/pricing" className="w-full">
-                  <Button variant="outline" className="w-full">
-                    View Tutor Pricing Models
-                  </Button>
-                </Link>
+                <>
+                  <Link href="/tutor/courses?create=true" className="w-full">
+                    <Button className="w-full flex items-center justify-center gap-1.5 bg-primary text-white shadow-premium">
+                      <Plus size={14} />
+                      Create New Course
+                      <ArrowRight size={13} />
+                    </Button>
+                  </Link>
+                  <Link href="/tutor/courses" className="w-full">
+                    <Button variant="outline" className="w-full">
+                      <BookOpenCheck size={14} className="mr-1.5" />
+                      Manage My Courses
+                    </Button>
+                  </Link>
+                  <Link href="/tutor/dashboard" className="text-xs font-bold text-primary hover:underline mt-2 inline-block">
+                    Go to Tutor Dashboard
+                  </Link>
+                </>
               ) : (
-                <Link href="/learning-paths" className="w-full">
-                  <Button variant="outline" className="w-full">
-                    Explore Study Roadmaps
-                  </Button>
-                </Link>
+                <>
+                  <Link href="/courses" className="w-full">
+                    <Button className="w-full flex items-center justify-center gap-1.5 shadow-premium">
+                      <BookOpen size={14} />
+                      Explore Course Catalog
+                      <ArrowRight size={13} />
+                    </Button>
+                  </Link>
+                  <Link href="/learning-paths" className="w-full">
+                    <Button variant="outline" className="w-full">
+                      Explore Study Roadmaps
+                    </Button>
+                  </Link>
+                </>
               )}
             </div>
 

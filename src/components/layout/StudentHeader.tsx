@@ -17,7 +17,8 @@ import {
   Settings,
   HelpCircle,
   FileText,
-  Coins
+  Coins,
+  ChevronRight
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -84,24 +85,35 @@ export function StudentHeader() {
       )}
     >
       <div className="w-full flex items-center justify-between gap-4 px-6 max-w-none">
-        {/* Brand Logo */}
-        <Link 
-          href="/student/dashboard" 
-          className="shrink-0 flex items-center gap-2 relative z-50 pointer-events-auto"
-        >
-          {mounted ? (
-            <Image
-              src={logoSrc}
-              alt={siteConfig.name}
-              width={112}
-              height={32}
-              priority
-              className="w-full h-auto object-contain dark:brightness-100"
-            />
-          ) : (
-            <div className="w-28 h-8 bg-muted rounded-input animate-pulse" />
-          )}
-        </Link>
+        <div className="flex items-center gap-3">
+          {/* Brand Logo */}
+          <Link 
+            href="/" 
+            className="shrink-0 flex items-center gap-2 relative z-50 pointer-events-auto"
+          >
+            {mounted ? (
+              <Image
+                src={logoSrc}
+                alt={siteConfig.name}
+                width={112}
+                height={32}
+                priority
+                className="w-full h-auto object-contain dark:brightness-100"
+              />
+            ) : (
+              <div className="w-28 h-8 bg-muted rounded-input animate-pulse" />
+            )}
+          </Link>
+
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-[11px] font-semibold select-none mr-4" aria-label="Breadcrumb">
+            <span className="text-muted-foreground hidden sm:inline">Student</span>
+            <ChevronRight size={11} className="text-muted-foreground/60 hidden sm:inline" />
+            <span className="text-foreground font-bold capitalize">
+              {pathname === "/learn" ? "My Learn" : pathname.split("/").filter(Boolean)[1] || "Dashboard"}
+            </span>
+          </nav>
+        </div>
 
         {/* Desktop Left Nav Wrapper */}
         <div className="hidden lg:flex items-center gap-6 relative pointer-events-auto">
