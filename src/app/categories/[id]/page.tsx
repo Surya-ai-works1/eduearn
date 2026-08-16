@@ -11,6 +11,7 @@ import { Container } from "../../../components/layout/Container";
 import { PageWrapper } from "../../../components/layout/PageWrapper";
 import { Card } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
+import { ALIAS_MAP } from "../../learning-paths/[id]/page";
 import { StaggerContainer, staggerChildVariants } from "../../../components/animations";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -266,6 +267,10 @@ export default function CategoryDetailPage() {
     return getGenericMetadata(dbId, cleanName);
   }, [dbId, slug]);
 
+  const isValidCategory = useMemo(() => {
+    return !!CATEGORY_META_DATA[dbId] || SEED_CATEGORIES.some(c => c.id === dbId);
+  }, [dbId]);
+
   // Dynamically query category subjects from SEED_CATEGORIES
   const categorySubjects = useMemo(() => {
     const matchedCategory = SEED_CATEGORIES.find(c => c.id === dbId);
@@ -436,6 +441,47 @@ export default function CategoryDetailPage() {
       })
     );
   };
+
+  if (!isValidCategory) {
+    return (
+      <PageWrapper>
+        <section className="w-full py-12 bg-muted/20 border-b border-border/40 text-left select-none">
+          <Container className="flex flex-col gap-4">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
+              <Link href="/" className="hover:text-foreground">Home</Link>
+              <span>/</span>
+              <Link href="/categories" className="hover:text-foreground">Categories</Link>
+              <span>/</span>
+              <span className="text-foreground">Not Found</span>
+            </div>
+          </Container>
+        </section>
+        <section className="w-full py-20 select-none text-center">
+          <Container className="max-w-md">
+            <Card variant="glass" className="p-8 border-dashed border-2 border-border/80 bg-card flex flex-col items-center gap-5 shadow-soft">
+              <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 text-xl font-bold">
+                ✕
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">Category Not Found</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  The requested category does not exist or has not been configured yet.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 w-full mt-2">
+                <Button size="sm" onClick={() => router.push("/categories")} className="font-bold">
+                  Browse Active Categories
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => router.push("/")} className="font-bold">
+                  Back to Homepage
+                </Button>
+              </div>
+            </Card>
+          </Container>
+        </section>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper>
@@ -700,11 +746,34 @@ export default function CategoryDetailPage() {
                   <span className="flex items-center gap-1">
                     <Award className="w-3.5 h-3.5 text-primary" /> Project: {dynamicRoadmap.project}
                   </span>
-                  <Link href={`/learning-paths/${activeSubject === "All" ? (categorySubjects[0]?.toLowerCase() || "intro") : activeSubject.toLowerCase()}`}>
-                    <Button size="sm" variant="outline" className="text-[9px] font-bold py-2 rounded-lg">
-                      Start Roadmap
-                    </Button>
-                  </Link>
+                  {(() => {
+                    const subjectKey = (activeSubject === "All" ? (categorySubjects[0] || "") : activeSubject).toLowerCase().trim().replace(/\s+/g, "-");
+                    const alternativeSubjectKey = (activeSubject === "All" ? (categorySubjects[0] || "") : activeSubject).toLowerCase().trim();
+                    const canonicalId = ALIAS_MAP[subjectKey] || ALIAS_MAP[alternativeSubjectKey];
+                    
+                    if (canonicalId) {
+                      return (
+                        <Link href={`/learning-paths/${canonicalId}`}>
+                          <Button size="sm" variant="outline" className="text-[9px] font-bold py-2 rounded-lg">
+                            Start Roadmap
+                          </Button>
+                        </Link>
+                      );
+                    }
+                    
+                    return (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground italic font-semibold normal-case">
+                          Roadmap coming soon.
+                        </span>
+                        <Link href="/learning-paths">
+                          <Button size="sm" variant="outline" className="text-[9px] font-bold py-2 rounded-lg">
+                            Browse Learning Paths
+                          </Button>
+                        </Link>
+                      </div>
+                    );
+                  })()}
                 </div>
               </Card>
             </div>
@@ -726,9 +795,11 @@ export default function CategoryDetailPage() {
                     No tutors available for this subject yet.
                   </span>
                   <div className="flex gap-2 w-full mt-2 justify-center">
-                    <Button size="sm" variant="primary" className="text-[9px] font-bold py-2 rounded-lg">
-                      Become the First Tutor
-                    </Button>
+                    <Link href="/tutor/onboarding">
+                      <Button size="sm" variant="primary" className="text-[9px] font-bold py-2 rounded-lg">
+                        Become the First Tutor
+                      </Button>
+                    </Link>
                     <Button size="sm" variant="outline" className="text-[9px] font-bold py-2 rounded-lg" onClick={() => setActiveSubject("All")}>
                       Explore Similar Subjects
                     </Button>

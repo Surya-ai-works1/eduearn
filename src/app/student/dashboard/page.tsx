@@ -613,7 +613,7 @@ function StudentDashboardContent() {
                     <Calendar size={32} className="text-muted-foreground/60" />
                     <h3 className="text-xs font-bold text-foreground">No classes scheduled today.</h3>
                     <Link href="/courses">
-                      <Button size="sm" className="text-[10px] font-bold">Browse Monthly Tuition</Button>
+                      <Button size="sm" className="text-[10px] font-bold">Browse Online Tutoring</Button>
                     </Link>
                   </Card>
                 ) : (
@@ -1356,7 +1356,7 @@ function StudentDashboardContent() {
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Button
                           variant="outline"
-                          onClick={() => window.open(cert.blockchainHash || `/student/certificate/${cert.id}`, "_blank")}
+                          onClick={() => window.open(`/student/certificate/${cert.id}`, "_blank")}
                           className="text-[10px] h-8 font-bold px-2.5"
                         >
                           Preview
@@ -1364,7 +1364,7 @@ function StudentDashboardContent() {
                         
                         <Button
                           variant="outline"
-                          onClick={() => window.open(cert.blockchainHash || `/student/certificate/${cert.id}`, "_blank")}
+                          onClick={() => window.open(`/student/certificate/${cert.id}`, "_blank")}
                           className="text-[10px] h-8 font-bold px-2.5 gap-1"
                         >
                           <Download size={11} /> PDF
@@ -1373,7 +1373,7 @@ function StudentDashboardContent() {
                         <Button
                           variant="outline"
                           onClick={() => {
-                            const url = `${window.location.origin}${cert.blockchainHash || `/student/certificate/${cert.id}`}`;
+                            const url = `${window.location.origin}/student/certificate/${cert.id}`;
                             navigator.clipboard.writeText(url);
                             toast.success("Shareable certificate link copied!");
                           }}
@@ -1845,17 +1845,17 @@ function StudentDashboardContent() {
                   <EmptyState
                     type="default"
                     title="No attendance records found"
-                    description="You are not enrolled in any monthly live tuition batches. Enroll in a student-led batch to track class check-in log."
+                    description="You are not enrolled in any live tutoring cohorts. Enroll in a student-led cohort to track class check-in log."
                     action={
                       <Button onClick={() => router.push("/tutors")}>
-                        Explore Live Batches
+                        Browse Online Tutoring
                       </Button>
                     }
                   />
                 ) : (
                   <Card variant="glass" className="p-6 border-border bg-card">
                     <h4 className="text-xs font-heading font-extrabold uppercase tracking-wide text-foreground border-b border-border/60 pb-2.5 mb-4">
-                      Monthly Tuition Batch Attendance Log
+                      Live Tutoring Cohorts Attendance Log
                     </h4>
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs font-semibold">

@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { createClient } from "../../lib/supabase";
 import { useAuth } from "../../hooks/useAuth";
 import { MOCK_TUTORS, MOCK_CATEGORIES, ALL_SUBJECTS } from "../../constants/mockData";
+import { cn } from "../../utils/cn";
 import { scoreTutor, getImpliedCategory } from "../../utils/search";
 import { StaggerContainer, staggerChildVariants } from "../../components/animations";
 import { motion, AnimatePresence } from "framer-motion";
@@ -78,6 +79,10 @@ function TutorsContent() {
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category");
   const subjectParam = searchParams.get("subject");
+  const tuitionParam = searchParams.get("tuition") === "true";
+
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
 
   const [filters, setFilters] = useState<TutorsFilterState>(() => ({
     searchQuery: "",
@@ -146,7 +151,7 @@ function TutorsContent() {
       clearTimeout(startTimer);
       clearTimeout(endTimer);
     };
-  }, [filters, categoryParam, subjectParam]);
+  }, [filters, categoryParam, subjectParam, selectedSubjects, selectedGrades]);
 
   const handleResetFilters = () => {
     setFilters({
@@ -157,6 +162,8 @@ function TutorsContent() {
       language: "",
       sortBy: "trending",
     });
+    setSelectedSubjects([]);
+    setSelectedGrades([]);
     toast.info("All search filters reset.");
   };
 
@@ -212,33 +219,75 @@ function TutorsContent() {
 
   // 1. FILTERING LOGIC
   const filteredTutors = MOCK_TUTORS.filter((tutor) => {
-    // URL Category filter
-    if (categoryParam) {
-      const belongsToCategory = tutor.subjectsTaughtIds.some(subId => {
-        const subObj = ALL_SUBJECTS.find(s => s.id === subId);
-        return subObj?.category === categoryParam;
-      });
-      if (!belongsToCategory) return false;
-    }
+    // If tuitionParam is true, strictly show tuition-eligible tutors
+    if (tuitionParam) {
+      if (!tutor.interestedInTuition) return false;
+      
+      const tuitionGrades = [
+        "primary (class 1–5)",
+        "middle school (class 6–8)",
+        "secondary (class 9–10)",
+        "all levels"
+      ];
+      const hasTuitionGrade = tutor.classLevels?.some((level: string) => 
+        tuitionGrades.includes(level.toLowerCase())
+      );
+      if (!hasTuitionGrade) return false;
 
-    // URL Subject filter
-    if (subjectParam) {
-      if (!tutor.subjectsTaughtIds.includes(subjectParam)) return false;
+      // Subject Filter (Conjunctive check: selectedSubjects checkboxes)
+      if (selectedSubjects.length > 0) {
+        const matchesSubject = selectedSubjects.some(subjId => {
+          if (subjId === "computer") {
+            return tutor.subjectsTaughtIds.includes("computer-science");
+          }
+          return tutor.subjectsTaughtIds.includes(subjId);
+        });
+        if (!matchesSubject) return false;
+      }
+
+      // Grade Filter
+      if (selectedGrades.length > 0) {
+        const matchesGrade = selectedGrades.some(gradeRange => {
+          if (gradeRange === "class-1-5") {
+            return tutor.classLevels.some(l => l.toLowerCase().includes("class 1–5") || l.toLowerCase().includes("all levels"));
+          }
+          if (gradeRange === "class-6-8") {
+            return tutor.classLevels.some(l => l.toLowerCase().includes("class 6–8") || l.toLowerCase().includes("all levels"));
+          }
+          if (gradeRange === "class-9-10") {
+            return tutor.classLevels.some(l => l.toLowerCase().includes("class 9–10") || l.toLowerCase().includes("all levels"));
+          }
+          return false;
+        });
+        if (!matchesGrade) return false;
+      }
+    } else {
+      // If not tuition mode, run normal filters
+      if (categoryParam) {
+        const belongsToCategory = tutor.subjectsTaughtIds.some(subId => {
+          const subObj = ALL_SUBJECTS.find(s => s.id === subId);
+          return subObj?.category === categoryParam;
+        });
+        if (!belongsToCategory) return false;
+      }
+
+      if (subjectParam) {
+        if (!tutor.subjectsTaughtIds.includes(subjectParam)) return false;
+      }
+
+      if (!categoryParam && filters.category) {
+        const belongsToCategory = tutor.subjectsTaughtIds.some(subId => {
+          const subObj = ALL_SUBJECTS.find(s => s.id === subId);
+          return subObj?.category === filters.category;
+        });
+        if (!belongsToCategory) return false;
+      }
     }
 
     // Search query check (Name or expertise tags)
     if (filters.searchQuery.trim()) {
       const score = scoreTutor(tutor, filters.searchQuery);
       if (score === 0) return false;
-    }
-
-    // Local Sidebar Category check (Only if URL categoryParam is NOT set)
-    if (!categoryParam && filters.category) {
-      const belongsToCategory = tutor.subjectsTaughtIds.some(subId => {
-        const subObj = ALL_SUBJECTS.find(s => s.id === subId);
-        return subObj?.category === filters.category;
-      });
-      if (!belongsToCategory) return false;
     }
 
     // Rating check
@@ -281,16 +330,189 @@ function TutorsContent() {
   });
 
   // Helper check: are filters active?
-  const hasActiveFilters =
-    filters.category !== "" ||
-    filters.rating !== 0 ||
-    filters.isAiVerified ||
-    filters.language !== "";
+  const hasActiveFilters = tuitionParam
+    ? (filters.isAiVerified || selectedSubjects.length > 0 || selectedGrades.length > 0 || filters.rating > 0 || filters.language !== "")
+    : (filters.category !== "" || filters.rating !== 0 || filters.isAiVerified || filters.language !== "");
 
   // Render tutor cards custom layout satisfying specifications
   const renderTutorCard = (tutor: typeof MOCK_TUTORS[number]) => {
     const tutorLevel = tutor.rating >= 4.9 ? "Elite Tutor" : tutor.rating >= 4.7 ? "Top Rated" : "Mentor";
     const isFollowed = followedTutors.includes(tutor.id);
+
+    let cardBadge = tutorLevel;
+    if (tuitionParam) {
+      const classLevelsLower = tutor.classLevels.map(l => l.toLowerCase());
+      if (classLevelsLower.some(l => l.includes("class 1-5") || l.includes("class 1–5") || l.includes("primary"))) {
+        cardBadge = "PRIMARY TUITION";
+      } else if (classLevelsLower.some(l => l.includes("class 9-10") || l.includes("class 9–10") || l.includes("secondary") || l.includes("high school"))) {
+        cardBadge = "HIGH SCHOOL";
+      } else if (classLevelsLower.some(l => l.includes("class 6-8") || l.includes("class 6–8") || l.includes("middle"))) {
+        cardBadge = "MIDDLE SCHOOL";
+      } else {
+        cardBadge = "SCHOOL TUITION";
+      }
+    }
+
+    const getGradesTaught = (classLevels: string[]) => {
+      const list: string[] = [];
+      const hasPrimary = classLevels.some(l => {
+        const lower = l.toLowerCase();
+        return lower.includes("class 1-5") || lower.includes("class 1–5") || lower.includes("primary");
+      });
+      const hasMiddle = classLevels.some(l => {
+        const lower = l.toLowerCase();
+        return lower.includes("class 6-8") || lower.includes("class 6–8") || lower.includes("middle");
+      });
+      const hasHigh = classLevels.some(l => {
+        const lower = l.toLowerCase();
+        return lower.includes("class 9-10") || lower.includes("class 9–10") || lower.includes("secondary") || lower.includes("high school");
+      });
+      
+      if (hasPrimary) list.push("Class 1–5");
+      if (hasMiddle) list.push("Class 6–8");
+      if (hasHigh) list.push("Class 9–10");
+      
+      if (list.length === 0) {
+        list.push("Class 6–8");
+      }
+      return list.join(" · ");
+    };
+
+    const VALID_SCHOOL_SUBJECTS = [
+      "Mathematics",
+      "Science",
+      "Physics",
+      "Chemistry",
+      "Biology",
+      "English",
+      "Hindi",
+      "Social Studies",
+      "Computer",
+      "Sanskrit",
+      "General Knowledge"
+    ];
+
+    const getFilteredSubjects = (subjects: string[]) => {
+      const filtered = subjects.filter(subject =>
+        VALID_SCHOOL_SUBJECTS.some(valid => valid.toLowerCase() === subject.toLowerCase())
+      );
+      
+      const maxDisplay = 3;
+      if (filtered.length <= maxDisplay) {
+        return filtered.join(" · ");
+      } else {
+        const displayed = filtered.slice(0, maxDisplay).join(" · ");
+        const remainingCount = filtered.length - maxDisplay;
+        return `${displayed} +${remainingCount}`;
+      }
+    };
+
+    if (tuitionParam) {
+      return (
+        <motion.div key={tutor.id} variants={staggerChildVariants}>
+          <Link href={`/tutors/${tutor.id}`} className="block h-full">
+            <Card
+              variant="default"
+              hoverEffect="lift"
+              className="flex flex-col justify-between h-full p-5 text-left border-border bg-card group relative"
+            >
+              {/* Header info */}
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-sm text-primary shrink-0 relative overflow-hidden">
+                    {tutor.avatar ? (
+                      <Image
+                        src={tutor.avatar}
+                        alt={tutor.fullName}
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      tutor.fullName.charAt(0)
+                    )}
+                    {tutor.verificationStatus === "ai_verified" && (
+                      <span
+                        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-accent border-2 border-card flex items-center justify-center text-foreground z-10">
+                        <ShieldCheck size={10} strokeWidth={3} className="text-white fill-emerald-500" />
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="overflow-hidden">
+                    <h4 className="text-sm font-heading font-extrabold text-foreground group-hover:text-primary transition-colors leading-tight truncate">
+                      {tutor.fullName}
+                    </h4>
+                    
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Badge variant="primary" className="text-[8px] px-1.5 py-0 font-heading">
+                        {cardBadge}
+                      </Badge>
+                      <span className="text-[10px] text-amber-500 font-extrabold flex items-center gap-0.5">
+                        <Star size={9} className="fill-amber-500 text-amber-500" />
+                        {tutor.rating.toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <Divider variant="dashed" className="my-0.5" />
+
+                {/* Polished Tuition Information Stack */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[8px] uppercase tracking-wider font-extrabold text-muted-foreground/80">Grades</span>
+                    <span className="text-[10.5px] font-bold text-foreground leading-normal">
+                      {getGradesTaught(tutor.classLevels)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[8px] uppercase tracking-wider font-extrabold text-muted-foreground/80">Subjects</span>
+                    <span className="text-[10.5px] font-extrabold text-primary leading-normal truncate">
+                      {getFilteredSubjects(tutor.subjectsTaught)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[8px] uppercase tracking-wider font-extrabold text-muted-foreground/80">Languages</span>
+                    <span className="text-[9.5px] font-medium text-muted-foreground leading-normal truncate">
+                      {tutor.languages.join(" · ")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="grid grid-cols-2 gap-2 mt-5 pt-3.5 border-t border-border/40">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleFollowTutor(e, tutor.id, tutor.fullName);
+                  }}
+                  className={cn(
+                    "text-center h-8 rounded-button text-[9px] font-bold uppercase tracking-wider border cursor-pointer select-none transition-all duration-200 focus:outline-none flex items-center justify-center",
+                    isFollowed 
+                      ? "bg-primary text-white border-primary shadow-soft" 
+                      : "bg-card hover:bg-muted border-border text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {isFollowed ? "Following" : "Follow"}
+                </button>
+                <div className="w-full">
+                  <Button 
+                    size="sm" 
+                    className="w-full h-8 text-[9px] uppercase tracking-wider font-extrabold bg-primary hover:bg-primary/95 text-white shadow-soft rounded-button"
+                  >
+                    View Profile
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </Link>
+        </motion.div>
+      );
+    }
 
     return (
       <motion.div key={tutor.id} variants={staggerChildVariants}>
@@ -329,8 +551,8 @@ function TutorsContent() {
                   </h4>
                   
                   <div className="flex items-center gap-1.5 mt-1">
-                    <Badge variant={tutorLevel === "Elite Tutor" ? "danger" : tutorLevel === "Top Rated" ? "primary" : "secondary"} className="text-[8px] px-1.5 py-0">
-                      {tutorLevel}
+                    <Badge variant={tutorLevel === "Elite Tutor" ? "danger" : tutorLevel === "Top Rated" ? "primary" : "secondary"} className="text-[8px] px-1.5 py-0 font-heading">
+                      {cardBadge}
                     </Badge>
                     <span className="text-[10px] text-amber-500 font-extrabold flex items-center gap-0.5">
                       <Star size={9} className="fill-amber-500 text-amber-500" />
@@ -340,7 +562,7 @@ function TutorsContent() {
                 </div>
               </div>
 
-              {/* Expertise skills tags */}
+              {/* Specialisation tags */}
               <div className="flex flex-wrap gap-1 mt-1">
                 {tutor.expertise.slice(0, 3).map((skill, sIdx) => (
                   <span
@@ -381,7 +603,7 @@ function TutorsContent() {
                   {tutor.languages.slice(0, 2).join(", ")}
                 </span>
                 <span className="text-[9px] font-extrabold text-muted-foreground/80 bg-muted px-2 py-0.5 rounded">
-                  {tutor.classLevels[0]}
+                  {tutor.subjectsTaught.slice(0, 2).join(", ")}
                 </span>
               </div>
             </div>
@@ -437,12 +659,18 @@ function TutorsContent() {
 
           <div className="flex flex-col gap-2">
             <h1 className="text-3xl md:text-4xl font-heading font-extrabold text-foreground tracking-tight">
-              {activeSubjectName ? `${activeSubjectName} Student Tutors` : "AI Verified Student Tutors"}
+              {tuitionParam 
+                ? "Online Tuition for Grades 1–10"
+                : (activeSubjectName ? `${activeSubjectName} Student Tutors` : "AI Verified Student Tutors")
+              }
             </h1>
             <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
-              {activeSubjectName 
-                ? `Connect with verified school and college student tutors specializing in ${activeSubjectName}. Check schedules, experience, ratings, and pricing.`
-                : "Find, compare, and learn from verified school/college student mentors. Subject screening and communication style validated by AI."}
+              {tuitionParam
+                ? "Learn from qualified online tutors for school subjects, with structured classes tailored to Grades 1–10."
+                : (activeSubjectName 
+                  ? `Connect with verified school and college student tutors specializing in ${activeSubjectName}. Check schedules, experience, ratings, and pricing.`
+                  : "Find, compare, and learn from verified school/college student mentors. Subject screening and communication style validated by AI.")
+              }
             </p>
           </div>
 
@@ -453,7 +681,7 @@ function TutorsContent() {
             <Search size={18} className="absolute left-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search tutor name or expert skills (e.g. React.js, Calculus, Hatha Yoga)..."
+              placeholder={tuitionParam ? "Search tuition tutors by name or subject..." : "Search tutor name or expert skills..."}
               value={filters.searchQuery}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters((prev) => ({ ...prev, searchQuery: e.target.value }))}
               className="w-full pl-12 pr-10 h-12 bg-card border-border/85 text-sm font-medium"
@@ -498,23 +726,87 @@ function TutorsContent() {
                 <span>AI Verified Tutors only</span>
               </label>
 
-              <Divider className="my-0.5" />
+              {tuitionParam ? (
+                <>
+                  <Divider className="my-0.5" />
+                  {/* Subjects (Till Grade 10) */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">Subjects (Till Grade 10)</span>
+                    {[
+                      { id: "mathematics", name: "Mathematics" },
+                      { id: "science", name: "Science" },
+                      { id: "physics", name: "Physics" },
+                      { id: "chemistry", name: "Chemistry" },
+                      { id: "biology", name: "Biology" },
+                      { id: "english", name: "English" },
+                      { id: "hindi", name: "Hindi" },
+                      { id: "social-studies", name: "Social Studies" },
+                      { id: "computer", name: "Computer" },
+                      { id: "sanskrit", name: "Sanskrit" },
+                      { id: "general-knowledge", name: "General Knowledge" }
+                    ].map((subj) => (
+                      <label key={subj.id} className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={selectedSubjects.includes(subj.id)}
+                          onChange={() => {
+                            setSelectedSubjects(prev =>
+                              prev.includes(subj.id) ? prev.filter(x => x !== subj.id) : [...prev, subj.id]
+                            );
+                          }}
+                          className="w-3.5 h-3.5 rounded border-border accent-primary cursor-pointer"
+                        />
+                        <span className="truncate">{subj.name}</span>
+                      </label>
+                    ))}
+                  </div>
 
-              {/* Categories */}
-              <div className="flex flex-col gap-2">
-                <span className="text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">Categories</span>
-                {MOCK_CATEGORIES.map((cat) => (
-                  <label key={cat.id} className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={filters.category === cat.id}
-                      onChange={() => setFilters((prev) => ({ ...prev, category: prev.category === cat.id ? "" : cat.id }))}
-                      className="w-3.5 h-3.5 rounded border-border accent-primary cursor-pointer"
-                    />
-                    <span className="truncate">{cat.name}</span>
-                  </label>
-                ))}
-              </div>
+                  <Divider className="my-0.5" />
+
+                  {/* Grade Level */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">Grade Level</span>
+                    {[
+                      { id: "class-1-5", name: "Class 1–5 (Primary)" },
+                      { id: "class-6-8", name: "Class 6–8 (Middle School)" },
+                      { id: "class-9-10", name: "Class 9–10 (High School)" }
+                    ].map((grade) => (
+                      <label key={grade.id} className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={selectedGrades.includes(grade.id)}
+                          onChange={() => {
+                            setSelectedGrades(prev =>
+                              prev.includes(grade.id) ? prev.filter(x => x !== grade.id) : [...prev, grade.id]
+                            );
+                          }}
+                          className="w-3.5 h-3.5 rounded border-border accent-primary cursor-pointer"
+                        />
+                        <span className="truncate">{grade.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Divider className="my-0.5" />
+                  {/* Categories */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">Categories</span>
+                    {MOCK_CATEGORIES.map((cat) => (
+                      <label key={cat.id} className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={filters.category === cat.id}
+                          onChange={() => setFilters((prev) => ({ ...prev, category: prev.category === cat.id ? "" : cat.id }))}
+                          className="w-3.5 h-3.5 rounded border-border accent-primary cursor-pointer"
+                        />
+                        <span className="truncate">{cat.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </>
+              )}
 
               <Divider className="my-0.5" />
 
@@ -561,7 +853,10 @@ function TutorsContent() {
             {/* Sorting top bar */}
             <div className="flex items-center justify-between border-b border-border pb-4">
               <span className="text-xs text-muted-foreground font-semibold">
-                Found {sortedTutors.length} student tutors
+                {tuitionParam 
+                  ? `Found ${sortedTutors.length} ${filters.isAiVerified ? "AI verified student" : "tuition"} tutors`
+                  : `Found ${sortedTutors.length} student tutors`
+                }
               </span>
 
               <div className="flex items-center gap-3">
@@ -685,22 +980,86 @@ function TutorsContent() {
                   <span>AI Verified Tutors only</span>
                 </label>
 
-                <Divider className="my-0.5" />
+                {tuitionParam ? (
+                  <>
+                    <Divider className="my-0.5" />
+                    {/* Subjects (Till Grade 10) */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">Subjects (Till Grade 10)</span>
+                      {[
+                        { id: "mathematics", name: "Mathematics" },
+                        { id: "science", name: "Science" },
+                        { id: "physics", name: "Physics" },
+                        { id: "chemistry", name: "Chemistry" },
+                        { id: "biology", name: "Biology" },
+                        { id: "english", name: "English" },
+                        { id: "hindi", name: "Hindi" },
+                        { id: "social-studies", name: "Social Studies" },
+                        { id: "computer", name: "Computer" },
+                        { id: "sanskrit", name: "Sanskrit" },
+                        { id: "general-knowledge", name: "General Knowledge" }
+                      ].map((subj) => (
+                        <label key={subj.id} className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={selectedSubjects.includes(subj.id)}
+                            onChange={() => {
+                              setSelectedSubjects(prev =>
+                                prev.includes(subj.id) ? prev.filter(x => x !== subj.id) : [...prev, subj.id]
+                              );
+                            }}
+                            className="w-3.5 h-3.5 rounded border-border accent-primary cursor-pointer"
+                          />
+                          <span className="truncate">{subj.name}</span>
+                        </label>
+                      ))}
+                    </div>
 
-                <div className="flex flex-col gap-2">
-                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">Categories</span>
-                  {MOCK_CATEGORIES.map((cat) => (
-                    <label key={cat.id} className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={filters.category === cat.id}
-                        onChange={() => setFilters((prev) => ({ ...prev, category: prev.category === cat.id ? "" : cat.id }))}
-                        className="w-3.5 h-3.5 rounded border-border accent-primary cursor-pointer"
-                      />
-                      <span>{cat.name}</span>
-                    </label>
-                  ))}
-                </div>
+                    <Divider className="my-0.5" />
+
+                    {/* Grade Level */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">Grade Level</span>
+                      {[
+                        { id: "class-1-5", name: "Class 1–5 (Primary)" },
+                        { id: "class-6-8", name: "Class 6–8 (Middle School)" },
+                        { id: "class-9-10", name: "Class 9–10 (High School)" }
+                      ].map((grade) => (
+                        <label key={grade.id} className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={selectedGrades.includes(grade.id)}
+                            onChange={() => {
+                              setSelectedGrades(prev =>
+                                prev.includes(grade.id) ? prev.filter(x => x !== grade.id) : [...prev, grade.id]
+                              );
+                            }}
+                            className="w-3.5 h-3.5 rounded border-border accent-primary cursor-pointer"
+                          />
+                          <span className="truncate">{grade.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Divider className="my-0.5" />
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">Categories</span>
+                      {MOCK_CATEGORIES.map((cat) => (
+                        <label key={cat.id} className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={filters.category === cat.id}
+                            onChange={() => setFilters((prev) => ({ ...prev, category: prev.category === cat.id ? "" : cat.id }))}
+                            className="w-3.5 h-3.5 rounded border-border accent-primary cursor-pointer"
+                          />
+                          <span>{cat.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 <Divider className="my-0.5" />
 
