@@ -9,6 +9,9 @@ export async function POST(request: Request) {
     try {
       const { createClient } = await import("@/lib/supabase");
       const supabase = createClient();
+      if (!supabase) {
+        return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
+      }
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
       if (authErr || !user) {
         if (type !== "verification" && type !== "reset_password" && type !== "welcome") {

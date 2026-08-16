@@ -18,19 +18,21 @@ export class SupabaseCourseDetailsRepository implements ICourseDetailsRepository
     const supabase = createClient();
     let instructorName = "Tutor Instructor";
     let tutorAvatar = "";
-    
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, display_name, avatar_url')
-        .eq('id', dbCourse.tutor_id)
-        .maybeSingle();
 
-      if (profile) {
-        instructorName = profile.full_name || profile.display_name || instructorName;
-        tutorAvatar = profile.avatar_url || "";
-      }
-    } catch (err) {}
+    if (supabase) {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, display_name, avatar_url')
+          .eq('id', dbCourse.tutor_id)
+          .maybeSingle();
+
+        if (profile) {
+          instructorName = profile.full_name || profile.display_name || instructorName;
+          tutorAvatar = profile.avatar_url || "";
+        }
+      } catch (err) {}
+    }
 
     const lessons: any[] = (dbCourse.lessons || []).map((l: any) => ({
       id: l.id,
@@ -61,12 +63,13 @@ export class SupabaseCourseDetailsRepository implements ICourseDetailsRepository
     };
   }
 
-  // Mark a lesson as completed for the logged‑in learner.
+  // Mark a lesson as completed for the logged-in learner.
   async markLessonComplete(courseId: string, lessonId: string): Promise<void> {
-    // The learnerId is expected to be stored in the supabase auth session.
     const supabase = createClient();
+    if (!supabase) return; // Supabase not configured — skip silently.
+
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return; // No authenticated user – silently ignore.
+    if (!user) return; // No authenticated user — silently ignore.
 
     // Fetch the current enrollment record for this learner and course.
     const { data: enrollment, error: fetchErr } = await supabase
@@ -77,7 +80,7 @@ export class SupabaseCourseDetailsRepository implements ICourseDetailsRepository
       .single();
     if (fetchErr) throw fetchErr;
 
-    // Increment progress by a simple heuristic (e.g., 1 lesson = 10%).
+    // Increment progress by a simple heuristic (1 lesson = 10%).
     const newProgress = Math.min(((enrollment?.progress ?? 0) + 10), 100);
     const { error: updateErr } = await supabase
       .from('enrollments')

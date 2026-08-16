@@ -13,6 +13,9 @@ import { getStudentDashboard } from '@/lib/services/studentDashboardService';
 export async function GET(request: Request) {
   // Initialise Supabase client (server side) to retrieve authenticated user.
   const supabase = createClient();
+  if (!supabase) {
+    return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
+  }
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {

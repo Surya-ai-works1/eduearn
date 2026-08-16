@@ -21,11 +21,11 @@ export default async function CertificatePage({
   const certificate = await certificateService.verifyCertificate(enrollmentId);
 
   return (
-    <div className="min-h-screen bg-muted/20 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-muted/20 dark:bg-background flex flex-col items-center justify-center p-4">
       {certificate ? (
         <CertificatePreviewClient certificate={certificate} />
       ) : (
-        <div className="max-w-md w-full p-6 bg-white dark:bg-zinc-900 border border-rose-500/20 rounded-card shadow-soft text-center space-y-4">
+        <div className="max-w-md w-full p-6 bg-card dark:bg-card border border-border rounded-card shadow-soft text-center space-y-4">
           <div className="text-rose-500 font-extrabold text-3xl">⚠️ Invalid Credential</div>
           <p className="text-xs text-muted-foreground leading-relaxed">
             The certificate verification code or link is invalid. This credential could not be verified by the EduEarn board.

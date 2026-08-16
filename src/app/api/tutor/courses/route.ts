@@ -7,6 +7,9 @@ import { courseManagementService } from "../../../../lib/services/courseManageme
 export async function GET(request: Request) {
   try {
     const supabase = await createClient();
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
+    }
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -53,6 +56,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
+    }
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {

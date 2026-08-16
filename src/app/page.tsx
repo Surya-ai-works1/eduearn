@@ -28,6 +28,7 @@ import { MobileAppPreview } from "../components/layout/MobileAppPreview";
 import { FaqSection } from "../components/layout/FaqSection";
 import { Newsletter } from "../components/layout/Newsletter";
 import { useAuth } from "../hooks/useAuth";
+import { Tuitions } from "../components/layout/Tuitions";
 
 
 import {
@@ -226,6 +227,11 @@ export default function RootLandingPage() {
       {/* 2. Trusted By logo wall */}
       <RevealOnScroll direction="fade" delay={0.1}>
         <TrustedBy />
+      </RevealOnScroll>
+
+      {/* 2.5. Tuitions (Online Learning Packages) Section */}
+      <RevealOnScroll direction="up" delay={0.15}>
+        <Tuitions />
       </RevealOnScroll>
 
       {/* 3. Explore Categories Grid */}

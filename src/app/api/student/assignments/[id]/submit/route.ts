@@ -13,6 +13,9 @@ export async function POST(
     const assignmentId = resolvedParams.id;
 
     const supabase = await createClient();
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
+    }
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {

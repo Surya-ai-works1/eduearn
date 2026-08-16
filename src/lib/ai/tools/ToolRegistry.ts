@@ -34,6 +34,7 @@ ToolRegistry.register({
   async execute(input: any) {
     const { createClient } = await import("../../supabase/server");
     const supabase = await createClient();
+    if (!supabase) return [];
     const { data } = await supabase
       .from("courses")
       .select("id, title, category, price, tutor_name")
@@ -49,6 +50,7 @@ ToolRegistry.register({
   async execute(input: any) {
     const { createClient } = await import("../../supabase/server");
     const supabase = await createClient();
+    if (!supabase) return [];
     const { data } = await supabase
       .from("lessons")
       .select("id, title, content")
@@ -89,6 +91,7 @@ ToolRegistry.register({
   async execute(input: any) {
     const { createClient } = await import("../../supabase/server");
     const supabase = await createClient();
+    if (!supabase) return [];
     const { data: courses } = await supabase.from("courses").select("id, title, category");
     return (courses || []).slice(0, 3);
   }

@@ -2,10 +2,19 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
+export function isSupabaseConfigured() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  return !!(supabaseUrl && supabaseAnonKey && !supabaseUrl.includes("placeholder"));
+}
+
 // Server client for RSCs, Actions, Route Handlers
 export async function createClient() {
-  const cookieStore = await cookies();
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
 
+  const cookieStore = await cookies();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
@@ -32,6 +41,10 @@ export function createMiddlewareClient(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
+
+  if (!isSupabaseConfigured()) {
+    return { supabase: null, response };
+  }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Container } from "./Container";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
@@ -11,6 +12,7 @@ import { Divider } from "../ui/divider";
 import { toast } from "sonner";
 
 interface LearningPathItem {
+  id: string;
   title: string;
   description: string;
   duration: string;
@@ -23,6 +25,7 @@ interface LearningPathItem {
 export function LearningPaths() {
   const paths: LearningPathItem[] = [
     {
+      id: "fullstack",
       title: "Full Stack Developer",
       description: "Go from HTML basics to building complex cloud-deployed React/Node applications.",
       duration: "12 Weeks",
@@ -32,6 +35,7 @@ export function LearningPaths() {
       steps: ["HTML & CSS", "JavaScript & DOM", "React & Next.js", "Node.js & MongoDB"],
     },
     {
+      id: "ai-engineer",
       title: "AI Engineer",
       description: "Master Prompt Engineering, fine-tune models, and build LLM-driven agents.",
       duration: "8 Weeks",
@@ -41,6 +45,7 @@ export function LearningPaths() {
       steps: ["Prompt Patterns", "Gemini API integrations", "RAG & Vector Databases"],
     },
     {
+      id: "ui-ux",
       title: "UI/UX Designer",
       description: "Master typography, layout grids, wireframes, prototypes, and Figma Design Systems.",
       duration: "10 Weeks",
@@ -50,6 +55,7 @@ export function LearningPaths() {
       steps: ["Design Principles", "Figma Advanced Skills", "High-Fidelity Prototypes"],
     },
     {
+      id: "digital-marketing",
       title: "Digital Marketing",
       description: "Master Google SEO, pay-per-click Ads, content strategies, and web analytics.",
       duration: "6 Weeks",
@@ -59,6 +65,7 @@ export function LearningPaths() {
       steps: ["SEO Fundamentals", "Content Copywriting", "PPC Campaigns"],
     },
     {
+      id: "data-science",
       title: "Data Science",
       description: "Learn Python data analysis, regression forecasting, and machine learning models.",
       duration: "14 Weeks",
@@ -68,6 +75,7 @@ export function LearningPaths() {
       steps: ["Pandas & NumPy", "Statistical Math", "Scikit-Learn Regression"],
     },
     {
+      id: "photography-mastery",
       title: "Photography Mastery",
       description: "Master camera exposure, lighting composition, lens selection, and Lightroom presets.",
       duration: "8 Weeks",
@@ -77,6 +85,7 @@ export function LearningPaths() {
       steps: ["Exposure Triangle", "Visual Composition", "Lightroom Presets"],
     },
     {
+      id: "music-learning",
       title: "Music Learning",
       description: "Learn acoustic chord transitions, rhythm counting, and basic music theory scales.",
       duration: "12 Weeks",
@@ -86,6 +95,7 @@ export function LearningPaths() {
       steps: ["Chord Fingerings", "Strumming Patterns", "Scale Transitions"],
     },
     {
+      id: "cooking-essentials",
       title: "Cooking Essentials",
       description: "Learn professional chef knife handling, baking temperatures, and pasta foundations.",
       duration: "4 Weeks",
@@ -164,12 +174,12 @@ export function LearningPaths() {
                     <span className="truncate">{path.certificate}</span>
                   </div>
 
-                  <button
-                    onClick={() => toast.info(`Starting learning path for ${path.title}. Content loading in Phase 2`)}
-                    className="w-full text-center py-2.5 rounded-button text-[10px] font-bold uppercase tracking-wider bg-muted group-hover:bg-primary group-hover:text-white transition-colors cursor-pointer focus:outline-none"
+                  <Link
+                    href={`/learning-paths/${path.id}`}
+                    className="w-full text-center py-2.5 rounded-button text-[10px] font-bold uppercase tracking-wider bg-muted group-hover:bg-primary group-hover:text-white transition-colors cursor-pointer focus:outline-none block"
                   >
                     Start Pathway
-                  </button>
+                  </Link>
                 </div>
               </Card>
             </motion.div>

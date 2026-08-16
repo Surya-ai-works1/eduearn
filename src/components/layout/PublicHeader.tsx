@@ -30,6 +30,7 @@ import { useScrollPosition } from "../../hooks/useScrollPosition";
 import { useOutsideClick } from "../../hooks/useOutsideClick";
 import { useTheme } from "../../hooks/useTheme";
 import { cn } from "../../utils/cn";
+import { ThemeToggle } from "./ThemeToggle";
 import {
   GraduationCap,
   Palette,
@@ -358,6 +359,11 @@ export function PublicHeader() {
             <span>Search courses, skills...</span>
           </div>
 
+          {/* Theme Toggle */}
+          <div className="hidden sm:block">
+            <ThemeToggle />
+          </div>
+
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
               {/* Notifications Dropdown */}
@@ -667,6 +673,10 @@ export function PublicHeader() {
               </div>
 
               <div className="flex flex-col gap-3 mt-8 border-t border-border pt-6">
+                <div className="flex items-center justify-between py-1 border-b border-border/40 pb-3 mb-1">
+                  <span className="text-xs font-bold text-muted-foreground">Appearance</span>
+                  <ThemeToggle />
+                </div>
                 {isAuthenticated ? (
                   <Link
                     href={user?.role === "tutor" ? "/tutor/dashboard" : "/student/dashboard"}

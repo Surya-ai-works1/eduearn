@@ -30,6 +30,7 @@ import { useScrollPosition } from "../../hooks/useScrollPosition";
 import { useOutsideClick } from "../../hooks/useOutsideClick";
 import { useTheme } from "../../hooks/useTheme";
 import { cn } from "../../utils/cn";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function StudentHeader() {
   const pathname = usePathname();
@@ -135,6 +136,11 @@ export function StudentHeader() {
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-border/80 rounded-button bg-muted/15 text-[10px] text-muted-foreground font-semibold hover:border-primary/40 cursor-pointer">
             <Search size={12} />
             <span>Search courses, skills...</span>
+          </div>
+
+          {/* Theme Toggle */}
+          <div className="hidden sm:block">
+            <ThemeToggle />
           </div>
 
           {isAuthenticated && (
@@ -369,6 +375,10 @@ export function StudentHeader() {
               </div>
 
               <div className="flex flex-col gap-3 mt-8 border-t border-border pt-6">
+                <div className="flex items-center justify-between py-1 border-b border-border/40 pb-3 mb-1">
+                  <span className="text-xs font-bold text-muted-foreground">Appearance</span>
+                  <ThemeToggle />
+                </div>
                 <Link
                   href="/student/dashboard"
                   className="w-full text-center py-2 rounded-button bg-muted hover:bg-muted/80 text-xs font-bold text-foreground transition-colors"

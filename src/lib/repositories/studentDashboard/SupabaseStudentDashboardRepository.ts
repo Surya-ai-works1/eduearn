@@ -10,6 +10,9 @@ import { lmsDb } from '@/lib/lmsDb';
 export class SupabaseStudentDashboardRepository {
   async getDashboard(userId: string) {
     const supabase = createClient();
+    if (!supabase) {
+      throw new Error("Supabase credentials required for SupabaseStudentDashboardRepository.");
+    }
 
     // 1️⃣ Enrolled courses – via lmsDb abstraction.
     const enrolledRaw = await lmsDb.getEnrolledCourses(userId);

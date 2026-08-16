@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 export function BecomeTutor() {
   const router = useRouter();
   const benefits = [
-    "Earn up to ₹1,500/hour conducting peer doubt clearances.",
+    "Earn through structured learning packages and cohorts.",
     "Build a verified teaching portfolio backed by AI screening.",
     "Flexibility to schedule classes around your college classes.",
     "Receive student feedback and grow your professional reputation.",

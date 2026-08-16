@@ -14,6 +14,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   try {
     const supabase = await createClient();
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
+    }
 
     const { data, error } = await supabase
       .from("tutor_verifications")

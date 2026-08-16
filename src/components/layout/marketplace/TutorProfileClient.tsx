@@ -155,8 +155,9 @@ export function TutorProfileClient({
   // Select Course Handler
   const handleSelectCourse = (course: typeof MOCK_COURSES[number]) => {
     setSelectedCourse(course);
-    setSelectedPlan(null);
-    setSelectedBatch(null);
+    setSelectedPlan("Group Batch");
+    setPlanPrice(Math.round(course.price * 0.8));
+    setSelectedBatch("Morning Batch");
     setSelectedDate("");
     setSelectedTimeSlot("");
     setDiscount(0);
@@ -228,11 +229,11 @@ export function TutorProfileClient({
 
   // Dynamic Plans options mapping based on Selected Course Price
   const learningPlans = selectedCourse ? [
-    { name: "One-to-One Session", desc: "1-on-1 personalized tutoring session slots", price: Math.round(selectedCourse.price * 1.5), period: "session" },
     { name: "Group Batch", desc: "Interact dynamically in shared group cohorts", price: Math.round(selectedCourse.price * 0.8), period: "month" },
     { name: "Weekend Batch", desc: "Weekend-only live classes and doubt clearing sessions", price: Math.round(selectedCourse.price * 0.9), period: "month" },
     { name: "Crash Course", desc: "Fast-track coverage of entire syllabus core concepts", price: Math.round(selectedCourse.price * 0.6), period: "one-time" },
-    { name: "Doubt Clearing Package", desc: "Dedicated access to daily doubt hours and Q&A chat", price: Math.round(selectedCourse.price * 0.4), period: "month" }
+    { name: "Doubt Clearing Package", desc: "Dedicated access to daily doubt hours and Q&A chat", price: Math.round(selectedCourse.price * 0.4), period: "month" },
+    { name: "One-to-One Session", desc: "1-on-1 personalized tutoring session slots (premium support)", price: Math.round(selectedCourse.price * 1.5), period: "session" }
   ] : [];
 
   const batches = [
@@ -348,17 +349,24 @@ export function TutorProfileClient({
                 <span>•</span>
                 <span>{followersCount} Followers</span>
                 <span>•</span>
-                <span>{tutor.totalStudents} Students Mentored</span>
+                <span>{tutor.totalStudents} {tutor.interestedInTuition ? "Students Taught" : "Students Mentored"}</span>
                 <span>•</span>
-                <span>{tutor.totalCourses} Courses Created</span>
+                <span>{tutor.totalCourses} {tutor.interestedInTuition ? "Syllabus Packages" : "Courses Created"}</span>
                 <span>•</span>
                 <span>Response: {responseTime}</span>
                 <span>•</span>
-                <span>Languages: {tutor.languages}</span>
+                <span>Languages: {tutor.languages.join(", ")}</span>
               </div>
-              <div className="text-[11px] text-muted-foreground mt-3 font-semibold select-none bg-muted/10 p-2.5 rounded-xl border border-border/40">
-                📚 Mentoring Subjects: <span className="text-foreground">{tutor.subjectsTaught?.join(", ") || tutor.expertise?.join(", ")}</span>
-              </div>
+              {tutor.interestedInTuition ? (
+                <div className="flex flex-col gap-2 mt-3 select-none bg-muted/10 p-2.5 rounded-xl border border-border/40 text-[11px] text-muted-foreground font-semibold">
+                  <div>📚 School Tuition Subjects: <span className="text-foreground">{tutor.subjectsTaught?.join(", ") || tutor.expertise?.join(", ")}</span></div>
+                  <div>🏫 Grades Taught: <span className="text-foreground">{tutor.classLevels?.join(", ")}</span></div>
+                </div>
+              ) : (
+                <div className="text-[11px] text-muted-foreground mt-3 font-semibold select-none bg-muted/10 p-2.5 rounded-xl border border-border/40">
+                  📚 Mentoring Subjects: <span className="text-foreground">{tutor.subjectsTaught?.join(", ") || tutor.expertise?.join(", ")}</span>
+                </div>
+              )}
             </div>
           </Card>
         </Container>

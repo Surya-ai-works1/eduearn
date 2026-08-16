@@ -22,6 +22,9 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createClient();
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
+    }
 
     // Verify if verification record already exists
     const { data: existing, error: fetchError } = await supabase

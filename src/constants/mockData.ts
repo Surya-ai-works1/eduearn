@@ -185,9 +185,27 @@ const REVIEW_COMMENTS = [
 // ==========================================
 
 // Generate 50 Tutors
+const TUITION_TUTOR_SPECS = [
+  { subjects: ["Mathematics", "Science"], ids: ["mathematics", "science"], levels: ["Primary (Class 1–5)", "Middle School (Class 6–8)", "Secondary (Class 9–10)"], pkg: "₹1700/month" },
+  { subjects: ["Science", "Biology"], ids: ["science", "biology"], levels: ["Middle School (Class 6–8)", "Secondary (Class 9–10)"], pkg: "₹1700/month" },
+  { subjects: ["Mathematics", "English"], ids: ["mathematics", "english"], levels: ["Primary (Class 1–5)", "Middle School (Class 6–8)"], pkg: "₹1600/month" },
+  { subjects: ["English", "Hindi"], ids: ["english", "hindi"], levels: ["Primary (Class 1–5)"], pkg: "₹1500/month" },
+  { subjects: ["Physics", "Chemistry"], ids: ["physics", "chemistry"], levels: ["Secondary (Class 9–10)"], pkg: "₹1700/month" },
+  { subjects: ["Mathematics", "Computer Science"], ids: ["mathematics", "computer-science"], levels: ["Middle School (Class 6–8)", "Secondary (Class 9–10)"], pkg: "₹1700/month" },
+  { subjects: ["Social Studies", "English"], ids: ["social-studies", "english"], levels: ["Middle School (Class 6–8)"], pkg: "₹1600/month" },
+  { subjects: ["Hindi", "Sanskrit"], ids: ["hindi", "sanskrit"], levels: ["Primary (Class 1–5)", "Middle School (Class 6–8)"], pkg: "₹1600/month" },
+  { subjects: ["Science", "Mathematics"], ids: ["science", "mathematics"], levels: ["Primary (Class 1–5)"], pkg: "₹1500/month" },
+  { subjects: ["English", "General Knowledge"], ids: ["english", "general-knowledge"], levels: ["Primary (Class 1–5)"], pkg: "₹1500/month" },
+  { subjects: ["Mathematics", "Science"], ids: ["mathematics", "science"], levels: ["Secondary (Class 9–10)"], pkg: "₹1700/month" },
+  { subjects: ["Physics", "Chemistry"], ids: ["physics", "chemistry"], levels: ["Secondary (Class 9–10)"], pkg: "₹1700/month" },
+  { subjects: ["Biology", "Science"], ids: ["biology", "science"], levels: ["Middle School (Class 6–8)"], pkg: "₹1600/month" },
+  { subjects: ["English", "Social Studies"], ids: ["english", "social-studies"], levels: ["Primary (Class 1–5)", "Middle School (Class 6–8)"], pkg: "₹1600/month" },
+  { subjects: ["Computer Science", "Mathematics"], ids: ["computer-science", "mathematics"], levels: ["Middle School (Class 6–8)", "Secondary (Class 9–10)"], pkg: "₹1700/month" }
+];
+
 export const MOCK_TUTORS = TUTOR_NAMES.map((name, idx) => {
   const ratings = [4.5, 4.6, 4.7, 4.8, 4.9, 5.0];
-  const rating = ratings[idx % ratings.length];
+  let rating = ratings[idx % ratings.length];
   
   // Assign subjects to this tutor
   const subjectIndex1 = (idx * 3) % ALL_SUBJECTS.length;
@@ -198,8 +216,8 @@ export const MOCK_TUTORS = TUTOR_NAMES.map((name, idx) => {
     ALL_SUBJECTS[subjectIndex2]
   ];
   
-  const subjectsTaughtNames = tutorSubjects.map(s => s.name);
-  const subjectsTaughtIds = tutorSubjects.map(s => s.id);
+  let subjectsTaughtNames = tutorSubjects.map(s => s.name);
+  let subjectsTaughtIds = tutorSubjects.map(s => s.id);
   
   // Determine pricing based on subjects taught
   const primarySubject = tutorSubjects[0];
@@ -208,45 +226,58 @@ export const MOCK_TUTORS = TUTOR_NAMES.map((name, idx) => {
   // Determine packages and class levels
   let classLevels = ["All Levels"];
   let allSubjectsPackage = "N/A";
+  let interestedInTuition = false;
   
-  if (primarySubject.category === "academics") {
-    if (primarySubject.id.includes("class-1") || primarySubject.id.includes("class-2") || primarySubject.id.includes("class-3") || primarySubject.id.includes("class-4") || primarySubject.id.includes("class-5")) {
-      classLevels = ["Primary (Class 1–5)"];
-      allSubjectsPackage = "₹1500/month";
-    } else if (primarySubject.id.includes("class-6") || primarySubject.id.includes("class-7") || primarySubject.id.includes("class-8")) {
-      classLevels = ["Middle School (Class 6–8)"];
-      allSubjectsPackage = "₹1600/month";
-    } else if (primarySubject.id.includes("class-9") || primarySubject.id.includes("class-10")) {
-      classLevels = ["Secondary (Class 9–10)"];
-      allSubjectsPackage = "₹1700/month";
-    } else if (primarySubject.id.includes("class-11") || primarySubject.id.includes("class-12")) {
-      classLevels = ["Senior Secondary (Class 11-12)"];
-      allSubjectsPackage = "₹1800/month";
-    } else if (["jee-main", "jee-advanced", "neet", "cuet", "upsc", "ssc", "banking", "railways"].includes(primarySubject.id)) {
-      classLevels = ["Competitive Exams"];
+  if (idx < 15) {
+    const spec = TUITION_TUTOR_SPECS[idx];
+    subjectsTaughtNames = spec.subjects;
+    subjectsTaughtIds = spec.ids;
+    classLevels = spec.levels;
+    allSubjectsPackage = spec.pkg;
+    interestedInTuition = true;
+    
+    // Set realistic rating and experience
+    rating = [4.7, 4.8, 4.9, 5.0][idx % 4];
+  } else {
+    if (primarySubject.category === "academics") {
+      if (primarySubject.id.includes("class-1") || primarySubject.id.includes("class-2") || primarySubject.id.includes("class-3") || primarySubject.id.includes("class-4") || primarySubject.id.includes("class-5")) {
+        classLevels = ["Primary (Class 1–5)"];
+        allSubjectsPackage = "₹1500/month";
+      } else if (primarySubject.id.includes("class-6") || primarySubject.id.includes("class-7") || primarySubject.id.includes("class-8")) {
+        classLevels = ["Middle School (Class 6–8)"];
+        allSubjectsPackage = "₹1600/month";
+      } else if (primarySubject.id.includes("class-9") || primarySubject.id.includes("class-10")) {
+        classLevels = ["Secondary (Class 9–10)"];
+        allSubjectsPackage = "₹1700/month";
+      } else if (primarySubject.id.includes("class-11") || primarySubject.id.includes("class-12")) {
+        classLevels = ["Senior Secondary (Class 11-12)"];
+        allSubjectsPackage = "₹1800/month";
+      } else if (["jee-main", "jee-advanced", "neet", "cuet", "upsc", "ssc", "banking", "railways"].includes(primarySubject.id)) {
+        classLevels = ["Competitive Exams"];
+        allSubjectsPackage = "N/A";
+      } else {
+        classLevels = ["High School"];
+        allSubjectsPackage = "N/A";
+      }
+    } else if (primarySubject.category === "skills") {
+      classLevels = ["Extracurricular", "Skill Training"];
       allSubjectsPackage = "N/A";
     } else {
-      classLevels = ["High School"];
+      classLevels = ["Innovation Hub", "Advanced AI"];
       allSubjectsPackage = "N/A";
     }
-  } else if (primarySubject.category === "skills") {
-    classLevels = ["Extracurricular", "Skill Training"];
-    allSubjectsPackage = "N/A";
-  } else {
-    classLevels = ["Innovation Hub", "Advanced AI"];
-    allSubjectsPackage = "N/A";
   }
 
   const languages = LANGUAGES_POOL[idx % LANGUAGES_POOL.length];
   const availableTimings = TIMINGS_POOL[idx % TIMINGS_POOL.length];
-  const experience = `${2 + (idx % 4)} Years`;
+  const experience = idx < 15 ? `${3 + (idx % 6)} Years` : `${2 + (idx % 4)} Years`;
 
   return {
     id: `tutor-${idx + 1}`,
     fullName: name,
     email: `${slugify(name)}@eduearn.com`,
     avatar: `/images/tutors/tutor-${(idx % 4) + 1}.jpg`,
-    bio: `Passionate tutor specializing in ${subjectsTaughtNames.join(" and ")}. Committed to peer-to-peer education, mentorship, and building dynamic workflows.`,
+    bio: `Passionate tutor specializing in ${subjectsTaughtNames.join(" and ")}. Committed to professional education, mentorship, and building dynamic workflows.`,
     verificationStatus: idx % 3 === 0 ? "ai_verified" : "pending",
     aiAssessmentScore: 85 + (idx % 15),
     expertise: subjectsTaughtNames,
@@ -258,11 +289,12 @@ export const MOCK_TUTORS = TUTOR_NAMES.map((name, idx) => {
     languages,
     experience,
     rating,
-    totalStudents: 32 + (idx * 7),
+    totalStudents: idx < 15 ? 40 + idx * 9 : 32 + (idx * 7),
     totalCourses: 2,
     approvalStatus: "published",
     availableTimings,
     earnings: 6000 + (idx * 1400),
+    interestedInTuition,
     createdAt: new Date(Date.now() - 3600000 * 24 * idx).toISOString(),
   };
 });
@@ -451,7 +483,7 @@ export const MOCK_TESTIMONIALS = Array.from({ length: 30 }).map((_, idx) => {
     ? `EduEarn has been a blessing. My daughter learned coding from a college student who was extremely friendly and relatable. Her school grades improved significantly!`
     : relation === "Tutor"
     ? `As an engineering student, teaching Python on EduEarn allowed me to pay my college fees while helping kids learn computational thinking. It's a wonderful circle.`
-    : `I took the Chess Masterclass. The student tutor explained endgames much better than boring textbook apps. I won my school tournament last week!`;
+    : `I took the Chess Masterclass. The verified tutor explained endgames much better than boring textbook apps. I won my school tournament last week!`;
  
   return {
     id: `testimonial-${idx + 1}`,
@@ -467,12 +499,12 @@ export const MOCK_TESTIMONIALS = Array.from({ length: 30 }).map((_, idx) => {
 // Generate 20 Blog Posts
 export const MOCK_BLOGS = Array.from({ length: 20 }).map((_, idx) => {
   const titles = [
-    "Why Peer Learning is the Future of Education",
+    "Why Expert-Led Learning is the Future of Education",
     "Top 5 Programming Languages to Learn in 2026",
     "How Young Tutors Are Redefining Classroom Dynamics",
     "Mastering UI/UX: Figma Tips for Beginners",
     "Unlocking the Power of Prompt Engineering on Gemini",
-    "A Parent's Guide to Choosing Student-Led Mentorship",
+    "A Parent's Guide to Choosing Professional Mentorship",
     "The Financial Literacy Every Indian College Student Needs",
     "How to Balance College Classes and Part-Time Tutoring",
     "5 Easy Steps to Improve Your Chess Endgame Strategies",
@@ -486,9 +518,9 @@ export const MOCK_BLOGS = Array.from({ length: 20 }).map((_, idx) => {
     title,
     slug: slugify(title),
     category: idx % 2 === 0 ? "Education" : "Skills",
-    content: "Peer-to-peer education breaks down traditional classroom barriers. In this article, we explore how young students become excellent educators and how peer groups accelerate learning progress.",
+    content: "Tutoring by experienced practitioners breaks down traditional classroom barriers. In this article, we explore how verified tutors become excellent educators and how structured guidance accelerates learning progress.",
     author: TUTOR_NAMES[idx % TUTOR_NAMES.length],
-    authorRole: "Student Tutor",
+    authorRole: "Verified Tutor",
     publishedAt: new Date(Date.now() - 3600000 * 24 * idx).toISOString(),
     thumbnail: idx % 2 === 0 ? "/images/courses/academic-education.webp" : "/images/courses/technology-programming.webp",
   };
@@ -541,7 +573,7 @@ export const MOCK_FAQS = [
   },
   {
     id: "faq-4",
-    question: "How do payouts work for student tutors?",
+    question: "How do payouts work for verified tutors?",
     answer: "Students earn directly from course enrollments and live sessions. EduEarn retains a small commission, and the remaining balance is instantly credited to the tutor's wallet, withdrawable to UPI/Bank accounts.",
   },
 ];

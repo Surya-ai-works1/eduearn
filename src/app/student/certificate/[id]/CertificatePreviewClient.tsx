@@ -38,7 +38,7 @@ export default function CertificatePreviewClient({ certificate }: Props) {
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-4xl">
       {/* Action Toolbar (Hidden during print) */}
-      <div className="flex gap-3 print:hidden w-full justify-between items-center bg-white dark:bg-zinc-900 p-4 border border-border/40 rounded-card shadow-soft">
+      <div className="flex gap-3 print:hidden w-full justify-between items-center bg-card dark:bg-card p-4 border border-border/40 rounded-card shadow-soft">
         <div className="flex flex-col items-start select-none">
           <span className="text-[9px] font-black text-emerald-600 uppercase tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded">
             ✓ Verified Credential
@@ -66,7 +66,7 @@ export default function CertificatePreviewClient({ certificate }: Props) {
       {/* Certificate Container */}
       <div
         id="certificate-container"
-        className="w-full aspect-[1.414/1] bg-white dark:bg-zinc-950 p-8 sm:p-12 border-8 border-double border-amber-500/50 rounded-card shadow-floating flex flex-col justify-between items-center text-center relative overflow-hidden select-none"
+        className="w-full aspect-[1.414/1] bg-card dark:bg-card p-8 sm:p-12 border-8 border-double border-amber-500/50 rounded-card shadow-floating flex flex-col justify-between items-center text-center relative overflow-hidden select-none"
       >
         {/* Decorative corner accents */}
         <div className="absolute top-0 left-0 w-16 h-16 border-t-4 border-l-4 border-amber-500/30"></div>

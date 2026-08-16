@@ -31,18 +31,20 @@ export default async function CourseDetailsPage({ params }: PageProps) {
       let tutorBio = "EduSpark Certified Expert Tutor.";
       let tutorAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=tutor";
 
-      try {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", dbCourse.tutor_id)
-          .maybeSingle();
-        if (profile) {
-          tutorName = profile.full_name || profile.display_name || "Tutor Instructor";
-          tutorBio = profile.bio || "EduSpark Certified Expert Tutor.";
-          if (profile.avatar_url) tutorAvatar = profile.avatar_url;
-        }
-      } catch (err) {}
+      if (supabase) {
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", dbCourse.tutor_id)
+            .maybeSingle();
+          if (profile) {
+            tutorName = profile.full_name || profile.display_name || "Tutor Instructor";
+            tutorBio = profile.bio || "EduSpark Certified Expert Tutor.";
+            if (profile.avatar_url) tutorAvatar = profile.avatar_url;
+          }
+        } catch (err) {}
+      }
 
       // Map dbCourse to mock shape for UI components
       course = {
@@ -78,23 +80,25 @@ export default async function CourseDetailsPage({ params }: PageProps) {
       };
 
       // Fetch dynamic reviews
-      try {
-        const { data: dbReviews } = await supabase
-          .from("reviews")
-          .select("*, profiles(*)")
-          .eq("course_id", dbCourse.id);
-        if (dbReviews && dbReviews.length > 0) {
-          courseReviews = dbReviews.map((r: any) => ({
-            id: r.id,
-            courseId: r.course_id,
-            studentName: r.profiles?.full_name || r.profiles?.display_name || "Student Learner",
-            studentAvatar: r.profiles?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=student",
-            rating: r.rating,
-            comment: r.comment || "",
-            createdAt: r.created_at,
-          }));
-        }
-      } catch (err) {}
+      if (supabase) {
+        try {
+          const { data: dbReviews } = await supabase
+            .from("reviews")
+            .select("*, profiles(*)")
+            .eq("course_id", dbCourse.id);
+          if (dbReviews && dbReviews.length > 0) {
+            courseReviews = dbReviews.map((r: any) => ({
+              id: r.id,
+              courseId: r.course_id,
+              studentName: r.profiles?.full_name || r.profiles?.display_name || "Student Learner",
+              studentAvatar: r.profiles?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=student",
+              rating: r.rating,
+              comment: r.comment || "",
+              createdAt: r.created_at,
+            }));
+          }
+        } catch (err) {}
+      }
 
       // Fetch dynamic related courses
       try {
@@ -104,17 +108,19 @@ export default async function CourseDetailsPage({ params }: PageProps) {
         for (const rc of related) {
           let rcTutorName = "Tutor Instructor";
           let rcTutorAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Tutor%20Instructor";
-          try {
-            const { data: rcProfile } = await supabase
-              .from("profiles")
-              .select("full_name, display_name, avatar_url")
-              .eq("id", rc.tutor_id)
-              .maybeSingle();
-            if (rcProfile) {
-              rcTutorName = rcProfile.full_name || rcProfile.display_name || "Tutor Instructor";
-              rcTutorAvatar = rcProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(rcTutorName)}`;
-            }
-          } catch (err) {}
+          if (supabase) {
+            try {
+              const { data: rcProfile } = await supabase
+                .from("profiles")
+                .select("full_name, display_name, avatar_url")
+                .eq("id", rc.tutor_id)
+                .maybeSingle();
+              if (rcProfile) {
+                rcTutorName = rcProfile.full_name || rcProfile.display_name || "Tutor Instructor";
+                rcTutorAvatar = rcProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(rcTutorName)}`;
+              }
+            } catch (err) {}
+          }
           
           mappedRelated.push({
             id: rc.id,
@@ -136,13 +142,15 @@ export default async function CourseDetailsPage({ params }: PageProps) {
       } catch (err) {}
 
       // Check enrollment status
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const enrollResult = await enrollmentService.getEnrollment(user.id, id);
-          isEnrolled = !!enrollResult;
-        }
-      } catch (err) {}
+      if (supabase) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const enrollResult = await enrollmentService.getEnrollment(user.id, id);
+            isEnrolled = !!enrollResult;
+          }
+        } catch (err) {}
+      }
     }
   } catch (err) {
     console.warn("Supabase course details load failed, falling back to mock courses:", err);
@@ -161,10 +169,12 @@ export default async function CourseDetailsPage({ params }: PageProps) {
       // Check enrollment status for mock course
       try {
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const enrollResult = await enrollmentService.getEnrollment(user.id, id);
-          isEnrolled = !!enrollResult;
+        if (supabase) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const enrollResult = await enrollmentService.getEnrollment(user.id, id);
+            isEnrolled = !!enrollResult;
+          }
         }
       } catch (err) {}
     }

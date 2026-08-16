@@ -5,10 +5,12 @@ import { createClient as createBrowserClient } from '@/lib/supabase/client';
 async function getSupabaseClient() {
   if (typeof window === 'undefined') {
     const { createClient: createServerClient } = await import('@/lib/supabase/server');
-    return await createServerClient();
+    const client = await createServerClient();
+    return client; // may be null if unconfigured
   }
   return createBrowserClient();
 }
+
 
 export class SupabaseEnrollmentRepository implements IEnrollmentRepository {
   private async attachCourseDetails(supabase: any, enrollment: Enrollment): Promise<Enrollment> {

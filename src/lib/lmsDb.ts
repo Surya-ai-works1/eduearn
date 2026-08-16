@@ -69,9 +69,13 @@ export interface TutorEarnings {
   updated_at: string;
 }
 
-// Get the Supabase client
+// Get the Supabase client — throws if not configured so callers' try/catch can handle gracefully
 function getSupabase() {
-  return createClient();
+  const client = createClient();
+  if (!client) {
+    throw new Error("Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+  }
+  return client;
 }
 
 // ---------------------------------------------------------

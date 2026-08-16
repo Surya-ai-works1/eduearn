@@ -15,6 +15,9 @@ export async function POST() {
 
   try {
     const supabase = await createClient();
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
+    }
 
     // Verify application existence
     const { data: app, error: fetchError } = await supabase

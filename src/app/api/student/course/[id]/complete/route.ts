@@ -14,6 +14,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const id = resolvedParams.id;
 
   const supabase = createClient();
+  if (!supabase) {
+    return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
+  }
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });

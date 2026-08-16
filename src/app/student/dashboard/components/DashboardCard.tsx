@@ -27,10 +27,10 @@ export function DashboardCard({
       className={cn(
         "rounded-2xl p-6 border transition-all duration-300 relative overflow-hidden select-none",
         {
-          "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-soft": variant === "default",
-          "bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border-slate-200/50 dark:border-slate-800/50": variant === "glass",
-          "border-slate-200 dark:border-slate-800 bg-transparent": variant === "bordered",
-          "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-indigo-950/20 border-blue-100 dark:border-indigo-900/30": variant === "premium",
+          "bg-white dark:bg-card border-border dark:border-border/80 shadow-soft": variant === "default",
+          "bg-white/60 dark:bg-card/60 backdrop-blur-md border-border/50 dark:border-border/50": variant === "glass",
+          "border-border dark:border-border bg-transparent": variant === "bordered",
+          "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-card dark:to-indigo-950/20 border-blue-100 dark:border-border/30": variant === "premium",
           
           "hover:-translate-y-1.5 hover:shadow-premium": hoverEffect === "lift",
           "hover:border-primary/40 hover:ring-2 hover:ring-primary/5": hoverEffect === "glow",

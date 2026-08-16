@@ -26,6 +26,10 @@ export async function getApiUser(requiredRole?: "student" | "tutor" | "admin") {
 
   try {
     const supabase = await createClient();
+    if (!supabase) {
+      // Supabase not configured — treat as unauthenticated
+      return { error: "Supabase is not configured on this server", status: 503 };
+    }
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {

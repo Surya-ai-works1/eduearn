@@ -53,6 +53,9 @@ export async function POST(request: Request) {
     }
 
     const supabase = await createClient();
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
+    }
 
     // Update database record with AI assessment results
     const { error: dbError } = await supabase

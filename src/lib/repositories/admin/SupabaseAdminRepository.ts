@@ -19,8 +19,15 @@ import {
 } from "../../types/admin";
 
 export class SupabaseAdminRepository implements IAdminRepository {
-  private getSupabase() {
-    return createClient();
+  private async getSupabase() {
+    const client = await createClient();
+    if (!client) {
+      throw new Error(
+        "SupabaseAdminRepository requires Supabase credentials. " +
+        "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
+      );
+    }
+    return client;
   }
 
   // Helper for localStorage fallback (for tickets, announcements, reports which lack DB tables)

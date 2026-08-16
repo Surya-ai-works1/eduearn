@@ -14,6 +14,9 @@ export async function GET() {
 
   try {
     const supabase = await createClient();
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
+    }
 
     const { data, error } = await supabase
       .from("tutor_verifications")
@@ -55,6 +58,9 @@ export async function DELETE() {
 
   try {
     const supabase = await createClient();
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
+    }
 
     // Fetch the existing application to keep a trace in audit log
     const { data: app } = await supabase
