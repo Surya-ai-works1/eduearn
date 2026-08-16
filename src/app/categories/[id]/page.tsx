@@ -11,7 +11,7 @@ import { Container } from "../../../components/layout/Container";
 import { PageWrapper } from "../../../components/layout/PageWrapper";
 import { Card } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
-import { ALIAS_MAP } from "../../learning-paths/[id]/page";
+import { ALIAS_MAP } from "../../../constants";
 import { StaggerContainer, staggerChildVariants } from "../../../components/animations";
 import { motion, AnimatePresence } from "framer-motion";
 import {

@@ -10,6 +10,7 @@ import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { Divider } from "../../../components/ui/divider";
 import { toast } from "sonner";
+import { ALIAS_MAP } from "../../../constants";
 import {
   BookOpen,
   Award,
@@ -236,36 +237,7 @@ const PATHWAYS_CONFIG: Record<string, PathwayConfig> = {
   }
 };
 
-export const ALIAS_MAP: Record<string, string> = {
-  "fullstack": "fullstack",
-  "full-stack-developer": "fullstack",
-  "web-development": "fullstack",
-  "web development": "fullstack",
-  "javascript": "fullstack",
-  "react": "fullstack",
-  "next-js": "fullstack",
-  "next.js": "fullstack",
-  "node-js": "fullstack",
-  "node.js": "fullstack",
-  "ai-engineer": "ai-engineer",
-  "ai-ml": "ai-engineer",
-  "ui-ux": "ui-ux",
-  "ui-ux-designer": "ui-ux",
-  "digital-marketing": "digital-marketing",
-  "digital-marketing-specialist": "digital-marketing",
-  "seo": "digital-marketing",
-  "data-science": "data-science",
-  "data-analyst": "data-science",
-  "photography-mastery": "photography-mastery",
-  "photography": "photography-mastery",
-  "music-learning": "music-learning",
-  "music": "music-learning",
-  "guitar": "music-learning",
-  "piano": "music-learning",
-  "keyboard": "music-learning",
-  "cooking-essentials": "cooking-essentials",
-  "cooking": "cooking-essentials",
-};
+
 
 interface PageProps {
   params: Promise<{ id: string }>;
