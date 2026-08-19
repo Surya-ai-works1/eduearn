@@ -106,22 +106,42 @@ export default function DashboardLayout({
 
   const sidebarGroups: SidebarGroup[] = [
     {
-      title: "OPERATIONS CONSOLE",
+      title: "OPERATIONS",
       items: [
         { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
         { id: "organizations", label: "Organizations", icon: Building2 },
         { id: "categories", label: "Categories", icon: FolderKanban },
         { id: "courses", label: "Courses", icon: BookOpenCheck },
         { id: "tutors", label: "Tutors", icon: Users },
-        { id: "students", label: "Students", icon: Bookmark },
+        { id: "students", label: "Students", icon: Bookmark }
+      ]
+    },
+    {
+      title: "FINANCE",
+      items: [
         { id: "payments", label: "Payments", icon: FileSpreadsheet },
+        { id: "finance", label: "Finance", icon: DollarSign }
+      ]
+    },
+    {
+      title: "PLATFORM",
+      items: [
         { id: "certificates", label: "Certificates", icon: Award },
         { id: "cms", label: "CMS", icon: Globe },
-        { id: "analytics", label: "Analytics", icon: BarChart3 },
-        { id: "finance", label: "Finance", icon: DollarSign },
+        { id: "analytics", label: "Analytics", icon: BarChart3 }
+      ]
+    },
+    {
+      title: "SECURITY",
+      items: [
         { id: "reports", label: "Reports", icon: FileText },
         { id: "audit-logs", label: "Audit Logs", icon: Database },
-        { id: "security", label: "Security", icon: ShieldAlert },
+        { id: "security", label: "Security", icon: ShieldAlert }
+      ]
+    },
+    {
+      title: "SYSTEM",
+      items: [
         { id: "settings", label: "Settings", icon: Settings },
         { id: "system-health", label: "System Health", icon: Activity }
       ]

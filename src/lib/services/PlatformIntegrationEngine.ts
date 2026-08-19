@@ -304,16 +304,12 @@ export class GlobalSearchIndex {
 export class SystemHealthCenter {
   static getDiagnostics() {
     return {
-      dbHealth: "Optimal",
-      storageUsage: 35.8, // in GB (e.g. 35.8 / 100 GB)
-      activeUsers: Math.floor(180 + Math.random() * 45),
+      dbHealth: "Connected",
+      storageStatus: "Connected",
       apiLatency: 15, // in ms
-      aiUsage: 14850, // Gemini API calls today
-      queuedCertificates: 2,
       queuedNotifications: 0,
       failedJobs: 0,
-      warningsCount: 0,
-      securityScore: 96
+      warningsCount: 0
     };
   }
 }

@@ -492,6 +492,7 @@ export default function AdminDashboardPage() {
             onRejectTutor={(id) => triggerTutorVerification(id, false)}
             logAuditAction={logAuditAction}
             isLoading={isLoadingData}
+            activeTab={activeTab}
           />
         )}
 

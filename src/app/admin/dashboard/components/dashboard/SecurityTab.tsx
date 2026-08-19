@@ -32,15 +32,10 @@ export default function SecurityTab() {
   const [sessionTimeout, setSessionTimeout] = useState("30");
   const [twoFactorForce, setTwoFactorForce] = useState(true);
 
-  const defaultAlerts: SecurityAlert[] = [
-    { id: "sec-1", type: "Multiple Failed Logins", severity: "High", timestamp: "2026-08-03 14:22:10", ip: "192.168.1.182", actor: "unknown", description: "5 consecutive failed login attempts on student account rahul@eduearn.com.", status: "Flagged" },
-    { id: "sec-2", type: "Escrow Withdrawal Deviation", severity: "Medium", timestamp: "2026-08-03 15:45:00", ip: "192.168.1.205", actor: "Amit Verma", description: "Withdrawal amount request of ₹18,400 deviates from median tutor payout patterns.", status: "Flagged" },
-    { id: "sec-3", type: "API Token Rotation Warning", severity: "Low", timestamp: "2026-08-02 09:12:00", ip: "192.168.1.10", actor: "System Cron", description: "Gemini AI model API keys are approaching rotation threshold timer limits.", status: "Dismissed" }
-  ];
+  const defaultAlerts: SecurityAlert[] = [];
 
   const defaultSessions: AdminSession[] = [
-    { id: "ses-1", adminName: "Surya (Admin)", role: "Super Admin", ip: "192.168.1.14", browser: "Chrome on Windows 11", activeSince: "Today, 09:30 AM" },
-    { id: "ses-2", adminName: "Sanjay Dutt", role: "Auditor", ip: "192.168.1.55", browser: "Firefox on macOS", activeSince: "Yesterday, 04:15 PM" }
+    { id: "ses-1", adminName: "Surya (Admin)", role: "Super Admin", ip: "127.0.0.1", browser: "Current Web Session", activeSince: "Active Now" }
   ];
 
   useEffect(() => {
@@ -255,18 +250,18 @@ export default function SecurityTab() {
               </h4>
             </div>
 
-            <div className="space-y-3.5 text-xs font-semibold text-muted-foreground">
+            <div className="space-y-3 text-xs font-semibold text-muted-foreground">
               {[
-                { name: "Supabase JWT Issuer", status: "Active & Secure", key: "sb.jwt.secret.*****" },
-                { name: "Gemini 2.5 Flash API Key", status: "Active & Secure", key: "gm.flash25.*****" },
-                { name: "Brevo SMTP Mail Service", status: "Active & Secure", key: "bv.smtp.token.*****" }
+                { name: "Supabase Database & Auth", status: "Connected", detail: "Database Connection Active" },
+                { name: "Gemini AI Model API Key", status: "Configured", detail: "AI Evaluation Service Active" },
+                { name: "Brevo SMTP Mail Service", status: "Configured", detail: "Email Service Operational" }
               ].map((k, idx) => (
-                <div key={idx} className="p-3 bg-muted/15 border border-border/40 rounded-xl space-y-1.5">
+                <div key={idx} className="p-3 bg-muted/15 border border-border/40 rounded-xl space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="font-extrabold text-foreground">{k.name}</span>
-                    <span className="text-[8.5px] font-black text-emerald-500 uppercase">{k.status}</span>
+                    <span className="text-[8.5px] font-black text-emerald-500 uppercase bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{k.status}</span>
                   </div>
-                  <div className="text-[10px] font-mono text-primary/70">{k.key}</div>
+                  <div className="text-[9.5px] font-semibold text-muted-foreground">{k.detail}</div>
                 </div>
               ))}
             </div>

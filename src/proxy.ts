@@ -102,7 +102,9 @@ export async function proxy(request: NextRequest) {
     url.pathname.startsWith("/login") ||
     url.pathname.startsWith("/register") ||
     url.pathname.startsWith("/tutor/login") ||
-    url.pathname.startsWith("/tutor/register");
+    url.pathname.startsWith("/tutor/register") ||
+    url.pathname.startsWith("/student/login") ||
+    url.pathname.startsWith("/student/register");
 
   const isProtectedPage =
     url.pathname.startsWith("/complete-profile") ||
@@ -111,7 +113,9 @@ export async function proxy(request: NextRequest) {
     (url.pathname.startsWith("/tutor") &&
       !url.pathname.startsWith("/tutor/login") &&
       !url.pathname.startsWith("/tutor/register")) ||
-    url.pathname.startsWith("/student") ||
+    (url.pathname.startsWith("/student") &&
+      !url.pathname.startsWith("/student/login") &&
+      !url.pathname.startsWith("/student/register")) ||
     url.pathname.startsWith("/admin") ||
     url.pathname.startsWith("/profile") ||
     url.pathname.startsWith("/settings") ||

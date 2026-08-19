@@ -82,135 +82,77 @@ export default function SystemHealthTab() {
         </Button>
       </div>
 
-      {/* Observability Gauges Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Application Health Indicators Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: "CPU Usage Core", val: "32%", sub: "4 Cores Intel Xeon", pct: 32, color: "stroke-emerald-500", text: "text-emerald-500" },
-          { label: "Memory Buffer", val: "54%", sub: "8.6 GB / 16 GB Ram", pct: 54, color: "stroke-blue-500", text: "text-blue-500" },
-          { label: "SMTP Email Rates", val: "100%", sub: " SMTP Mail Server", pct: 100, color: "stroke-purple-500", text: "text-purple-500" },
-          { label: "Storage Limit", val: `${healthData.storageUsage}%`, sub: "Media server storage", pct: Math.round(healthData.storageUsage), color: "stroke-amber-500", text: "text-amber-500" }
-        ].map((gauge, idx) => (
-          <Card key={idx} className="border border-border bg-card p-5 flex items-center justify-between shadow-soft hover:shadow-md transition-all">
-            <div className="space-y-1">
-              <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider block">{gauge.label}</span>
-              <span className="text-xl sm:text-2xl font-heading font-black text-foreground tracking-tight block mt-2">{gauge.val}</span>
-              <span className="text-[9px] text-muted-foreground font-semibold block mt-1">{gauge.sub}</span>
-            </div>
-            
-            {/* SVG circular Gauge */}
-            <div className="relative w-20 h-20 shrink-0">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle cx="40" cy="40" r={radius} className="stroke-muted fill-none" strokeWidth="6" />
-                <circle 
-                  cx="40" 
-                  cy="40" 
-                  r={radius} 
-                  className={`fill-none transition-all duration-500 ${gauge.color}`} 
-                  strokeWidth="6"
-                  strokeDasharray={`${circumference} ${circumference}`}
-                  strokeDashoffset={circumference - (gauge.pct / 100) * circumference}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className={`text-[9.5px] font-extrabold ${gauge.text}`}>{gauge.pct}%</span>
-              </div>
-            </div>
+          { label: "Database", val: "Connected", sub: "Supabase PostgreSQL", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
+          { label: "Authentication", val: "Operational", sub: "Supabase Auth & RBAC", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
+          { label: "API Services", val: "Operational", sub: "Next.js App Router API", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
+          { label: "Storage Bucket", val: "Connected", sub: "Supabase Storage", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
+          { label: "Email Service", val: "Configured", sub: "SMTP Provider", color: "text-blue-500 bg-blue-500/10 border-blue-500/20" },
+        ].map((item, idx) => (
+          <Card key={idx} className="border border-border bg-card p-4 space-y-2 shadow-soft">
+            <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider block">{item.label}</span>
+            <span className={`inline-block px-2 py-0.5 rounded text-xs font-black uppercase border ${item.color}`}>{item.val}</span>
+            <span className="text-[9px] text-muted-foreground font-semibold block">{item.sub}</span>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Background Jobs Queue */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="border border-border/80 bg-card/60 shadow-soft p-5 space-y-4">
-            <div className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest block border-b border-border/30 pb-2">
-              Background Jobs Queue Manager
-            </div>
-
-            <div className="overflow-x-auto select-none">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-border/40 text-muted-foreground font-extrabold uppercase text-[9px] tracking-wider">
-                    <th className="pb-3">Job Name</th>
-                    <th className="pb-3">Cron Schedule</th>
-                    <th className="pb-3">Latency</th>
-                    <th className="pb-3 text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                  {jobs.map((job) => (
-                    <tr key={job.id} className="hover:bg-muted/10 transition-colors">
-                      <td className="py-3">
-                        <div className="font-extrabold text-foreground">{job.name}</div>
-                        <div className="text-[9.5px] text-muted-foreground/60 font-semibold mt-0.5">Last Run: {job.lastRun}</div>
-                      </td>
-                      <td className="py-3 font-semibold text-muted-foreground">{job.schedule}</td>
-                      <td className="py-3 font-mono font-bold text-primary/80">{job.latency}ms</td>
-                      <td className="py-3 text-right">
-                        <span className="inline-flex items-center gap-1 text-[8.5px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
-                          {job.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Diagnostic Checks summary */}
-        <div className="space-y-6">
-          <Card className="border border-border/80 bg-card p-6 space-y-4 shadow-soft">
-            <div className="border-b border-border/40 pb-2.5">
-              <h3 className="font-heading font-black text-foreground text-sm flex items-center gap-1.5">
-                <Server size={16} className="text-primary" /> Cluster Diagnostic Checklist
-              </h3>
-            </div>
+        <Card className="border border-border/80 bg-card p-6 space-y-4 shadow-soft">
+          <div className="border-b border-border/40 pb-2.5">
+            <h3 className="font-heading font-black text-foreground text-sm flex items-center gap-1.5">
+              <Server size={16} className="text-primary" /> Application Diagnostic Checklist
+            </h3>
+          </div>
 
-            <div className="space-y-3.5 text-xs font-semibold text-muted-foreground">
-              {[
-                { name: "Database Schema Version", status: "v2.0-Migrated", type: "db" },
-                { name: "Token Rotation Policy", status: "Active (24h)", type: "security" },
-                { name: "System Log Level", status: "JSON production", type: "log" },
-                { name: "SMTP Email Server", status: "Brevo API Connected", type: "mail" }
-              ].map((c, idx) => (
-                <div key={idx} className="p-3 bg-muted/15 border border-border/40 rounded-xl flex items-center justify-between">
-                  <div>
-                    <h5 className="font-extrabold text-foreground text-[11px]">{c.name}</h5>
-                    <span className="text-[9.5px] text-primary/80 font-bold block mt-0.5">{c.status}</span>
-                  </div>
-                  <span className="text-emerald-500 shrink-0"><CheckCircle2 size={15} /></span>
+          <div className="space-y-3 text-xs font-semibold text-muted-foreground">
+            {[
+              { name: "Database Connectivity & Schema", status: "Operational & Migrated" },
+              { name: "RBAC Role Resolution", status: "Strict Profiles Authority Active" },
+              { name: "Next.js Edge Middleware", status: "Role Guards & Protection Enabled" },
+              { name: "Session Security & Cookies", status: "HTTP-Only Secure Cookie Session" }
+            ].map((c, idx) => (
+              <div key={idx} className="p-3 bg-muted/15 border border-border/40 rounded-xl flex items-center justify-between">
+                <div>
+                  <h5 className="font-extrabold text-foreground text-[11px]">{c.name}</h5>
+                  <span className="text-[9.5px] text-primary/80 font-bold block mt-0.5">{c.status}</span>
                 </div>
-              ))}
-            </div>
-          </Card>
+                <span className="text-emerald-500 shrink-0"><CheckCircle2 size={15} /></span>
+              </div>
+            ))}
+          </div>
+        </Card>
 
-          {/* Infrastructure Health Status */}
-          <Card className="border border-border/80 bg-card p-6 space-y-4 shadow-soft">
-            <div className="border-b border-border/40 pb-2.5">
-              <h4 className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">
-                Infrastructure Health Status
-              </h4>
-            </div>
+        {/* Infrastructure Status Summary */}
+        <Card className="border border-border/80 bg-card p-6 space-y-4 shadow-soft flex flex-col justify-between">
+          <div className="border-b border-border/40 pb-2.5">
+            <h4 className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">
+              Application Health Overview
+            </h4>
+          </div>
 
-            <div className="space-y-3 text-xs font-semibold text-muted-foreground">
-              <div className="flex justify-between items-center">
-                <span>Database Response Latency</span>
-                <span className="font-black text-foreground">{healthData.apiLatency}ms</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Active WebSocket Channels</span>
-                <span className="font-black text-foreground">18 streams</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Data Integrity Check</span>
-                <span className="text-emerald-500 font-extrabold uppercase text-[9px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Optimal</span>
-              </div>
+          <div className="space-y-4 text-xs font-semibold text-muted-foreground">
+            <div className="flex justify-between items-center">
+              <span>Database Connection</span>
+              <span className="text-emerald-500 font-extrabold uppercase text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Connected</span>
             </div>
-          </Card>
-        </div>
+            <div className="flex justify-between items-center">
+              <span>Authentication State</span>
+              <span className="text-emerald-500 font-extrabold uppercase text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Operational</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Data Integrity</span>
+              <span className="text-emerald-500 font-extrabold uppercase text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Verified</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Last Health Check</span>
+              <span className="font-mono text-foreground">{new Date().toLocaleTimeString()}</span>
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   );

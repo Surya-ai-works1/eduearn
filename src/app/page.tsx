@@ -432,28 +432,36 @@ export default function RootLandingPage() {
   const router = useRouter();
   const { user } = useAuth();
   
-  // Redirect authenticated users directly to their appropriate dashboard or onboarding step
+  // Redirect incomplete users to onboarding steps, allow completed users/admins to view public landing page at "/"
   useEffect(() => {
     if (user) {
-      if (user.role === "admin" || user.role === "super-admin") {
-        router.replace("/admin/dashboard");
-      } else if (!user.complete) {
+      if (!user.complete) {
         if (user.role === "tutor") {
           router.replace("/tutor/onboarding");
         } else {
           router.replace("/complete-profile");
-        }
-      } else {
-        if (user.role === "tutor") {
-          // Do not redirect tutor to dashboard automatically, let them view the Tutor homepage at "/"
-        } else {
-          router.replace("/student/dashboard");
         }
       }
     }
   }, [user, router]);
 
   const [isDemoOpen, setIsDemoOpen] = useState(false);
+  const [heroSubtitle, setHeroSubtitle] = useState("Learn from Students. Teach Students. Grow Together. India's AI-Powered Student-to-Student Learning Marketplace.");
+
+  useEffect(() => {
+    const loadCms = () => {
+      try {
+        const stored = localStorage.getItem("eduearn_landing_cms");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.heroSubtitle) setHeroSubtitle(parsed.heroSubtitle);
+        }
+      } catch {}
+    };
+    loadCms();
+    window.addEventListener("storage", loadCms);
+    return () => window.removeEventListener("storage", loadCms);
+  }, []);
 
   // Active index for headline words highlight cycling (0: Learn, 1: Teach, 2: Earn)
   const [activeHeadlineIndex, setActiveHeadlineIndex] = useState(0);
@@ -567,7 +575,7 @@ export default function RootLandingPage() {
         <div className="w-full relative min-h-screen bg-background text-foreground transition-colors duration-300 overflow-x-hidden">
           <HeroLayout
             title={animatedTitle}
-            subtitle="Create courses. Inspire thousands of students. Build your creator brand. Earn every month with EduEarn."
+            subtitle={heroSubtitle}
             illustration={<HeroIllustration />}
             floatingWidgets={floatingWidgets}
             ctas={
@@ -646,7 +654,7 @@ export default function RootLandingPage() {
       {/* 1. Landing Page Hero Grid */}
       <HeroLayout
         title={animatedTitle}
-        subtitle="Learn from Students. Teach Students. Grow Together. India's AI-Powered Student-to-Student Learning Marketplace."
+        subtitle={heroSubtitle}
         illustration={<HeroIllustration />}
         floatingWidgets={floatingWidgets}
         ctas={

@@ -87,14 +87,20 @@ export function resolveRouteDecision(
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
     pathname.startsWith("/tutor/login") ||
-    pathname.startsWith("/tutor/register");
+    pathname.startsWith("/tutor/register") ||
+    pathname.startsWith("/student/login") ||
+    pathname.startsWith("/student/register");
 
   const isProtectedPage =
     pathname.startsWith("/complete-profile") ||
     pathname.startsWith("/choose-role") ||
     pathname.startsWith("/welcome") ||
-    pathname.startsWith("/tutor") ||
-    pathname.startsWith("/student") ||
+    (pathname.startsWith("/tutor") &&
+      !pathname.startsWith("/tutor/login") &&
+      !pathname.startsWith("/tutor/register")) ||
+    (pathname.startsWith("/student") &&
+      !pathname.startsWith("/student/login") &&
+      !pathname.startsWith("/student/register")) ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/profile") ||
     pathname.startsWith("/settings") ||

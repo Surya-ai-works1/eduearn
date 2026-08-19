@@ -27,6 +27,7 @@ interface UsersTabProps {
   onRejectTutor: (id: string) => void;
   logAuditAction: (actionStr: string) => void;
   isLoading?: boolean;
+  activeTab?: string;
 }
 
 // --- EXTENDED TYPES FOR ENTERPRISE DATA ---
@@ -74,11 +75,29 @@ export default function UsersTab({
   onApproveTutor,
   onRejectTutor,
   logAuditAction,
-  isLoading = false
+  isLoading = false,
+  activeTab
 }: UsersTabProps) {
   // --- STATE VARIABLES ---
   const [currentTime] = useState(() => Date.now());
-  const [roleFilter, setRoleFilter] = useState<string>("learner");
+  const [roleFilter, setRoleFilter] = useState<string>(() => {
+    if (activeTab === "tutors") return "tutor-roster";
+    if (activeTab === "admin") return "admin";
+    if (activeTab === "tutor-verification") return "tutor";
+    return "learner";
+  });
+
+  useEffect(() => {
+    if (activeTab === "tutors") {
+      setRoleFilter("tutor-roster");
+    } else if (activeTab === "students" || activeTab === "users" || activeTab === "learners") {
+      setRoleFilter("learner");
+    } else if (activeTab === "admin") {
+      setRoleFilter("admin");
+    } else if (activeTab === "tutor-verification") {
+      setRoleFilter("tutor");
+    }
+  }, [activeTab]);
   const [userSearch, setUserSearch] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   

@@ -86,29 +86,28 @@ export default function DashboardTab({
 
   const health = SystemHealthCenter.getDiagnostics();
 
-  // Metrics Calculation
-  const totalRevenue = propStats?.totalRevenue ?? (1540000 + adminEnrollments.reduce((sum, item) => sum + (item.amount || 0), 0));
-  const totalStudents = propStats?.totalStudents ?? (1045 + adminEnrollments.length);
-  const totalTutors = propStats?.totalTutors ?? 24;
+  // Metrics Calculation from real database state
+  const totalRevenue = propStats?.totalRevenue ?? adminEnrollments.reduce((sum, item) => sum + (item.amount || 0), 0);
+  const totalStudents = propStats?.totalStudents ?? 0;
+  const totalTutors = propStats?.totalTutors ?? 0;
   const totalCourses = courses.length;
-  const certificatesCount = propStats?.certificatesIssued ?? 84;
-  const activeAlerts = 2; // Failed Logins, Escrow Deviation
-  const pendingModCount = tickets.filter(t => t.status === "Open" || t.status === "pending").length || 1;
-  const pendingApprovalsCount = verifications.filter(v => v.status === "Pending" || v.status === "pending").length || 2;
+  const certificatesCount = propStats?.certificatesIssued ?? 0;
+  const pendingApprovalsCount = verifications.filter(v => v.status === "Pending" || v.status === "pending" || v.status === "Under Review").length;
+  const pendingPaymentsCount = payouts.filter(p => p.status === "Pending" || p.status === "pending").length;
+  const openReportsCount = refundRequests.filter(r => r.status === "Pending").length + tickets.filter(t => t.status === "Open").length;
 
-  const kpis = [
-    { label: "Revenue", val: `₹${totalRevenue.toLocaleString("en-IN")}`, sub: "Gross payments volume", icon: DollarSign, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/10" },
-    { label: "Students", val: String(totalStudents), sub: "Active learners", icon: Users, color: "text-blue-500 bg-blue-500/10 border-blue-500/10" },
-    { label: "Tutors", val: String(totalTutors), sub: "Educators cohort pool", icon: Users, color: "text-purple-500 bg-purple-500/10 border-purple-500/10" },
-    { label: "Courses", val: String(totalCourses), sub: "Active inventory", icon: BookOpen, color: "text-amber-500 bg-amber-500/10 border-amber-500/10" },
-    { label: "Organizations", val: String(organizationsCount), sub: "Enterprise tenant accounts", icon: Building2, color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/10" },
-    { label: "Certificates", val: String(certificatesCount), sub: "Verifiable credentials issued", icon: Award, color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/10" },
-    { label: "Payments", val: `${payoutsCount} Pending`, sub: "Payouts waiting clearance", icon: FileText, color: "text-orange-500 bg-orange-500/10 border-orange-500/10" },
-    { label: "Security Alerts", val: `${activeAlerts} Alerts`, sub: "Threat signals detected", icon: ShieldAlert, color: "text-rose-500 bg-rose-500/10 border-rose-500/10" },
-    { label: "Pending Moderation", val: `${pendingModCount} Tickets`, sub: "Flagged content reviews", icon: AlertTriangle, color: "text-rose-400 bg-rose-400/10 border-rose-400/10" },
+  const topMetrics = [
+    { label: "Students", val: String(totalStudents), sub: "Active registered learners", icon: Users, color: "text-blue-500 bg-blue-500/10 border-blue-500/10" },
+    { label: "Tutors", val: String(totalTutors), sub: "Educators pool", icon: Users, color: "text-purple-500 bg-purple-500/10 border-purple-500/10" },
+    { label: "Courses", val: String(totalCourses), sub: "Active catalog inventory", icon: BookOpen, color: "text-amber-500 bg-amber-500/10 border-amber-500/10" },
+    { label: "Revenue", val: `₹${totalRevenue.toLocaleString("en-IN")}`, sub: "Gross platform volume", icon: DollarSign, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/10" },
+  ];
+
+  const secondRowMetrics = [
     { label: "Pending Approvals", val: `${pendingApprovalsCount} Requests`, sub: "Tutor credential applications", icon: UserCheck, color: "text-teal-500 bg-teal-500/10 border-teal-500/10" },
-    { label: "System Health", val: `${health.dbHealth}`, sub: "Optimal database cluster", icon: Activity, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/10" },
-    { label: "Background Jobs", val: "4 Running", sub: "Autobackup & Sync queues active", icon: Database, color: "text-purple-400 bg-purple-400/10 border-purple-400/10" },
+    { label: "Pending Payments", val: `${pendingPaymentsCount} Payouts`, sub: "Withdrawals clearance queue", icon: FileText, color: "text-orange-500 bg-orange-500/10 border-orange-500/10" },
+    { label: "Certificates", val: String(certificatesCount), sub: "Issued credentials", icon: Award, color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/10" },
+    { label: "Open Reports", val: `${openReportsCount} Items`, sub: "Pending issues & tickets", icon: AlertTriangle, color: "text-rose-400 bg-rose-400/10 border-rose-400/10" },
   ];
 
   const triggerQuickAction = (actionName: string, desc: string) => {
@@ -139,7 +138,7 @@ export default function DashboardTab({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-4 rounded-xl border border-border shadow-soft">
         <div>
           <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary flex items-center gap-1.5 select-none">
-            <Sparkles size={13} className="animate-pulse" /> Executive Operations Center
+            <Sparkles size={13} className="animate-pulse" /> Platform Operations
           </span>
           <h2 className="text-xl font-heading font-black text-foreground tracking-tight mt-1 select-none">
             Platform Executive Cockpit
@@ -147,30 +146,59 @@ export default function DashboardTab({
         </div>
       </div>
 
-      {/* 12 Executive KPI Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {kpis.map((kpi, i) => {
-          const Icon = kpi.icon;
-          return (
-            <div key={i} className="border border-border bg-card p-5 rounded-card flex flex-col justify-between shadow-soft hover:shadow-md transition-all duration-200">
-              <div className="flex justify-between items-center gap-3">
-                <span className="text-[10px] sm:text-xs font-extrabold text-muted-foreground uppercase tracking-wider truncate">
-                  {kpi.label}
-                </span>
-                <span className={`p-2 rounded-xl border shrink-0 ${kpi.color}`}>
-                  <Icon size={14} />
-                </span>
+      {/* Row 1: Top Metrics Grid */}
+      <div className="space-y-2">
+        <h3 className="text-xs font-heading font-extrabold uppercase tracking-wider text-muted-foreground">Overview Metrics</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {topMetrics.map((kpi, i) => {
+            const Icon = kpi.icon;
+            return (
+              <div key={i} className="border border-border bg-card p-5 rounded-card flex flex-col justify-between shadow-soft hover:shadow-md transition-all duration-200">
+                <div className="flex justify-between items-center gap-3">
+                  <span className="text-[10px] sm:text-xs font-extrabold text-muted-foreground uppercase tracking-wider truncate">
+                    {kpi.label}
+                  </span>
+                  <span className={`p-2 rounded-xl border shrink-0 ${kpi.color}`}>
+                    <Icon size={14} />
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <span className="text-xl sm:text-2xl font-heading font-extrabold text-foreground tracking-tight block">{kpi.val}</span>
+                  <span className="text-[10px] text-muted-foreground font-semibold mt-1 block">{kpi.sub}</span>
+                </div>
               </div>
-              <div className="mt-4">
-                <span className="text-xl sm:text-2xl font-heading font-extrabold text-foreground tracking-tight block">{kpi.val}</span>
-                <span className="text-[10px] text-muted-foreground font-semibold mt-1 block">{kpi.sub}</span>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      {/* Main Operations section with Timeline, Logs, Actions */}
+      {/* Row 2: Operational Action Metrics Grid */}
+      <div className="space-y-2">
+        <h3 className="text-xs font-heading font-extrabold uppercase tracking-wider text-muted-foreground">Operational Action Items</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {secondRowMetrics.map((kpi, i) => {
+            const Icon = kpi.icon;
+            return (
+              <div key={i} className="border border-border bg-card p-5 rounded-card flex flex-col justify-between shadow-soft hover:shadow-md transition-all duration-200">
+                <div className="flex justify-between items-center gap-3">
+                  <span className="text-[10px] sm:text-xs font-extrabold text-muted-foreground uppercase tracking-wider truncate">
+                    {kpi.label}
+                  </span>
+                  <span className={`p-2 rounded-xl border shrink-0 ${kpi.color}`}>
+                    <Icon size={14} />
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <span className="text-xl sm:text-2xl font-heading font-extrabold text-foreground tracking-tight block">{kpi.val}</span>
+                  <span className="text-[10px] text-muted-foreground font-semibold mt-1 block">{kpi.sub}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main Operations section with Timeline & Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Recent Activity Timeline */}
