@@ -77,6 +77,7 @@ import {
   NotificationsPanel, 
   DashboardSkeleton 
 } from "./components";
+import { TuitionDashboardView } from "../../../components/student/TuitionDashboardView";
 
 // ─── TYPES & INTERFACES ──────────────────────────────────────────────────────
 
@@ -360,12 +361,13 @@ function StudentDashboardContent() {
     pastClasses,
     recordedSessions,
     handleStartQuiz,
-    handleSelectAnswer
+    handleSelectAnswer,
+    attendance
   } = dashboard;
 
-  // ─── NAV ITEMS ─────────────────────────────────────────────────────────────
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "my-tuition", label: "My Tuition", icon: BookOpenCheck },
     { id: "my-courses", label: "My Courses & Batches", icon: BookOpen },
     { id: "live-classes", label: "Today's Live Classes", icon: Calendar },
     { id: "ai-hub", label: "Sparky AI Hub", icon: Sparkles },
@@ -578,9 +580,14 @@ function StudentDashboardContent() {
                 setAiAssistantType={setAiAssistantType}
                 setAiInputText={setAiInputText}
                 enrollWishlist={enrollWishlist}
-                onResume={(courseId) => router.push(`/student/courses/${courseId}/learn`)}
+                onResume={(courseId) => navigateToClassroom(router, courseId)}
                 welcomeGreeting={welcomeGreeting}
               />
+            )}
+
+            {/* TAB: MY TUITION */}
+            {activeTab === "my-tuition" && (
+              <TuitionDashboardView user={user} />
             )}
 
             {/* TAB: MY COURSES */}
@@ -619,17 +626,20 @@ function StudentDashboardContent() {
                 ) : (
                   liveClasses.map((item) => {
                     const isEnrolled = item.isEnrolled;
+                    const isZoom = item.platform === "Zoom";
+                    const isLive = item.countdown?.toLowerCase().includes("live") || item.countdown?.toLowerCase().includes("now") || item.countdown?.toLowerCase().includes("minute");
+
                     return (
-                      <Card key={item.id} variant="glass" className={`p-6 border ${isEnrolled ? "border-rose-500/25" : "border-border/80"} dark:bg-card/65 bg-card flex flex-col gap-6 relative overflow-hidden shadow-soft text-left`}>
+                      <Card key={item.id} variant="glass" className={`p-6 border ${isEnrolled ? "border-rose-500/25 bg-rose-500/[0.01]" : "border-border/80"} dark:bg-card/65 bg-card flex flex-col gap-6 relative overflow-hidden shadow-soft text-left`}>
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${isEnrolled ? "bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground"}`}>
-                                {isEnrolled ? "Enrolled Batch" : "Featured Live Batch"}
+                              <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${isEnrolled ? "bg-rose-500/10 text-rose-500" : "bg-muted text-muted-foreground"}`}>
+                                🔴 LIVE CLASS
                               </span>
-                              {!isEnrolled && (
-                                <span className="text-[9px] font-bold text-primary">₹599/month</span>
-                              )}
+                              <span className="text-[9px] font-bold text-indigo-500 font-heading uppercase">
+                                Platform: {item.platform || "Google Meet"}
+                              </span>
                             </div>
                             <h3 className="text-sm font-bold text-foreground mt-1">
                               {item.title}
@@ -637,7 +647,7 @@ function StudentDashboardContent() {
                             <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-2 font-semibold">
                               <span>Tutor: {item.tutorName}</span>
                               <span>·</span>
-                              <span>Duration: {item.duration}</span>
+                              <span>Duration: {item.duration || "90 minutes"}</span>
                               <span>·</span>
                               <span>Time: {item.time}</span>
                             </div>
@@ -649,12 +659,14 @@ function StudentDashboardContent() {
                                 <>
                                   <a href={item.meetingLink} target="_blank" rel="noreferrer">
                                     <Button className="bg-rose-500 hover:bg-rose-600 border-rose-500 text-white gap-2 w-full md:w-auto text-xs font-bold px-4 py-2 shadow-soft">
-                                      Join Class
+                                      Join Live Class
                                     </Button>
                                   </a>
-                                  <span className="text-[9px] text-muted-foreground font-semibold">
-                                    Live on {item.platform}
-                                  </span>
+                                  {item.countdown && (
+                                    <span className="text-[9px] text-rose-500 font-extrabold uppercase mt-1 animate-pulse">
+                                      {item.countdown}
+                                    </span>
+                                  )}
                                 </>
                               ) : (
                                 <span className="text-[10px] text-amber-500 font-bold bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded text-center max-w-[200px] leading-tight">
@@ -662,13 +674,16 @@ function StudentDashboardContent() {
                                 </span>
                               )
                             ) : (
-                              <Button
-                                size="sm"
-                                onClick={() => toast.success(`Redirected to enrollment details for ${item.title}`)}
-                                className="bg-primary hover:bg-primary/95 text-white font-bold text-[10px] uppercase tracking-wider py-2 px-4 shadow-soft"
-                              >
-                                Enroll Now
-                              </Button>
+                              <div className="text-right space-y-1.5">
+                                <p className="text-[10px] text-muted-foreground/80 font-bold">Live access is included with this course.</p>
+                                <Button
+                                  size="sm"
+                                  onClick={() => toast.info(`Directing you to course details for ${item.title}`)}
+                                  className="bg-primary hover:bg-primary/95 text-white font-bold text-[10px] uppercase tracking-wider py-2 px-4 shadow-soft"
+                                >
+                                  View Course
+                                </Button>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -716,23 +731,27 @@ function StudentDashboardContent() {
                     Upcoming Classes
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {upcomingClasses.map((item) => (
-                      <Card key={item.id} variant="default" className="p-5 border-border bg-card flex flex-col justify-between gap-4">
-                        <div className="space-y-1">
-                          <span className="text-[8px] font-extrabold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                            Upcoming
-                          </span>
-                          <h4 className="text-xs font-bold text-foreground mt-1">{item.title}</h4>
-                          <p className="text-[10px] text-muted-foreground">Tutor: {item.tutorName} · Time: {item.time}</p>
-                        </div>
-                        <div className="flex items-center justify-between border-t border-border/30 pt-3 mt-1 text-[10px] font-semibold text-muted-foreground">
-                          <span>Duration: {item.duration}</span>
-                          <Button size="sm" variant="outline" onClick={() => toast.success(`Reminder set for ${item.title}`)} className="h-8">
-                            Set Reminder
-                          </Button>
-                        </div>
-                      </Card>
-                    ))}
+                    {upcomingClasses.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic font-semibold col-span-2 text-center py-4">No upcoming classes</p>
+                    ) : (
+                      upcomingClasses.map((item) => (
+                        <Card key={item.id} variant="default" className="p-5 border-border bg-card flex flex-col justify-between gap-4">
+                          <div className="space-y-1">
+                            <span className="text-[8px] font-extrabold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                              Upcoming
+                            </span>
+                            <h4 className="text-xs font-bold text-foreground mt-1">{item.title}</h4>
+                            <p className="text-[10px] text-muted-foreground">Tutor: {item.tutorName} · Time: {item.time}</p>
+                          </div>
+                          <div className="flex items-center justify-between border-t border-border/30 pt-3 mt-1 text-[10px] font-semibold text-muted-foreground">
+                            <span>Duration: {item.duration}</span>
+                            <Button size="sm" variant="outline" onClick={() => toast.success(`Reminder set for ${item.title}`)} className="h-8">
+                              Set Reminder
+                            </Button>
+                          </div>
+                        </Card>
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -1309,100 +1328,108 @@ function StudentDashboardContent() {
                   </p>
                 </Card>
 
-                {certificates.map((cert) => (
-                  <div
-                    key={cert.id}
-                    className="card-surface p-5 rounded-card flex flex-col lg:flex-row lg:items-center justify-between gap-6 border border-border"
-                  >
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 text-left">
-                      {/* Course Image */}
-                      <div className="relative w-24 h-16 rounded bg-muted overflow-hidden border border-border/40 shrink-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic certificate course image */}
-                        <img
-                          src={cert.courseImage || "/images/courses/academic-education.webp"}
-                          alt={cert.courseTitle}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-extrabold text-foreground leading-tight">{cert.courseTitle}</h4>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
-                          <span>Tutor: <strong className="text-foreground">{cert.tutorName || "Priya Patel"}</strong></span>
-                          <span>•</span>
-                          <span>Issued: <strong className="text-foreground">{cert.issueDate}</strong></span>
+                {certificates.length === 0 ? (
+                  <Card variant="glass" className="p-8 text-center flex flex-col items-center justify-center gap-3">
+                    <Award size={32} className="text-muted-foreground/60" />
+                    <h3 className="text-xs font-bold text-foreground">No certificates yet</h3>
+                    <p className="text-[10px] text-muted-foreground">Complete an eligible course to earn your first certificate.</p>
+                  </Card>
+                ) : (
+                  certificates.map((cert) => (
+                    <div
+                      key={cert.id}
+                      className="card-surface p-5 rounded-card flex flex-col lg:flex-row lg:items-center justify-between gap-6 border border-border"
+                    >
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 text-left">
+                        {/* Course Image */}
+                        <div className="relative w-24 h-16 rounded bg-muted overflow-hidden border border-border/40 shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic certificate course image */}
+                          <img
+                            src={cert.courseImage || "/images/courses/academic-education.webp"}
+                            alt={cert.courseTitle}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground mt-1">
-                          <span>ID: <code className="bg-muted px-1.5 py-0.5 rounded font-mono font-bold text-foreground text-[10px]">{cert.serialNumber}</code></span>
-                          <span>•</span>
-                          <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold flex items-center gap-1">
-                            ⛓️ Blockchain Registry: {cert.blockchainHash || "0x892a...c01f"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 lg:self-center shrink-0">
-                      {/* QR Code mockup */}
-                      <div className="flex items-center gap-2 border border-purple-500/20 bg-purple-500/5 px-3 py-2 rounded-lg text-[10px] font-bold text-purple-700 dark:text-purple-400 w-fit select-none">
-                        <QrCode size={18} className="shrink-0" />
-                        <div className="flex flex-col text-left leading-none">
-                          <span className="text-[8px] uppercase tracking-wider text-muted-foreground/60">Registry QR</span>
-                          <span className="font-bold text-[9px] mt-0.5">{cert.qrCode}</span>
-                        </div>
-                      </div>
-
-                      {/* CTAs */}
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <Button
-                          variant="outline"
-                          onClick={() => window.open(cert.blockchainHash || `/student/certificate/${cert.id}`, "_blank")}
-                          className="text-[10px] h-8 font-bold px-2.5"
-                        >
-                          Preview
-                        </Button>
                         
-                        <Button
-                          variant="outline"
-                          onClick={() => window.open(cert.blockchainHash || `/student/certificate/${cert.id}`, "_blank")}
-                          className="text-[10px] h-8 font-bold px-2.5 gap-1"
-                        >
-                          <Download size={11} /> PDF
-                        </Button>
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-extrabold text-foreground leading-tight">{cert.courseTitle}</h4>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                            <span>Tutor: <strong className="text-foreground">{cert.tutorName || "Priya Patel"}</strong></span>
+                            <span>•</span>
+                            <span>Issued: <strong className="text-foreground">{cert.issueDate}</strong></span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground mt-1">
+                            <span>ID: <code className="bg-muted px-1.5 py-0.5 rounded font-mono font-bold text-foreground text-[10px]">{cert.serialNumber}</code></span>
+                            <span>•</span>
+                            <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold flex items-center gap-1">
+                              ⛓️ Blockchain Registry: {cert.blockchainHash || "0x892a...c01f"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
 
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            const url = `${window.location.origin}${cert.blockchainHash || `/student/certificate/${cert.id}`}`;
-                            navigator.clipboard.writeText(url);
-                            toast.success("Shareable certificate link copied!");
-                          }}
-                          className="text-[10px] h-8 font-bold px-2.5"
-                        >
-                          Share
-                        </Button>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-4 lg:self-center shrink-0">
+                        {/* QR Code mockup */}
+                        <div className="flex items-center gap-2 border border-purple-500/20 bg-purple-500/5 px-3 py-2 rounded-lg text-[10px] font-bold text-purple-700 dark:text-purple-400 w-fit select-none">
+                          <QrCode size={18} className="shrink-0" />
+                          <div className="flex flex-col text-left leading-none">
+                            <span className="text-[8px] uppercase tracking-wider text-muted-foreground/60">Registry QR</span>
+                            <span className="font-bold text-[9px] mt-0.5">{cert.qrCode}</span>
+                          </div>
+                        </div>
 
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            window.open("https://linkedin.com", "_blank");
-                            toast.success("Redirecting to Add to LinkedIn Profile form...");
-                          }}
-                          className="text-[10px] h-8 font-bold px-2.5 text-blue-600 border-blue-500/20 hover:bg-blue-50/50"
-                        >
-                          LinkedIn
-                        </Button>
+                        {/* CTAs */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Button
+                            variant="outline"
+                            onClick={() => window.open(cert.blockchainHash || `/student/certificate/${cert.id}`, "_blank")}
+                            className="text-[10px] h-8 font-bold px-2.5"
+                          >
+                            Preview
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            onClick={() => window.open(cert.blockchainHash || `/student/certificate/${cert.id}`, "_blank")}
+                            className="text-[10px] h-8 font-bold px-2.5 gap-1"
+                          >
+                            <Download size={11} /> PDF
+                          </Button>
 
-                        <Button
-                          onClick={() => window.open(cert.blockchainHash || `/student/certificate/${cert.id}`, "_blank")}
-                          className="text-[10px] h-8 font-bold px-3"
-                        >
-                          Verify
-                        </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              const url = `${window.location.origin}${cert.blockchainHash || `/student/certificate/${cert.id}`}`;
+                              navigator.clipboard.writeText(url);
+                              toast.success("Shareable certificate link copied!");
+                            }}
+                            className="text-[10px] h-8 font-bold px-2.5"
+                          >
+                            Share
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              window.open("https://linkedin.com", "_blank");
+                              toast.success("Redirecting to Add to LinkedIn Profile form...");
+                            }}
+                            className="text-[10px] h-8 font-bold px-2.5 text-blue-600 border-blue-500/20 hover:bg-blue-50/50"
+                          >
+                            LinkedIn
+                          </Button>
+
+                          <Button
+                            onClick={() => window.open(cert.blockchainHash || `/student/certificate/${cert.id}`, "_blank")}
+                            className="text-[10px] h-8 font-bold px-3"
+                          >
+                            Verify
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </motion.div>
             )}
 
@@ -1816,89 +1843,83 @@ function StudentDashboardContent() {
             )}
 
             {/* TAB: ATTENDANCE */}
-            {activeTab === "attendance" && (
-              <motion.div
-                key="tab-attendance"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.25 }}
-                className="space-y-6 text-left"
-              >
-                {/* Stats row */}
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                  {[
-                    { label: "Overall Attendance", value: "91.6%", sub: "Above minimum limit (75%)" },
-                    { label: "Classes Attended", value: "22 Sessions", sub: "Out of 24 conducted" },
-                    { label: "Scheduled Today", value: "1 Session", sub: "Google Meet link published" },
-                    { label: "Check-in Status", value: "Active", sub: "Verified via Student ID" }
-                  ].map((stat, idx) => (
-                    <Card key={idx} variant="glass" className="p-4 border-border/80 bg-card">
-                      <span className="text-[9px] uppercase tracking-wider font-bold text-muted-foreground block">{stat.label}</span>
-                      <span className="text-xl font-heading font-black text-foreground block mt-1">{stat.value}</span>
-                      <span className="text-[9px] text-emerald-400 block mt-1 font-semibold">{stat.sub}</span>
-                    </Card>
-                  ))}
-                </div>
+            {activeTab === "attendance" && (() => {
+              const presentCount = attendance.filter((a: any) => a.status === "Present").length;
+              const attendancePercentage = attendance.length > 0
+                ? Math.round((presentCount / attendance.length) * 100)
+                : 0;
+              return (
+                <motion.div
+                  key="tab-attendance"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.25 }}
+                  className="space-y-6 text-left"
+                >
+                  {/* Stats row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    {[
+                      { label: "Overall Attendance", value: attendance.length > 0 ? `${attendancePercentage}%` : "—", sub: attendance.length > 0 ? (attendancePercentage >= 75 ? "Above minimum limit (75%)" : "Below minimum limit (75%)") : "No records yet" },
+                      { label: "Classes Attended", value: attendance.length > 0 ? `${presentCount} Sessions` : "—", sub: attendance.length > 0 ? `Out of ${attendance.length} conducted` : "No sessions logged" },
+                      { label: "Scheduled Today", value: liveClasses.length > 0 ? `${liveClasses.length} Session${liveClasses.length > 1 ? 's' : ''}` : "—", sub: liveClasses.length > 0 ? "Google Meet / Zoom link published" : "No classes today" },
+                      { label: "Check-in Status", value: attendance.length > 0 ? "Active" : "—", sub: "Verified via Student ID" }
+                    ].map((stat, idx) => (
+                      <Card key={idx} variant="glass" className="p-4 border-border/80 bg-card">
+                        <span className="text-[9px] uppercase tracking-wider font-bold text-muted-foreground block">{stat.label}</span>
+                        <span className="text-xl font-heading font-black text-foreground block mt-1">{stat.value}</span>
+                        <span className="text-[9px] text-emerald-400 block mt-1 font-semibold">{stat.sub}</span>
+                      </Card>
+                    ))}
+                  </div>
 
-                {enrolledCourses.length === 0 ? (
-                  <EmptyState
-                    type="default"
-                    title="No attendance records found"
-                    description="You are not enrolled in any monthly live tuition batches. Enroll in a student-led batch to track class check-in log."
-                    action={
-                      <Button onClick={() => router.push("/tutors")}>
-                        Explore Live Batches
-                      </Button>
-                    }
-                  />
-                ) : (
-                  <Card variant="glass" className="p-6 border-border bg-card">
-                    <h4 className="text-xs font-heading font-extrabold uppercase tracking-wide text-foreground border-b border-border/60 pb-2.5 mb-4">
-                      Monthly Tuition Batch Attendance Log
-                    </h4>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs font-semibold">
-                        <thead>
-                          <tr className="border-b border-border/40 text-muted-foreground text-left">
-                            <th className="pb-2.5 font-bold uppercase tracking-wider text-[9px]">Subject Batch</th>
-                            <th className="pb-2.5 font-bold uppercase tracking-wider text-[9px]">Mentoring Tutor</th>
-                            <th className="pb-2.5 font-bold uppercase tracking-wider text-[9px]">Scheduled Time</th>
-                            <th className="pb-2.5 font-bold uppercase tracking-wider text-[9px]">Platform Link</th>
-                            <th className="pb-2.5 font-bold uppercase tracking-wider text-[9px]">Attendance</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/20">
-                          {[
-                            { subject: "Python Programming Batch A", tutor: "Vikram Rathore", time: "Today, 10:15 AM", platform: "Google Meet", status: "Present" },
-                            { subject: "Advanced Physics Tuition", tutor: "Dr. Ravi Kumar", time: "Yesterday, 3:30 PM", platform: "Zoom", status: "Present" },
-                            { subject: "Calculus Fundamentals Batch C", tutor: "Sneha Iyer", time: "08 Jul 2026, 5:00 PM", platform: "Google Meet", status: "Present" },
-                            { subject: "Python Programming Batch A", tutor: "Vikram Rathore", time: "05 Jul 2026, 10:15 AM", platform: "Google Meet", status: "Present" },
-                            { subject: "AI Prompt Tuning Cohort", tutor: "Karan Malhotra", time: "03 Jul 2026, 7:00 PM", platform: "Zoom", status: "Absent" }
-                          ].map((log, idx) => (
-                            <tr key={idx} className="hover:bg-muted/10 transition-colors">
-                              <td className="py-3 text-foreground">{log.subject}</td>
-                              <td className="py-3 text-muted-foreground">{log.tutor}</td>
-                              <td className="py-3 text-muted-foreground font-mono">{log.time}</td>
-                              <td className="py-3 text-primary underline font-sans">{log.platform}</td>
-                              <td className="py-3">
-                                <span className={`px-2.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${
-                                  log.status === "Present"
-                                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
-                                    : "bg-red-500/15 text-red-400 border-red-500/20"
-                                }`}>
-                                  {log.status}
-                                </span>
-                              </td>
+                  {attendance.length === 0 ? (
+                    <Card variant="glass" className="p-8 text-center flex flex-col items-center justify-center gap-3">
+                      <CheckCircle size={32} className="text-muted-foreground/60" />
+                      <h3 className="text-xs font-bold text-foreground">No attendance records yet</h3>
+                    </Card>
+                  ) : (
+                    <Card variant="glass" className="p-6 border-border bg-card">
+                      <h4 className="text-xs font-heading font-extrabold uppercase tracking-wide text-foreground border-b border-border/60 pb-2.5 mb-4">
+                        Monthly Tuition Batch Attendance Log
+                      </h4>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs font-semibold">
+                          <thead>
+                            <tr className="border-b border-border/40 text-muted-foreground text-left">
+                              <th className="pb-2.5 font-bold uppercase tracking-wider text-[9px]">Subject Batch</th>
+                              <th className="pb-2.5 font-bold uppercase tracking-wider text-[9px]">Mentoring Tutor</th>
+                              <th className="pb-2.5 font-bold uppercase tracking-wider text-[9px]">Platform Link</th>
+                              <th className="pb-2.5 font-bold uppercase tracking-wider text-[9px]">Scheduled Time</th>
+                              <th className="pb-2.5 font-bold uppercase tracking-wider text-[9px]">Attendance</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </Card>
-                )}
-              </motion.div>
-            )}
+                          </thead>
+                          <tbody className="divide-y divide-border/20">
+                            {attendance.map((log: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-muted/10 transition-colors">
+                                <td className="py-3 text-foreground">{log.entity_type === 'live_class' ? 'Live Tuition Batch' : 'Doubt Session Room'}</td>
+                                <td className="py-3 text-muted-foreground">Instructor Room</td>
+                                <td className="py-3 text-primary underline font-sans">Google Meet / Zoom</td>
+                                <td className="py-3 text-muted-foreground font-mono">{log.logged_at ? new Date(log.logged_at).toLocaleDateString() : '—'}</td>
+                                <td className="py-3">
+                                  <span className={`px-2.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${
+                                    log.status === "Present"
+                                      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
+                                      : "bg-red-500/15 text-red-400 border-red-500/20"
+                                  }`}>
+                                    {log.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </Card>
+                  )}
+                </motion.div>
+              );
+            })()}
 
             {/* TAB: CAREER HUB */}
             {activeTab === "career-hub" && (

@@ -29,6 +29,74 @@ import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Divider } from "../ui/divider";
+import { useTutor } from "../../context/TutorContext";
+import { MoreVertical } from "lucide-react";
+
+function CreatorPerformanceChart({ dataPoints }: { dataPoints: number[] }) {
+  const maxVal = Math.max(...dataPoints, 1);
+  const width = 500;
+  const height = 150;
+  const pointsStr = dataPoints
+    .map((val, idx) => {
+      const x = (idx / (dataPoints.length - 1)) * width;
+      const y = height - (val / maxVal) * (height - 30) - 15;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  const fillPointsStr = `0,${height} ${pointsStr} ${width},${height}`;
+
+  return (
+    <div className="relative w-full h-[150px] mt-4">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full h-full overflow-visible"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="dashboardGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {/* Grid lines */}
+        <line x1="0" y1={height * 0.25} x2={width} y2={height * 0.25} stroke="currentColor" strokeOpacity="0.05" strokeDasharray="4 4" />
+        <line x1="0" y1={height * 0.5} x2={width} y2={height * 0.5} stroke="currentColor" strokeOpacity="0.05" strokeDasharray="4 4" />
+        <line x1="0" y1={height * 0.75} x2={width} y2={height * 0.75} stroke="currentColor" strokeOpacity="0.05" strokeDasharray="4 4" />
+
+        {/* Gradient fill */}
+        <polygon points={fillPointsStr} fill="url(#dashboardGrad)" />
+
+        {/* Line */}
+        <polyline
+          fill="none"
+          stroke="#8b5cf6"
+          strokeWidth="2.5"
+          points={pointsStr}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* Data points dots */}
+        {dataPoints.map((val, idx) => {
+          const x = (idx / (dataPoints.length - 1)) * width;
+          const y = height - (val / maxVal) * (height - 30) - 15;
+          return (
+            <circle
+              key={idx}
+              cx={x}
+              cy={y}
+              r="4"
+              className="fill-card stroke-primary"
+              strokeWidth="2"
+              style={{ stroke: "#8b5cf6" }}
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
 
 interface TeacherStudioViewProps {
   user: any;
@@ -51,8 +119,67 @@ export function TeacherStudioView({ user, academy }: TeacherStudioViewProps) {
     return merged;
   }, [academy]);
 
+  const {
+    myCourses: contextCourses = [],
+    students: contextStudents = [],
+    liveSessions: contextLiveSessions = [],
+    reviews: contextReviews = [],
+    earningsBalanceState: contextEarningsBalance = { total: 43000, available: 12200, pending: 6250 },
+    handleTabChange,
+  } = useTutor();
+
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedClassFilter, setSelectedClassFilter] = useState("Class 10 A");
+
+  const [chartMetric, setChartMetric] = useState<"views" | "watchTime" | "enrollments" | "revenue">("revenue");
+  const [timePeriod, setTimePeriod] = useState<"7d" | "28d" | "90d" | "1y">("28d");
+  const [contentCategory, setContentCategory] = useState<"all" | "courses" | "videos" | "recordings" | "shorts" | "resources">("all");
+
+  const chartDataPoints = useMemo(() => {
+    let base = [30, 45, 38, 62, 50, 78, 70, 88, 80, 102, 90, 124];
+    if (chartMetric === "views") {
+      base = [120, 240, 180, 310, 420, 380, 510, 480, 620, 590, 750, 840];
+    } else if (chartMetric === "watchTime") {
+      base = [45, 90, 75, 140, 180, 160, 220, 200, 270, 250, 320, 380];
+    } else if (chartMetric === "enrollments") {
+      base = [5, 12, 8, 18, 22, 15, 28, 20, 35, 30, 42, 48];
+    } else if (chartMetric === "revenue") {
+      base = [2000, 4500, 3800, 6200, 5000, 7800, 7000, 8800, 8000, 10200, 9000, 12400];
+    }
+
+    if (timePeriod === "7d") {
+      return base.slice(-7);
+    }
+    if (timePeriod === "28d") {
+      return base.slice(-12);
+    }
+    if (timePeriod === "90d") {
+      return base.map(x => Math.round(x * 2.8));
+    }
+    return base.map(x => Math.round(x * 11));
+  }, [chartMetric, timePeriod]);
+
+  const dashboardContentItems = useMemo(() => {
+    return [
+      { id: "c-1", title: "Python Programming Masterclass", type: "COURSE", views: 1248, likesOrStudents: 1248, rating: "4.8 ★", revenue: 24500, status: "Published" },
+      { id: "c-2", title: "React State Management Basics", type: "VIDEO", views: 12400, likesOrStudents: 842, rating: "842 likes", revenue: 3200, status: "Published" },
+      { id: "c-3", title: "Python OOP & Classes (Class 04)", type: "LIVE RECORDING", views: 842, likesOrStudents: 74, rating: "74 students", revenue: 0, status: "Published" },
+      { id: "c-4", title: "JavaScript Closures in 60s", type: "SHORT", views: 4800, likesOrStudents: 620, rating: "620 likes", revenue: 0, status: "Published" },
+      { id: "c-5", title: "Python Programming Complete Notes", type: "RESOURCE", views: 980, likesOrStudents: 184, rating: "184 sales", revenue: 18216, status: "Published" },
+      { id: "c-6", title: "Full-Stack Web Dev Bootcamp", type: "COURSE", views: 980, likesOrStudents: 920, rating: "4.7 ★", revenue: 18700, status: "Published" },
+      { id: "c-7", title: "DSA & Algorithms Essentials", type: "COURSE", views: 740, likesOrStudents: 742, rating: "4.6 ★", revenue: 14300, status: "Published" },
+    ];
+  }, []);
+
+  const filteredDashboardContent = useMemo(() => {
+    if (contentCategory === "all") return dashboardContentItems;
+    if (contentCategory === "courses") return dashboardContentItems.filter(i => i.type === "COURSE");
+    if (contentCategory === "videos") return dashboardContentItems.filter(i => i.type === "VIDEO");
+    if (contentCategory === "recordings") return dashboardContentItems.filter(i => i.type === "LIVE RECORDING");
+    if (contentCategory === "shorts") return dashboardContentItems.filter(i => i.type === "SHORT");
+    if (contentCategory === "resources") return dashboardContentItems.filter(i => i.type === "RESOURCE");
+    return dashboardContentItems;
+  }, [contentCategory, dashboardContentItems]);
 
   // Mock Teacher assignments mapping (Extended mapping details)
   const assignments = [
@@ -249,29 +376,71 @@ export function TeacherStudioView({ user, academy }: TeacherStudioViewProps) {
   };
 
   return (
-    <div className="space-y-6 text-left">
-      {/* Header Profile Greeting */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-primary/10 via-background to-background p-6 rounded-2xl border border-primary/20">
+    <div className="space-y-8 text-left pb-12">
+      {/* Welcome / Creator Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-br from-primary/15 via-background to-background p-6 rounded-2xl border border-primary/20">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase">
-            <Sparkles size={10} /> Teacher Studio Portal
+            <Sparkles size={10} /> EduEarn Creator Studio
           </div>
           <h2 className="text-xl md:text-2xl font-heading font-extrabold text-foreground">
-            Class Workspace: {user?.fullName || "Teacher"}
+            Good Evening, {user?.fullName || "Tutor"} 👋
           </h2>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Manage boards, mark student rosters, publish homework templates, and host dynamic live lecture schedules.
+            Here&apos;s how your teaching business is performing today.
           </p>
+        </div>
+        <div className="flex flex-wrap gap-2 select-none">
+          <Button
+            onClick={() => handleTabChange("courses")}
+            size="sm"
+            className="bg-primary hover:bg-primary/95 text-white font-bold h-8 text-[11px] border-none"
+          >
+            Create Course
+          </Button>
+          <Button
+            onClick={() => handleTabChange("resources")}
+            size="sm"
+            variant="outline"
+            className="h-8 text-[11px] font-bold border-border/80"
+          >
+            Upload Video
+          </Button>
+          <Button
+            onClick={() => handleTabChange("live-classes")}
+            size="sm"
+            variant="outline"
+            className="h-8 text-[11px] font-bold border-border/80"
+          >
+            Schedule Live Class
+          </Button>
         </div>
       </div>
 
-      {/* Configuration-driven Tabs */}
+      {/* Creator Status Area (Mini KPIs) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        {[
+          { label: "My Courses", value: contextCourses.length || 3 },
+          { label: "Active Students", value: contextStudents.length || 124 },
+          { label: "Live Classes", value: contextLiveSessions.length || 3 },
+          { label: "Published Content", value: 14 },
+          { label: "Resource Sales", value: "1,284" },
+          { label: "Average Rating", value: "4.8 ★" },
+        ].map((item, idx) => (
+          <Card key={idx} variant="glass" className="p-3.5 border-border/60 hover:border-primary/20 transition-all select-none">
+            <span className="text-[10px] font-black uppercase text-muted-foreground tracking-wider block">{item.label}</span>
+            <h4 className="text-lg font-black text-foreground mt-0.5">{item.value}</h4>
+          </Card>
+        ))}
+      </div>
+
+      {/* Configuration-driven Tabs for other School Tuition features */}
       <div className="flex flex-wrap gap-1.5 border-b border-border pb-px">
         {configTabs.map((tab: string) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-xs font-bold transition-all relative border-b-2 capitalize ${
+            className={`px-4 py-2 text-xs font-bold transition-all relative border-b-2 capitalize bg-transparent border-none cursor-pointer ${
               activeTab === tab
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -284,91 +453,229 @@ export function TeacherStudioView({ user, academy }: TeacherStudioViewProps) {
 
       {/* Tab content renderer */}
       {activeTab === "overview" && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Reusable Analytics Dashboard */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="p-4 border-border bg-card">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Assigned Students</p>
-                  <h3 className="text-2xl font-extrabold text-foreground mt-1">{students.length} Pupils</h3>
-                </div>
-                <span className="p-1.5 bg-primary/10 rounded-lg text-primary"><Users size={16} /></span>
-              </div>
-            </Card>
-            <Card className="p-4 border-border bg-card">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Class Attendance Rate</p>
-                  <h3 className="text-2xl font-extrabold text-emerald-500 mt-1">
-                    {Math.round(students.reduce((acc, curr) => acc + curr.attendancePct, 0) / students.length)}%
-                  </h3>
-                </div>
-                <span className="p-1.5 bg-emerald-500/10 rounded-lg text-emerald-500"><UserCheck size={16} /></span>
-              </div>
-            </Card>
-            <Card className="p-4 border-border bg-card">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Pending Submissions</p>
-                  <h3 className="text-2xl font-extrabold text-amber-500 mt-1">
-                    {activities.reduce((acc, curr) => acc + curr.pendingCount, 0)} Reviews
-                  </h3>
-                </div>
-                <span className="p-1.5 bg-amber-500/10 rounded-lg text-amber-500"><ClipboardList size={16} /></span>
-              </div>
-            </Card>
-            <Card className="p-4 border-border bg-card">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Upcoming Live Sessions</p>
-                  <h3 className="text-2xl font-extrabold text-purple-500 mt-1">{schedules.length} Scheduled</h3>
-                </div>
-                <span className="p-1.5 bg-purple-500/10 rounded-lg text-purple-500"><Video size={16} /></span>
-              </div>
-            </Card>
-          </div>
-
+        <div className="space-y-8 animate-in fade-in duration-200">
+          
+          {/* Section 1: TODAY'S TEACHING & Pipeline */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left side: Today's Classes & Timetable preview */}
+            
+            {/* Left: Today's Teaching */}
             <div className="lg:col-span-8 space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <Calendar size={16} className="text-primary" />
-                  Today&apos;s Live Rooms schedule
+              <div className="flex justify-between items-center select-none">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 font-heading">
+                  <Calendar size={15} className="text-primary animate-pulse" />
+                  Today&apos;s Teaching Command Center
                 </h3>
-                <Button size="sm" onClick={() => setActiveTab("schedules")} className="text-[10px] h-8 font-bold">
-                  View Timetable planner
+                <Button 
+                  size="sm" 
+                  onClick={() => handleTabChange("live-classes")} 
+                  className="text-[10px] h-7 font-bold border-none"
+                >
+                  Schedule Live Class
                 </Button>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Session 1 */}
+                <Card variant="glass" className="p-4 border-border/80 hover:border-primary/30 transition flex flex-col justify-between h-44">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 select-none">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                      <span className="text-[10px] font-black uppercase text-rose-500">Live Masterclass</span>
+                      <span className="text-[10px] text-muted-foreground font-semibold">• Today · 6:00 PM</span>
+                    </div>
+                    <h4 className="font-extrabold text-sm text-foreground">Python Loops &amp; Control Flow</h4>
+                    <p className="text-[10.5px] text-muted-foreground font-semibold">24 students registered • 22 seats remaining</p>
+                  </div>
+                  <div className="pt-2 select-none">
+                    <Button 
+                      onClick={() => toast.success("Live class starting...")}
+                      size="sm" 
+                      className="bg-primary hover:bg-primary/95 text-white font-extrabold text-[10.5px] h-8 w-full border-none"
+                    >
+                      Start Class
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* Session 2 */}
+                <Card variant="glass" className="p-4 border-border/80 hover:border-primary/30 transition flex flex-col justify-between h-44">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 select-none">
+                      <span className="text-[10px] font-black uppercase text-indigo-500">Weekly Doubt Session</span>
+                      <span className="text-[10px] text-muted-foreground font-semibold">• Today · 7:30 PM</span>
+                    </div>
+                    <h4 className="font-extrabold text-sm text-foreground">Python Exercises Live solving</h4>
+                    <p className="text-[10.5px] text-muted-foreground font-semibold">12 students registered • Interactive Board ready</p>
+                  </div>
+                  <div className="pt-2 select-none">
+                    <Button 
+                      onClick={() => toast.success("Opening Doubt Session manager...")}
+                      size="sm" 
+                      variant="outline"
+                      className="text-foreground font-extrabold text-[10.5px] h-8 w-full border-border/80 hover:bg-muted"
+                    >
+                      Manage Session
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* Right: Quick Actions */}
+            <div className="lg:col-span-4 space-y-4">
+              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 font-heading select-none">
+                <Sparkles size={15} className="text-primary" />
+                Quick Actions
+              </h3>
+              <Card variant="glass" className="p-4 border-border/80 grid grid-cols-2 gap-2 select-none">
+                {[
+                  { label: "Create Course", tab: "courses" },
+                  { label: "Upload Video", tab: "resources" },
+                  { label: "Create Resource", tab: "resources" },
+                  { label: "Create Short", tab: "resources" },
+                  { label: "Schedule Live", tab: "live-classes" },
+                  { label: "Doubt Session", tab: "live-classes" },
+                ].map((act, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleTabChange(act.tab)}
+                    className="p-2.5 bg-muted/30 border border-border/40 hover:border-primary/20 hover:bg-muted/60 transition text-foreground text-[10.5px] font-bold rounded-xl cursor-pointer select-none text-center"
+                  >
+                    {act.label}
+                  </button>
+                ))}
+              </Card>
+            </div>
+          </div>
+
+          {/* Section 2: PERFORMANCE OVERVIEW & SVG Chart */}
+          <Card variant="glass" className="p-6 border-border/80 text-left">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-4 select-none">
+              <div className="space-y-0.5">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 font-heading">
+                  <TrendingUp size={15} className="text-primary" />
+                  Performance Overview
+                </h3>
+                <p className="text-[11px] text-muted-foreground font-semibold">Monitor views, watch time, revenue growth, and student activity trends.</p>
+              </div>
+              <div className="flex items-center gap-1 bg-muted/40 p-1 border border-border/40 rounded-xl shrink-0">
+                {(["7d", "28d", "90d", "1y"] as const).map(tf => (
+                  <button
+                    key={tf}
+                    onClick={() => setTimePeriod(tf)}
+                    className={`px-3 py-1.5 text-[9.5px] font-black uppercase rounded-lg transition cursor-pointer border-none ${
+                      timePeriod === tf
+                        ? "bg-primary text-white"
+                        : "text-muted-foreground hover:text-foreground bg-transparent"
+                    }`}
+                  >
+                    {tf === "7d" ? "7 Days" : tf === "28d" ? "28 Days" : tf === "90d" ? "90 Days" : "1 Year"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Metric buttons selector grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5 select-none">
+              {[
+                { id: "views", label: "Views", val: "12,450", color: "border-primary/20" },
+                { id: "watchTime", label: "Watch Time", val: "842h", color: "border-indigo-500/20" },
+                { id: "enrollments", label: "Enrollments", val: "112", color: "border-sky-500/20" },
+                { id: "revenue", label: "Revenue", val: "₹18,450", color: "border-emerald-500/20" },
+              ].map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => setChartMetric(m.id as any)}
+                  className={`p-4 border rounded-xl text-left transition-all cursor-pointer bg-transparent ${
+                    chartMetric === m.id
+                      ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary/40"
+                      : "border-border/60 text-muted-foreground hover:text-foreground hover:border-primary/20"
+                  }`}
+                >
+                  <span className="text-[9.5px] font-black uppercase tracking-wider block">{m.label}</span>
+                  <h4 className="text-lg font-black text-foreground mt-1">{m.val}</h4>
+                </button>
+              ))}
+            </div>
+
+            {/* Interactive SVG Chart */}
+            <div className="mt-5">
+              <CreatorPerformanceChart dataPoints={chartDataPoints} />
+            </div>
+          </Card>
+
+          {/* Section 3: YOUR CONTENT & Pipeline Workflow */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Left: Your Content Tabs & List */}
+            <div className="lg:col-span-8 space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-border/40 pb-2 select-none">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider font-heading">Your Content</h3>
+                <div className="flex flex-wrap gap-1">
+                  {["all", "courses", "videos", "recordings", "shorts", "resources"].map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setContentCategory(cat as any)}
+                      className={`px-2.5 py-1 text-[9.5px] font-black rounded transition border-none cursor-pointer uppercase tracking-wider ${
+                        contentCategory === cat
+                          ? "bg-primary text-white"
+                          : "text-muted-foreground hover:text-foreground bg-transparent"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Items Card List */}
               <div className="space-y-3">
-                {schedules.map((item) => (
-                  <Card key={item.id} className="p-4 border-border bg-card hover:border-primary/30 transition">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-[8px] font-bold uppercase">
-                            {item.type}
-                          </Badge>
-                          <span className="text-[10px] text-muted-foreground">{item.class} • {item.subject}</span>
-                        </div>
-                        <h4 className="font-extrabold text-xs text-foreground">{item.title}</h4>
-                        <p className="text-[10px] text-muted-foreground">Duration: {item.duration} mins</p>
-                      </div>
-                      <div className="flex sm:flex-col items-start sm:items-end gap-2 shrink-0">
-                        <span className="text-[10px] font-bold text-foreground flex items-center gap-1">
-                          <Clock size={11} className="text-primary" />
-                          {item.time} ({item.date})
+                {filteredDashboardContent.map(item => (
+                  <Card key={item.id} variant="glass" className="p-4 border-border/60 hover:border-primary/20 transition flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-1.5 select-none">
+                        <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                          item.type === "COURSE"
+                            ? "bg-primary/10 text-primary border-primary/20"
+                            : item.type === "VIDEO"
+                            ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                            : item.type === "LIVE RECORDING"
+                            ? "bg-indigo-500/10 text-indigo-500 border-indigo-500/20"
+                            : item.type === "SHORT"
+                            ? "bg-sky-500/10 text-sky-500 border-sky-500/20"
+                            : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                        }`}>
+                          {item.type}
                         </span>
-                        <a
-                          href={item.link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1.5 rounded-lg bg-primary text-white text-[10px] font-extrabold hover:bg-primary/95 transition shadow-sm"
-                        >
-                          Launch Meeting
-                        </a>
+                        <span className="text-[10px] text-muted-foreground font-semibold">{item.views.toLocaleString()} views</span>
+                      </div>
+                      <h4 className="text-xs font-black text-foreground truncate">{item.title}</h4>
+                    </div>
+
+                    <div className="flex items-center gap-6 shrink-0 text-right select-none">
+                      <div className="text-xs font-semibold text-muted-foreground space-y-0.5">
+                        <div>Rating: <strong className="text-foreground">{item.rating}</strong></div>
+                        {item.revenue > 0 && <div className="text-emerald-500 font-bold">Earned: ₹{item.revenue.toLocaleString()}</div>}
+                      </div>
+
+                      <div className="relative group/content-actions">
+                        <button className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-none">
+                          <MoreVertical size={13} />
+                        </button>
+                        <div className="absolute right-0 bottom-full mb-1 hidden group-hover/content-actions:flex flex-col bg-card border border-border rounded-lg shadow-floating py-1.5 w-24 z-30">
+                          <button
+                            onClick={() => toast.success("Opening content editor...")}
+                            className="px-3 py-1.5 text-[10px] text-left font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition cursor-pointer bg-transparent border-none"
+                          >
+                            Edit Item
+                          </button>
+                          <button
+                            onClick={() => toast.success("Loading individual analytics...")}
+                            className="px-3 py-1.5 text-[10px] text-left font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition cursor-pointer bg-transparent border-none"
+                          >
+                            Analytics
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </Card>
@@ -376,34 +683,291 @@ export function TeacherStudioView({ user, academy }: TeacherStudioViewProps) {
               </div>
             </div>
 
-            {/* Right side: Homework awaiting reviews */}
+            {/* Right: Live-to-Content Pipeline */}
             <div className="lg:col-span-4 space-y-4">
-              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <AlertCircle size={16} className="text-amber-500" />
-                Action Required
+              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 font-heading select-none">
+                <PlayCircle size={15} className="text-primary" />
+                From Live to Content
               </h3>
-              <Card className="p-4 border-border bg-card space-y-3">
-                <span className="text-[9px] font-extrabold uppercase text-muted-foreground tracking-wider block">Pending grading reviews</span>
-                <div className="space-y-3 divide-y divide-border">
-                  {activities.filter(a => a.pendingCount > 0).map((act) => (
-                    <div key={act.id} className="pt-2.5 first:pt-0 space-y-1">
-                      <div className="flex justify-between items-center text-[10.5px] font-bold">
-                        <span className="text-foreground truncate max-w-[150px]">{act.title}</span>
-                        <span className="text-amber-500 text-[9.5px] font-extrabold">{act.pendingCount} Submissions</span>
+              <Card variant="glass" className="p-4 border-border/80 text-xs font-semibold space-y-4">
+                <div className="bg-primary/5 border border-primary/20 p-3 rounded-xl flex items-center gap-2 select-none">
+                  <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                  <div>
+                    <h5 className="font-black text-foreground">Recording Ready</h5>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Python Loops &amp; Control Flow is ready to compile.</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 select-none">
+                  <button
+                    onClick={() => {
+                      toast.success("Recording published as video lesson.");
+                    }}
+                    className="w-full text-center py-2 bg-primary text-white text-[10.5px] font-bold rounded-xl cursor-pointer hover:bg-primary/95 transition border-none"
+                  >
+                    Publish Recording
+                  </button>
+                  <button
+                    onClick={() => handleTabChange("resources")}
+                    className="w-full text-center py-2 bg-muted hover:bg-muted/80 text-foreground text-[10.5px] font-bold rounded-xl cursor-pointer transition border-none"
+                  >
+                    Create Educational Short
+                  </button>
+                  <button
+                    onClick={() => handleTabChange("resources")}
+                    className="w-full text-center py-2 bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground border border-border/40 text-[10.5px] font-bold rounded-xl cursor-pointer transition"
+                  >
+                    Attach Study Notes
+                  </button>
+                </div>
+              </Card>
+            </div>
+          </div>
+
+          {/* Section 4: TOP PERFORMING & AI CREATOR INSIGHTS */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Left: Top Performing Leaderboard */}
+            <div className="lg:col-span-6 space-y-4 text-left">
+              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider font-heading select-none">Top Performing Content</h3>
+              <Card variant="glass" className="p-4 border-border/80 divide-y divide-border/30">
+                {[
+                  { rank: "🥇", title: "Python Programming Masterclass", stats: "12,450 views • ₹24,500 revenue" },
+                  { rank: "🥈", title: "React State Management Basics", stats: "9,820 views • ₹18,700 revenue" },
+                  { rank: "🥉", title: "DSA & Algorithms Essentials", stats: "7,420 views • ₹14,300 revenue" },
+                ].map((item, i) => (
+                  <div key={i} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="text-base select-none">{item.rank}</span>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-black text-foreground truncate">{item.title}</h4>
+                        <p className="text-[10px] text-muted-foreground font-semibold">{item.stats}</p>
                       </div>
-                      <p className="text-[10px] text-muted-foreground">{act.class} • {act.type}</p>
-                      <button
-                        onClick={() => setActiveTab("activities")}
-                        className="text-[9.5px] text-primary font-bold hover:underline block pt-1"
-                      >
-                        Start Grading Evaluation →
-                      </button>
+                    </div>
+                    <button
+                      onClick={() => handleTabChange("analytics")}
+                      className="text-[10px] text-primary font-black hover:underline shrink-0 select-none bg-transparent border-none cursor-pointer"
+                    >
+                      Stats
+                    </button>
+                  </div>
+                ))}
+              </Card>
+            </div>
+
+            {/* Right: AI Creator Insights */}
+            <div className="lg:col-span-6 space-y-4 text-left">
+              <div className="flex justify-between items-center select-none">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider font-heading">AI Creator Insights</h3>
+                <button
+                  onClick={() => handleTabChange("ai-studio")}
+                  className="text-[10px] text-primary font-black hover:underline bg-transparent border-none cursor-pointer"
+                >
+                  Open AI Studio →
+                </button>
+              </div>
+              <Card variant="glass" className="p-4 border-border/80 space-y-3 text-xs font-semibold">
+                {[
+                  "💡 Your Python content is getting 38% more views this month.",
+                  "📈 Students who watch Python Basics frequently enroll in your Python Masterclass.",
+                  "🎯 Consider creating a lesson on Exception Handling.",
+                  "⏰ Your students are most active on Saturday evenings.",
+                ].map((insight, idx) => (
+                  <div key={idx} className="flex gap-2 text-muted-foreground leading-relaxed hover:text-foreground transition duration-150">
+                    <span className="select-none">•</span>
+                    <span>{insight}</span>
+                  </div>
+                ))}
+              </Card>
+            </div>
+          </div>
+
+          {/* Section 5: REVENUE SOURCES & Student Overview */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Left: Your Earnings Wallet overview */}
+            <div className="lg:col-span-6 space-y-4 text-left">
+              <div className="flex justify-between items-center select-none">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider font-heading">Your Earnings</h3>
+                <button
+                  onClick={() => handleTabChange("finance")}
+                  className="text-[10px] text-primary font-black hover:underline bg-transparent border-none cursor-pointer"
+                >
+                  View Wallet →
+                </button>
+              </div>
+              <Card variant="glass" className="p-5 border-border/80 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-4 border-r border-border/30 pr-2 select-none">
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Total Revenue</span>
+                    <h3 className="text-2xl font-black text-emerald-500 mt-0.5">₹{contextEarningsBalance.total.toLocaleString()}</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-[9px] font-bold text-muted-foreground uppercase">Available</span>
+                      <p className="text-sm font-black text-foreground">₹{contextEarningsBalance.available.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-bold text-muted-foreground uppercase">Pending</span>
+                      <p className="text-sm font-black text-foreground">₹{contextEarningsBalance.pending.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2.5 text-xs font-semibold select-none">
+                  <span className="text-[10px] font-black uppercase text-muted-foreground tracking-wider block">Revenue Sources</span>
+                  {[
+                    { name: "Courses", amt: "₹15,000" },
+                    { name: "Live Classes", amt: "₹18,000" },
+                    { name: "Recorded Content", amt: "₹6,000" },
+                    { name: "Resources Library", amt: "₹4,000" },
+                  ].map((src, i) => (
+                    <div key={i} className="flex justify-between border-b border-border/20 pb-1.5 last:border-0 last:pb-0">
+                      <span className="text-muted-foreground">{src.name}</span>
+                      <strong className="text-foreground">{src.amt}</strong>
                     </div>
                   ))}
                 </div>
               </Card>
             </div>
+
+            {/* Right: Student Overview (My Students) */}
+            <div className="lg:col-span-6 space-y-4 text-left">
+              <div className="flex justify-between items-center select-none">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider font-heading">My Students</h3>
+                <button
+                  onClick={() => handleTabChange("students")}
+                  className="text-[10px] text-primary font-black hover:underline bg-transparent border-none cursor-pointer"
+                >
+                  View All Students →
+                </button>
+              </div>
+              <Card variant="glass" className="p-5 border-border/80 grid grid-cols-2 gap-6 select-none">
+                <div className="space-y-4 border-r border-border/30 pr-2">
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Total Active Cohort</span>
+                    <h3 className="text-2xl font-black text-foreground mt-0.5">{contextStudents.length || 124} Pupils</h3>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase">New Cohorts (This Month)</span>
+                    <p className="text-sm font-black text-emerald-500">+18 Students</p>
+                  </div>
+                </div>
+                <div className="flex flex-col justify-around text-xs font-semibold">
+                  <div className="flex justify-between border-b border-border/20 pb-2">
+                    <span className="text-muted-foreground">Course Completion:</span>
+                    <strong className="text-foreground">78%</strong>
+                  </div>
+                  <div className="flex justify-between border-b border-border/20 pb-2">
+                    <span className="text-muted-foreground">Avg Session Watch:</span>
+                    <strong className="text-foreground">45 mins</strong>
+                  </div>
+                  <div className="flex justify-between pb-0">
+                    <span className="text-muted-foreground">Returning rate:</span>
+                    <strong className="text-foreground">62%</strong>
+                  </div>
+                </div>
+              </Card>
+            </div>
           </div>
+
+          {/* Section 6: RECENT STUDENT ACTIVITY & Resource Performance */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Left: Recent Activity Feed */}
+            <div className="lg:col-span-8 space-y-4 text-left">
+              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider font-heading select-none">Recent Student Activity</h3>
+              <Card variant="glass" className="p-4 border-border/80 divide-y divide-border/30">
+                {[
+                  { user: "Aarav", desc: "enrolled in Python Programming Masterclass", time: "2 minutes ago" },
+                  { user: "Meera", desc: "completed Lesson 8 (Functions parameters)", time: "18 minutes ago" },
+                  { user: "Rahul", desc: "asked a question: 'Why does recursion overflow here?'", time: "32 minutes ago" },
+                  { user: "Priya", desc: "left a 5★ review on Python Complete Notes", time: "1 hour ago" },
+                ].map((act, i) => (
+                  <div key={i} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between text-xs font-semibold gap-3">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-extrabold text-foreground">{act.user} </span>
+                      <span className="text-muted-foreground">{act.desc}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground/60 shrink-0 select-none">{act.time}</span>
+                  </div>
+                ))}
+              </Card>
+            </div>
+
+            {/* Right: Resource Performance Summary */}
+            <div className="lg:col-span-4 space-y-4 text-left">
+              <div className="flex justify-between items-center select-none">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider font-heading">Resource Library</h3>
+                <button
+                  onClick={() => handleTabChange("resources")}
+                  className="text-[10px] text-primary font-black hover:underline bg-transparent border-none cursor-pointer"
+                >
+                  Open Resources →
+                </button>
+              </div>
+              <Card variant="glass" className="p-4 border-border/80 space-y-3.5 text-xs font-semibold">
+                <div className="border-b border-border/20 pb-2">
+                  <h5 className="font-black text-foreground truncate">Python Complete Notes</h5>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">PDF • Object-Oriented Programming</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-[10.5px]">
+                  <div>Purchases: <strong className="text-foreground">184 orders</strong></div>
+                  <div>Earnings: <strong className="text-emerald-500">₹18,216</strong></div>
+                  <div>Downloads: <strong className="text-foreground">1,100</strong></div>
+                  <div>Views: <strong className="text-foreground">3,240</strong></div>
+                </div>
+              </Card>
+            </div>
+          </div>
+
+          {/* Section 7: CONTINUE CREATING & Doubt Sessions */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Left: Continue Creating Drafts */}
+            <div className="lg:col-span-6 space-y-4 text-left">
+              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider font-heading select-none">Continue Creating</h3>
+              <Card variant="glass" className="p-5 border-border/80 space-y-4">
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-xs font-extrabold select-none">
+                    <span className="text-foreground truncate max-w-[200px]">Python Programming Masterclass</span>
+                    <span className="text-primary text-[10px]">75% complete</span>
+                  </div>
+                  <div className="w-full bg-muted/40 h-2 rounded-full overflow-hidden select-none">
+                    <div className="bg-primary h-full rounded-full" style={{ width: "75%" }} />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground font-semibold">18 / 24 lessons uploaded • 6 drafts remaining.</p>
+                </div>
+
+                <div className="flex flex-wrap gap-2 select-none pt-2 border-t border-border/20">
+                  <span className="text-[9.5px] font-black uppercase tracking-wider px-2.5 py-1 bg-slate-500/10 text-slate-400 border border-slate-500/20 rounded-lg">2 Draft Videos</span>
+                  <span className="text-[9.5px] font-black uppercase tracking-wider px-2.5 py-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-lg">1 Under Review</span>
+                  <span className="text-[9.5px] font-black uppercase tracking-wider px-2.5 py-1 bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 rounded-lg">3 Draft Resources</span>
+                </div>
+              </Card>
+            </div>
+
+            {/* Right: Live Doubt Session Integration */}
+            <div className="lg:col-span-6 space-y-4 text-left">
+              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider font-heading select-none">Upcoming Doubt Sessions</h3>
+              <Card variant="glass" className="p-5 border-border/80 flex flex-col justify-between h-[152px]">
+                <div className="space-y-1">
+                  <span className="text-[9.5px] font-black uppercase text-indigo-500 select-none">Interactive Doubt Room</span>
+                  <h4 className="font-extrabold text-sm text-foreground">Python Masterclass Weekly Doubt Session</h4>
+                  <p className="text-[10.5px] text-muted-foreground font-semibold">Saturday · 6:00 PM • 18 students registered</p>
+                </div>
+                <div className="pt-2 select-none">
+                  <Button
+                    onClick={() => toast.success("Doubt Room scheduled successfully.")}
+                    size="sm"
+                    className="bg-primary hover:bg-primary/95 text-white font-extrabold text-[10.5px] h-8 w-full border-none"
+                  >
+                    Manage Doubt Session
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          </div>
+
         </div>
       )}
 

@@ -11,12 +11,31 @@ export interface TutorCourse {
   rating: number;
   status: "published" | "draft" | "archived" | "pending" | "completed";
   thumbnail?: string;
+  learningMode?: "Live" | "Recorded" | "Live + Recorded" | "Self-Paced" | "Complete Package";
+  subtitle?: string;
+  description?: string;
+  language?: string;
+  tags?: string[];
+  objectives?: string;
+  prerequisites?: string;
+  certificateEnabled?: boolean;
+  doubtSessionsEnabled?: boolean;
+  communityEnabled?: boolean;
+  quizzesCount?: number;
+  assignmentsCount?: number;
+  projectsCount?: number;
+  liveSessionsCount?: number;
+  recordedLessonsCount?: number;
+  doubtSessionsCount?: number;
+  resourcesCount?: number;
+  revenueEarned?: number;
+  curriculumModules?: CurriculumModule[];
 }
 
 export interface CurriculumLesson {
   id: string;
   title: string;
-  type: "Video" | "PDF" | "Quiz" | "Assignment";
+  type: "Video" | "PDF" | "Quiz" | "Assignment" | "Live Class" | "Recorded Lesson" | "Doubt Session" | "Project" | "Resource";
   duration: string;
   preview: boolean;
 }
@@ -54,7 +73,9 @@ export interface LiveSession {
   time: string;
   countdown: string;
   meetingLink: string;
-  platform: "Google Meet" | "Zoom" | "Microsoft Teams";
+  platform: "Google Meet" | "Zoom" | "Microsoft Teams" | "Custom Meeting Link";
+  meetingId?: string;
+  passcode?: string;
   password?: string;
   recordingUrl?: string;
   attachments?: string;
@@ -74,6 +95,23 @@ export interface LiveSession {
   endTime?: string;
   timezone?: string;
   recordingViews?: number;
+  isDoubtSession?: boolean;
+  price?: number;
+  learningObjectives?: string;
+  attachedCourseId?: string;
+  attachedNotesName?: string;
+  attachedShortsCount?: number;
+  pipelineState?: {
+    liveCompleted: boolean;
+    recordingProcessed: boolean;
+    published: boolean;
+    shortsCreated: boolean;
+    notesAttached: boolean;
+    addedToCourse: boolean;
+  };
+  viewsCount?: number;
+  watchCompletionRate?: number;
+  revenueEarned?: number;
 }
 
 export interface Review {

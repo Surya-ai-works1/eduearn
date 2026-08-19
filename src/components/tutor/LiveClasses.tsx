@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Video,
@@ -13,33 +13,30 @@ import {
   Lock,
   Link2,
   Trash2,
-  Edit3,
   Calendar as CalendarIcon,
-  ExternalLink,
   Save,
-  Bell,
   X,
   Laptop,
   Search,
-  ChevronLeft,
-  ChevronRight,
   Upload,
   Download,
   Play,
   FileText,
-  Settings,
-  AlertTriangle,
   TrendingUp,
-  Share2,
-  BookOpen
+  BookOpen,
+  Sparkles,
+  DollarSign,
+  Check,
+  MoreVertical,
+  HelpCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { NoClasses } from "./EmptyState";
+import { useTutor } from "../../context/TutorContext";
+import { useRouter } from "next/navigation";
 import type { LiveSession } from "./types";
 import { navigateToClassroom } from "../../features/classroom/utils/navigation";
-import { useRouter } from "next/navigation";
 
 interface LiveClassesProps {
   liveSessions: LiveSession[];
@@ -56,7 +53,7 @@ interface LiveClassesProps {
     attachments?: string;
     notes?: string;
   };
-  setLiveForm: React.Dispatch<React.SetStateAction<LiveClassesProps["liveForm"]>>;
+  setLiveForm: React.Dispatch<React.SetStateAction<any>>;
   handleScheduleLive: (e: React.FormEvent) => void;
   isGateTriggered: boolean;
 }
@@ -70,135 +67,291 @@ export const LiveClasses = React.memo(function LiveClasses({
   setLiveForm,
   handleScheduleLive,
 }: LiveClassesProps) {
+  const { myCourses = [], handleTabChange } = useTutor();
   const router = useRouter();
 
-  // Navigation module tabs
+  // Navigation module tabs: "dashboard", "calendar", "analytics"
   const [currentModuleTab, setCurrentModuleTab] = useState<"dashboard" | "calendar" | "analytics">("dashboard");
   const [calViewMode, setCalViewMode] = useState<"month" | "week" | "day" | "agenda">("month");
-  
-  // Modal/Drawer details
-  const [selectedStudentViewClass, setSelectedStudentViewClass] = useState<LiveSession | null>(null);
-  const [selectedAttendanceViewClass, setSelectedAttendanceViewClass] = useState<LiveSession | null>(null);
-  const [editingSession, setEditingSession] = useState<LiveSession | null>(null);
-  const [editForm, setEditForm] = useState<Partial<LiveSession>>({});
 
   // Filters state
+  const [activeFilterTab, setActiveFilterTab] = useState<"all" | "upcoming" | "live-now" | "completed" | "doubt-sessions" | "recordings">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [courseFilter, setCourseFilter] = useState("All");
-  const [batchFilter, setBatchFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [platformFilter, setPlatformFilter] = useState("All");
-  const [sortBy, setSortBy] = useState("upcoming");
+  const [dateFilter, setDateFilter] = useState("");
 
-  // Create class form enhancements
-  const [sendReminder, setSendReminder] = useState(true);
-  const [createForm, setCreateForm] = useState({
-    title: "",
-    course: "Linear Algebra & Applications",
-    batch: "Batch A",
-    instructor: "Tutor",
-    description: "",
-    date: "",
-    startTime: "09:00",
-    endTime: "10:30",
-    timezone: "IST",
-    platform: "Google Meet" as "Google Meet" | "Zoom" | "Microsoft Teams",
-    meetingLink: "",
-    password: "",
-    maxParticipants: 100,
-    waitingRoom: true,
-    recordingEnabled: true,
-    attendanceTrackingEnabled: true
-  });
+  // Upcoming timeframe sorting filter
+  const [upcomingTimeframe, setUpcomingTimeframe] = useState<"all" | "today" | "tomorrow" | "week">("all");
 
-  // Enrich Sessions Data
-  const enrichedSessions = useMemo(() => {
-    return liveSessions.map((session, idx) => {
-      const course = session.course || (idx % 2 === 0 ? "Linear Algebra & Applications" : "Full-Stack Web Dev Bootcamp");
-      const batch = session.batch || `Batch ${["A", "B", "C"][idx % 3]}`;
-      const duration = session.duration || "90 mins";
-      const maxParticipants = session.maxParticipants || 100;
-      const waitingRoom = session.waitingRoom ?? true;
-      const recordingEnabled = session.recordingEnabled ?? true;
-      const attendanceTrackingEnabled = session.attendanceTrackingEnabled ?? true;
-      const instructor = session.instructor || "Tutor";
-      const description = session.description || "In-depth interactive discussion covering key modules.";
-      
-      let status: "Scheduled" | "Completed" | "Cancelled" | "Live Now" = "Scheduled";
-      if (session.status) {
-        status = session.status;
-      } else {
-        status = idx % 4 === 0 ? "Live Now" : idx % 3 === 0 ? "Completed" : idx % 5 === 0 ? "Cancelled" : "Scheduled";
+  // Modals state
+  const [selectedStudentViewClass, setSelectedStudentViewClass] = useState<LiveSession | null>(null);
+  const [selectedAttendanceViewClass, setSelectedAttendanceViewClass] = useState<LiveSession | null>(null);
+  
+  // Custom Modals
+  const [showCreateDoubtModal, setShowCreateDoubtModal] = useState(false);
+  const [showShortModalForSession, setShowShortModalForSession] = useState<LiveSession | null>(null);
+  const [showAttachNotesModalForSession, setShowAttachNotesModalForSession] = useState<LiveSession | null>(null);
+  const [showAddToCourseModalForSession, setShowAddToCourseModalForSession] = useState<LiveSession | null>(null);
+  const [showRescheduleModalForSession, setShowRescheduleModalForSession] = useState<LiveSession | null>(null);
+
+  // Shorts Modal Form State
+  const [shortTitle, setShortTitle] = useState("");
+  const [shortDesc, setShortDesc] = useState("");
+  const [shortStart, setShortStart] = useState("00:15");
+  const [shortEnd, setShortEnd] = useState("01:15");
+  const [shortCourse, setShortCourse] = useState("");
+  const [shortStatus, setShortStatus] = useState("Published");
+
+  // Attach Notes Form State
+  const [notesTitle, setNotesTitle] = useState("");
+  const [notesFile, setNotesFile] = useState("");
+  const [notesPriceType, setNotesPriceType] = useState<"free" | "paid">("free");
+  const [notesPrice, setNotesPrice] = useState("99");
+
+  // Add to Course Form State
+  const [targetCourseId, setTargetCourseId] = useState("");
+  const [targetModuleId, setTargetModuleId] = useState("");
+
+  // Drawer Meeting Link Editing states
+  const [isEditingLink, setIsEditingLink] = useState(false);
+  const [tempMeetingLink, setTempMeetingLink] = useState("");
+  const [tempPlatform, setTempPlatform] = useState<"Google Meet" | "Zoom" | "Microsoft Teams" | "Custom Meeting Link">("Google Meet");
+  const [tempMeetingId, setTempMeetingId] = useState("");
+  const [tempPasscode, setTempPasscode] = useState("");
+
+  useEffect(() => {
+    if (selectedStudentViewClass) {
+      setTempMeetingLink(selectedStudentViewClass.meetingLink || "");
+      setTempPlatform(selectedStudentViewClass.platform || "Google Meet");
+      setTempMeetingId(selectedStudentViewClass.meetingId || "");
+      setTempPasscode(selectedStudentViewClass.passcode || "");
+      setIsEditingLink(false);
+    }
+  }, [selectedStudentViewClass]);
+
+  // Reschedule Form State
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleStartTime, setRescheduleStartTime] = useState("10:00");
+  const [rescheduleEndTime, setRescheduleEndTime] = useState("11:30");
+
+  // Form fields for creating live class / doubt session
+  const [createClassTitle, setCreateClassTitle] = useState("");
+  const [createClassDesc, setCreateClassDesc] = useState("");
+  const [createClassCourse, setCreateClassCourse] = useState("");
+  const [createClassBatch, setCreateClassBatch] = useState("Batch A");
+  const [createClassDate, setCreateClassDate] = useState("");
+  const [createClassStartTime, setCreateClassStartTime] = useState("18:00");
+  const [createClassEndTime, setCreateClassEndTime] = useState("19:30");
+  const [createClassMaxStudents, setCreateClassMaxStudents] = useState("30");
+  const [createClassPriceType, setCreateClassPriceType] = useState<"free" | "paid">("paid");
+  const [createClassPrice, setCreateClassPrice] = useState("199");
+  const [createClassObjectives, setCreateClassObjectives] = useState("");
+  const [createClassRecording, setCreateClassRecording] = useState(true);
+  const [createClassIsDoubt, setCreateClassIsDoubt] = useState(false);
+  const [createClassPlatform, setCreateClassPlatform] = useState<"Google Meet" | "Zoom" | "Microsoft Teams" | "Custom Meeting Link">("Google Meet");
+  const [createClassMeetingLink, setCreateClassMeetingLink] = useState("https://meet.google.com/abc-defg-hij");
+  const [createClassMeetingId, setCreateClassMeetingId] = useState("");
+  const [createClassPasscode, setCreateClassPasscode] = useState("");
+  const [createClassAccessScope, setCreateClassAccessScope] = useState<"course" | "package" | "batch">("course");
+
+  // Local list of enriched sessions, initialized with prop & high-fidelity mock data
+  const [localSessions, setLocalSessions] = useState<LiveSession[]>([]);
+
+  useEffect(() => {
+    const mockSessions: LiveSession[] = [
+      {
+        id: "live-session-now",
+        title: "Python Programming Masterclass — Loops & Control",
+        course: "Linear Algebra & Applications",
+        batch: "Batch A",
+        time: "Today · 5:30 PM",
+        countdown: "Live Now",
+        meetingLink: "https://meet.google.com/abc-defg-hij",
+        platform: "Google Meet",
+        status: "Live Now",
+        studentsCount: 32,
+        attendanceCount: 24,
+        duration: "90 mins",
+        isDoubtSession: false,
+        price: 199,
+        recordingEnabled: true,
+        viewsCount: 120,
+      },
+      {
+        id: "mock-completed-1",
+        title: "Python Masterclass — Class 04",
+        course: "Linear Algebra & Applications",
+        batch: "Batch A",
+        time: "Yesterday · 4:00 PM",
+        countdown: "Completed",
+        meetingLink: "https://meet.google.com/abc-defg-hij",
+        platform: "Google Meet",
+        status: "Completed",
+        studentsCount: 40,
+        attendanceCount: 32,
+        duration: "1h 42m",
+        isDoubtSession: false,
+        price: 199,
+        recordingUrl: "https://eduearn-recordings.s3.amazonaws.com/lecture_rec.mp4",
+        viewsCount: 842,
+        watchCompletionRate: 82,
+        revenueEarned: 3200,
+        attachedNotesName: "Loops_Practice_Sheet.pdf",
+        attachedShortsCount: 2,
+        pipelineState: {
+          liveCompleted: true,
+          recordingProcessed: true,
+          published: true,
+          shortsCreated: true,
+          notesAttached: true,
+          addedToCourse: true,
+        }
+      },
+      {
+        id: "mock-completed-2",
+        title: "Introduction to Matrices & Vector Spaces",
+        course: "Linear Algebra & Applications",
+        batch: "Batch C",
+        time: "Aug 12, 2026 · 10:00 AM",
+        countdown: "Completed",
+        meetingLink: "https://meet.google.com/xyz-pqr-stu",
+        platform: "Zoom",
+        status: "Completed",
+        studentsCount: 30,
+        attendanceCount: 28,
+        duration: "90 mins",
+        isDoubtSession: false,
+        price: 0,
+        recordingUrl: "https://eduearn-recordings.s3.amazonaws.com/lecture_matrix.mp4",
+        viewsCount: 420,
+        watchCompletionRate: 75,
+        revenueEarned: 0,
+        pipelineState: {
+          liveCompleted: true,
+          recordingProcessed: true,
+          published: false,
+          shortsCreated: false,
+          notesAttached: false,
+          addedToCourse: false,
+        }
+      },
+      {
+        id: "mock-doubt-1",
+        title: "Weekly Doubt Session (Linear Algebra)",
+        course: "Linear Algebra & Applications",
+        batch: "Batch B",
+        time: "Saturday · 6:00 PM",
+        countdown: "Scheduled",
+        meetingLink: "https://meet.google.com/xyz-pqr-stu",
+        platform: "Zoom",
+        status: "Scheduled",
+        studentsCount: 18,
+        attendanceCount: 0,
+        duration: "60 mins",
+        isDoubtSession: true,
+        price: 0,
+        learningObjectives: "Modules 1–6 doubts and assignment reviews.",
       }
+    ];
 
-      const recordingViews = session.recordingViews || (session.recordingUrl ? 15 + (idx * 4) % 19 : 0);
-      const attendanceCount = session.attendanceCount || (status === "Completed" ? 18 + (idx * 2) % 6 : 0);
-      const studentsCount = session.studentsCount || 24;
+    const merged = [...liveSessions];
+    mockSessions.forEach(mock => {
+      if (!merged.some(s => s.id === mock.id || s.title === mock.title)) {
+        merged.push(mock);
+      }
+    });
+
+    // Make sure we have proper defaults on all sessions
+    const enriched = merged.map((s, idx) => {
+      const isDoubt = s.isDoubtSession || s.title.toLowerCase().includes("doubt");
+      const priceVal = s.price !== undefined ? s.price : (idx % 2 === 0 ? 199 : 0);
+      const pipeState = s.pipelineState || {
+        liveCompleted: s.status === "Completed",
+        recordingProcessed: s.status === "Completed",
+        published: s.status === "Completed" && !!s.recordingUrl,
+        shortsCreated: idx === 1,
+        notesAttached: idx === 1,
+        addedToCourse: idx === 1,
+      };
 
       return {
-        ...session,
-        course,
-        batch,
-        duration,
-        maxParticipants,
-        waitingRoom,
-        recordingEnabled,
-        attendanceTrackingEnabled,
-        instructor,
-        description,
-        status,
-        recordingViews,
-        attendanceCount,
-        studentsCount
+        ...s,
+        isDoubtSession: isDoubt,
+        price: priceVal,
+        pipelineState: pipeState,
+        duration: s.duration || "90 mins",
+        studentsCount: s.studentsCount || 24,
+        attendanceCount: s.attendanceCount || (s.status === "Completed" ? 18 : 0),
+        viewsCount: s.viewsCount || (s.status === "Completed" ? 120 : 0),
+        watchCompletionRate: s.watchCompletionRate || (s.status === "Completed" ? 75 : 0),
+        revenueEarned: s.revenueEarned || (s.status === "Completed" ? (priceVal * (s.attendanceCount || 18)) : 0)
       };
     });
+
+    setLocalSessions(enriched);
   }, [liveSessions]);
 
   // Aggregate Stats
   const stats = useMemo(() => {
-    const today = new Date().toDateString();
-    const todayClasses = enrichedSessions.filter(s => {
-      const d = new Date(s.time);
-      return !isNaN(d.getTime()) && d.toDateString() === today;
-    }).length;
-
-    const upcoming = enrichedSessions.filter(s => s.status === "Scheduled" || s.status === "Live Now").length;
-    const completed = enrichedSessions.filter(s => s.status === "Completed").length;
-    const recorded = enrichedSessions.filter(s => s.recordingUrl).length;
-    const totalHours = completed * 1.5;
+    const upcoming = localSessions.filter(s => s.status === "Scheduled").length;
+    const liveNow = localSessions.filter(s => s.status === "Live Now").length;
+    const completed = localSessions.filter(s => s.status === "Completed").length;
+    
+    // Sum total students across all sessions
+    const totalLiveStudents = localSessions.reduce((acc, curr) => acc + (curr.studentsCount || 0), 0);
+    
+    // Avg Attendance
+    const completedSessions = localSessions.filter(s => s.status === "Completed");
+    const avgAttendancePct = completedSessions.length > 0 
+      ? Math.round(completedSessions.reduce((acc, curr) => acc + (((curr.attendanceCount || 0) / (curr.studentsCount || 1)) * 100), 0) / completedSessions.length)
+      : 88;
+      
+    // Live class revenue
+    const totalRevenue = completedSessions.reduce((acc, curr) => acc + (curr.revenueEarned || 0), 0) + 18450; // Add standard baseline
 
     return {
-      todayClasses,
       upcoming,
+      liveNow,
       completed,
-      totalHours,
-      avgAttendance: "92%",
-      recorded
+      totalLiveStudents,
+      avgAttendance: `${avgAttendancePct}%`,
+      totalRevenue
     };
-  }, [enrichedSessions]);
+  }, [localSessions]);
 
   // Filters logic
   const filteredSessions = useMemo(() => {
-    return enrichedSessions
-      .filter((s) => {
-        const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              s.course?.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCourse = courseFilter === "All" || s.course === courseFilter;
-        const matchesBatch = batchFilter === "All" || s.batch === batchFilter;
-        const matchesStatus = statusFilter === "All" || s.status === statusFilter;
-        const matchesPlatform = platformFilter === "All" || s.platform === platformFilter;
-        return matchesSearch && matchesCourse && matchesBatch && matchesStatus && matchesPlatform;
-      })
-      .sort((a, b) => {
-        if (sortBy === "newest") return b.time.localeCompare(a.time);
-        if (sortBy === "oldest") return a.time.localeCompare(b.time);
-        if (sortBy === "upcoming") return a.status === "Scheduled" ? -1 : 1;
-        if (sortBy === "completed") return b.status === "Completed" ? -1 : 1;
-        return 0;
-      });
-  }, [enrichedSessions, searchQuery, courseFilter, batchFilter, statusFilter, platformFilter, sortBy]);
+    return localSessions.filter(s => {
+      // Tab filter
+      if (activeFilterTab === "upcoming" && s.status !== "Scheduled") return false;
+      if (activeFilterTab === "live-now" && s.status !== "Live Now") return false;
+      if (activeFilterTab === "completed" && s.status !== "Completed") return false;
+      if (activeFilterTab === "doubt-sessions" && !s.isDoubtSession) return false;
+      if (activeFilterTab === "recordings" && (!s.recordingUrl && s.status !== "Completed")) return false;
 
-  // Helper actions
+      // Timeframe filter for upcoming tab
+      if (activeFilterTab === "upcoming" || activeFilterTab === "all") {
+        const titleL = s.title.toLowerCase();
+        const timeL = s.time.toLowerCase();
+        if (upcomingTimeframe === "today" && !timeL.includes("today") && !timeL.includes("5:30") && !titleL.includes("loops")) return false;
+        if (upcomingTimeframe === "tomorrow" && !timeL.includes("tomorrow")) return false;
+        if (upcomingTimeframe === "week" && !timeL.includes("today") && !timeL.includes("tomorrow") && !timeL.includes("saturday")) return false;
+      }
+
+      // Search query
+      if (searchQuery && !s.title.toLowerCase().includes(searchQuery.toLowerCase()) && !s.course?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+
+      // Course filter
+      if (courseFilter !== "All" && s.course !== courseFilter) return false;
+
+      // Date filter
+      if (dateFilter && !s.time.includes(dateFilter)) return false;
+
+      return true;
+    });
+  }, [localSessions, activeFilterTab, upcomingTimeframe, searchQuery, courseFilter, dateFilter]);
+
+  // Actions handlers
   const handleCopyLink = (link: string) => {
     navigator.clipboard.writeText(link).then(() => toast.success("Meeting link copied!"));
   };
@@ -215,69 +368,158 @@ export const LiveClasses = React.memo(function LiveClasses({
     toast.success("Session deleted successfully.");
   };
 
-  const handleStartEdit = (session: LiveSession) => {
-    setEditingSession(session);
-    setEditForm({
-      title: session.title,
-      time: session.time,
-      platform: session.platform,
-      meetingLink: session.meetingLink,
-      password: session.password || "",
-      recordingUrl: session.recordingUrl || "",
-      notes: session.notes || "",
-    });
-  };
-
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleRescheduleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingSession) return;
+    if (!showRescheduleModalForSession) return;
 
-    setLiveSessions((prev) =>
-      prev.map((s) =>
-        s.id === editingSession.id
-          ? {
-              ...s,
-              title: editForm.title || s.title,
-              time: editForm.time || s.time,
-              platform: editForm.platform || s.platform,
-              meetingLink: editForm.meetingLink || s.meetingLink,
-              password: editForm.password,
-              recordingUrl: editForm.recordingUrl,
-              notes: editForm.notes,
-            }
-          : s
-      )
-    );
-
-    setEditingSession(null);
-    toast.success("Session updated successfully!");
+    const targetId = showRescheduleModalForSession.id;
+    setLiveSessions(prev => prev.map(s => {
+      if (s.id === targetId) {
+        return {
+          ...s,
+          time: `${rescheduleDate}, ${rescheduleStartTime}`,
+          duration: `${rescheduleStartTime} - ${rescheduleEndTime}`
+        };
+      }
+      return s;
+    }));
+    setShowRescheduleModalForSession(null);
+    toast.success("Class rescheduled successfully!");
   };
 
   const handleScheduleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!createClassTitle.trim()) {
+      toast.error("Please enter a class title.");
+      return;
+    }
+
+    const priceVal = createClassPriceType === "free" ? 0 : parseFloat(createClassPrice) || 0;
     const newSession: LiveSession = {
       id: `live-${Date.now()}`,
-      title: createForm.title,
-      time: `${createForm.date}, ${createForm.startTime} ${createForm.timezone}`,
-      countdown: "Starts soon",
-      meetingLink: createForm.meetingLink || "https://meet.google.com/abc-defg-hij",
-      platform: createForm.platform,
-      password: createForm.password,
-      course: createForm.course,
-      batch: createForm.batch,
-      instructor: createForm.instructor,
-      description: createForm.description,
-      duration: `${Math.abs(parseFloat(createForm.endTime) - parseFloat(createForm.startTime)) || 1.5} hours`,
-      status: "Scheduled"
+      title: createClassTitle,
+      time: `${createClassDate}, ${createClassStartTime}`,
+      countdown: "Scheduled",
+      meetingLink: createClassMeetingLink || "https://meet.google.com/abc-defg-hij",
+      platform: createClassPlatform,
+      meetingId: createClassMeetingId || undefined,
+      passcode: createClassPasscode || undefined,
+      status: "Scheduled",
+      course: createClassCourse || "Linear Algebra & Applications",
+      batch: createClassBatch,
+      description: createClassDesc || createClassObjectives,
+      duration: `${createClassStartTime} - ${createClassEndTime}`,
+      maxParticipants: parseInt(createClassMaxStudents) || 30,
+      price: priceVal,
+      isDoubtSession: createClassIsDoubt,
+      recordingEnabled: createClassRecording,
+      studentsCount: 0,
+      attendanceCount: 0,
+      pipelineState: {
+        liveCompleted: false,
+        recordingProcessed: false,
+        published: false,
+        shortsCreated: false,
+        notesAttached: false,
+        addedToCourse: false,
+      }
     };
 
     setLiveSessions(prev => [newSession, ...prev]);
     setIsSchedulingLive(false);
-    toast.success("Live class scheduled successfully!");
+    setShowCreateDoubtModal(false);
+    toast.success(`${createClassIsDoubt ? "Doubt Session" : "Live Class"} scheduled successfully!`);
+    
+    // Clear form
+    setCreateClassTitle("");
+    setCreateClassDesc("");
+    setCreateClassDate("");
+    setCreateClassObjectives("");
+    setCreateClassMeetingLink("https://meet.google.com/abc-defg-hij");
+    setCreateClassMeetingId("");
+    setCreateClassPasscode("");
+  };
 
-    if (sendReminder) {
-      toast.success("Student email alerts scheduled: 1 day, 1 hour, and 15 mins before start.");
-    }
+  // Recording pipeline actions
+  const handlePublishRecording = (session: LiveSession) => {
+    setLiveSessions(prev => prev.map(s => {
+      if (s.id === session.id) {
+        const nextPublished = !s.pipelineState?.published;
+        return {
+          ...s,
+          pipelineState: {
+            ...s.pipelineState!,
+            published: nextPublished
+          }
+        };
+      }
+      return s;
+    }));
+    toast.success(session.pipelineState?.published ? "Recording unpublished." : "Recording published to students course outline!");
+  };
+
+  const handleShortSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showShortModalForSession) return;
+
+    setLiveSessions(prev => prev.map(s => {
+      if (s.id === showShortModalForSession.id) {
+        return {
+          ...s,
+          pipelineState: {
+            ...s.pipelineState!,
+            shortsCreated: true
+          }
+        };
+      }
+      return s;
+    }));
+
+    setShowShortModalForSession(null);
+    toast.success(`Short "${shortTitle}" cropped and published successfully!`);
+  };
+
+  const handleAttachNotesSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showAttachNotesModalForSession) return;
+
+    setLiveSessions(prev => prev.map(s => {
+      if (s.id === showAttachNotesModalForSession.id) {
+        return {
+          ...s,
+          attachedNotesName: notesTitle || "Lecture_Notes.pdf",
+          pipelineState: {
+            ...s.pipelineState!,
+            notesAttached: true
+          }
+        };
+      }
+      return s;
+    }));
+
+    setShowAttachNotesModalForSession(null);
+    toast.success(`Study handout attached to this session!`);
+  };
+
+  const handleAddToCourseSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showAddToCourseModalForSession) return;
+
+    setLiveSessions(prev => prev.map(s => {
+      if (s.id === showAddToCourseModalForSession.id) {
+        return {
+          ...s,
+          pipelineState: {
+            ...s.pipelineState!,
+            addedToCourse: true
+          }
+        };
+      }
+      return s;
+    }));
+
+    setShowAddToCourseModalForSession(null);
+    toast.success(`Lecture added to the course module outline!`);
   };
 
   const downloadAttendanceCSV = (session: LiveSession) => {
@@ -299,15 +541,10 @@ export const LiveClasses = React.memo(function LiveClasses({
     toast.success("Attendance report downloaded successfully!");
   };
 
-  const handleUploadRecording = (sessionId: string) => {
-    setLiveSessions(prev => prev.map(s => s.id === sessionId ? { ...s, recordingUrl: "https://eduearn-recordings.s3.amazonaws.com/lecture_rec.mp4" } : s));
-    toast.success("Recording uploaded successfully!");
-  };
-
-  const handleDeleteRecording = (sessionId: string) => {
-    setLiveSessions(prev => prev.map(s => s.id === sessionId ? { ...s, recordingUrl: undefined } : s));
-    toast.success("Recording deleted successfully.");
-  };
+  // Find active live session
+  const activeLiveSession = useMemo(() => {
+    return localSessions.find(s => s.status === "Live Now");
+  }, [localSessions]);
 
   return (
     <motion.div
@@ -315,46 +552,76 @@ export const LiveClasses = React.memo(function LiveClasses({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
-      className="space-y-6"
+      className="space-y-8 text-left pb-16"
     >
       {/* Title Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground font-heading">Live Classes Hub</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Configure calendar events, record virtual sessions, and download attendance audits.
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-br from-primary/10 via-background to-background p-6 rounded-2xl border border-primary/20">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase">
+            <Sparkles size={10} /> Live Learning Studio
+          </div>
+          <h2 className="text-xl md:text-2xl font-heading font-extrabold text-foreground">Live Classes</h2>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Teach live, connect with your students, and turn every class into reusable learning content.
           </p>
         </div>
-        <Button onClick={() => setIsSchedulingLive(true)} size="sm" className="h-9 gap-1.5 bg-primary hover:bg-primary/95 text-white font-semibold shadow-sm">
-          <Plus size={14} /> Schedule New Class
-        </Button>
+        <div className="flex flex-wrap gap-2 select-none">
+          <Button 
+            onClick={() => {
+              setCreateClassIsDoubt(false);
+              setIsSchedulingLive(true);
+            }} 
+            size="sm" 
+            className="h-8.5 text-xs bg-primary hover:bg-primary/95 text-white font-bold border-none"
+          >
+            + Schedule Live Class
+          </Button>
+          <Button 
+            onClick={() => {
+              setCreateClassIsDoubt(true);
+              setShowCreateDoubtModal(true);
+            }} 
+            size="sm" 
+            className="h-8.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold border-none"
+          >
+            + Schedule Doubt Session
+          </Button>
+          <Button 
+            onClick={() => setCurrentModuleTab("calendar")} 
+            size="sm" 
+            variant="outline"
+            className="h-8.5 text-xs font-bold border-border/80"
+          >
+            View Calendar
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards summary bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 select-none">
         {[
-          { label: "Today's Classes", value: stats.todayClasses, icon: Laptop },
-          { label: "Upcoming Classes", value: stats.upcoming, icon: CalendarIcon },
-          { label: "Completed Classes", value: stats.completed, icon: CheckCircle },
-          { label: "Teaching Hours", value: `${stats.totalHours} hrs`, icon: Clock },
-          { label: "Avg Attendance", value: stats.avgAttendance, icon: Users },
-          { label: "Recorded Sessions", value: stats.recorded, icon: Video }
+          { label: "Upcoming Classes", value: stats.upcoming, icon: CalendarIcon, color: "text-sky-500 bg-sky-500/10" },
+          { label: "Live Now", value: stats.liveNow, icon: Video, color: stats.liveNow > 0 ? "text-rose-500 bg-rose-500/10 animate-pulse" : "text-muted-foreground bg-muted/40" },
+          { label: "Completed Classes", value: stats.completed, icon: CheckCircle, color: "text-emerald-500 bg-emerald-500/10" },
+          { label: "Total Live Students", value: stats.totalLiveStudents, icon: Users, color: "text-purple-500 bg-purple-500/10" },
+          { label: "Average Attendance", value: stats.avgAttendance, icon: TrendingUp, color: "text-teal-500 bg-teal-500/10" },
+          { label: "Live Class Revenue", value: `₹${stats.totalRevenue.toLocaleString()}`, icon: DollarSign, color: "text-amber-500 bg-amber-500/10" }
         ].map((item, idx) => {
           const Icon = item.icon;
           return (
-            <Card key={idx} className="p-3 border border-border bg-card shadow-sm flex items-center justify-between min-w-0">
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold text-muted-foreground truncate">{item.label}</p>
-                <h4 className="text-xl font-extrabold text-foreground mt-0.5">{item.value}</h4>
+            <Card key={idx} variant="glass" className="p-3.5 border-border/60 hover:border-primary/20 transition flex items-center justify-between min-w-0">
+              <div className="min-w-0 space-y-0.5">
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider truncate">{item.label}</p>
+                <h4 className="text-lg font-black text-foreground">{item.value}</h4>
               </div>
-              <Icon size={16} className="text-primary shrink-0 ml-2" />
+              <span className={`p-1.5 rounded-lg shrink-0 ml-2 ${item.color}`}><Icon size={14} /></span>
             </Card>
           );
         })}
       </div>
 
-      {/* Module tab buttons */}
-      <div className="flex gap-1.5 border-b border-border/40 pb-2 font-semibold">
+      {/* Navigation module tabs */}
+      <div className="flex gap-1.5 border-b border-border/40 pb-2 font-bold select-none">
         {[
           { id: "dashboard", label: "Classes Dashboard" },
           { id: "calendar", label: "Interactive Calendar" },
@@ -363,7 +630,7 @@ export const LiveClasses = React.memo(function LiveClasses({
           <button
             key={tab.id}
             onClick={() => setCurrentModuleTab(tab.id as any)}
-            className={`px-3 py-1.5 text-xs border-b-2 transition-all cursor-pointer ${
+            className={`px-4 py-2 text-xs border-b-2 transition-all cursor-pointer bg-transparent border-none ${
               currentModuleTab === tab.id
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -376,331 +643,478 @@ export const LiveClasses = React.memo(function LiveClasses({
 
       {/* TAB CONTENT: DASHBOARD */}
       {currentModuleTab === "dashboard" && (
-        <div className="space-y-6">
-          {/* Filters Bar */}
-          <Card variant="glass" className="p-4 flex flex-wrap items-center gap-3">
+        <div className="space-y-8">
+          
+          {/* Section 1: LIVE NOW */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 font-heading select-none">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+              Live Now
+            </h3>
+            {activeLiveSession ? (
+              <Card className="p-5 border-rose-500/30 bg-rose-500/[0.02] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-rose-500 text-white rounded-full text-[8.5px] uppercase font-black tracking-widest animate-pulse px-2 py-0.5">
+                      🔴 LIVE NOW
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-semibold">Started 18 minutes ago</span>
+                  </div>
+                  <h4 className="text-sm md:text-base font-black text-foreground">{activeLiveSession.title}</h4>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground font-semibold">
+                    <span className="flex items-center gap-1"><Users size={12} className="text-rose-500" /> 24 joined / 32 registered</span>
+                    <span className="flex items-center gap-1"><Clock size={12} className="text-rose-500" /> Duration: {activeLiveSession.duration}</span>
+                    <span className="flex items-center gap-1"><HelpCircle size={12} className="text-rose-500" /> 4 Questions pending</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0 w-full md:w-auto">
+                  <Button
+                    onClick={() => navigateToClassroom(router, activeLiveSession.id)}
+                    size="sm"
+                    className="flex-1 md:flex-none h-8 text-[11px] font-bold bg-rose-500 hover:bg-rose-600 text-white border-none"
+                  >
+                    Open Live Room
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setSelectedStudentViewClass(activeLiveSession);
+                    }}
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 md:flex-none h-8 text-[11px] font-bold border-rose-500/20 text-rose-500 hover:bg-rose-500/5"
+                  >
+                    Manage Class
+                  </Button>
+                </div>
+              </Card>
+            ) : (
+              <Card variant="glass" className="p-4 flex items-center justify-between border-border/40 select-none text-xs font-semibold text-muted-foreground">
+                <span>No class is live right now.</span>
+                <Button 
+                  onClick={() => setIsSchedulingLive(true)}
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-[10px] font-bold"
+                >
+                  Schedule Live Class
+                </Button>
+              </Card>
+            )}
+          </div>
+
+          {/* Section 2: FILTERS & SEARCH */}
+          <Card variant="glass" className="p-4 flex flex-wrap items-center gap-3 select-none">
             <div className="relative flex-1 min-w-[200px] max-w-xs">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search class or course..."
+                placeholder="Search live classes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-full pl-9 pr-3 rounded-button border border-border bg-card/60 text-xs font-semibold text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+                className="h-8.5 w-full pl-9 pr-3 rounded-xl border border-border bg-card/60 text-xs font-semibold text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
               />
             </div>
             
+            <div className="flex flex-wrap gap-1 border border-border/60 p-0.5 rounded-xl bg-muted/20">
+              {[
+                { id: "all", label: "All" },
+                { id: "upcoming", label: "Upcoming" },
+                { id: "live-now", label: "Live Now" },
+                { id: "completed", label: "Completed" },
+                { id: "doubt-sessions", label: "Doubt Sessions" },
+                { id: "recordings", label: "Recordings" }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveFilterTab(tab.id as any);
+                    setUpcomingTimeframe("all"); // Reset timeframe on tab change
+                  }}
+                  className={`px-3 py-1 rounded-lg text-[10.5px] font-black uppercase transition-colors cursor-pointer border-none ${
+                    activeFilterTab === tab.id
+                      ? "bg-primary text-white"
+                      : "text-muted-foreground hover:text-foreground bg-transparent"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
             <select
               value={courseFilter}
               onChange={(e) => setCourseFilter(e.target.value)}
-              className="h-9 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+              className="h-8.5 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
             >
               <option value="All">All Courses</option>
+              {myCourses.map(c => (
+                <option key={c.id} value={c.title}>{c.title}</option>
+              ))}
               <option value="Linear Algebra & Applications">Linear Algebra & Applications</option>
               <option value="Full-Stack Web Dev Bootcamp">Full-Stack Web Dev Bootcamp</option>
             </select>
 
-            <select
-              value={batchFilter}
-              onChange={(e) => setBatchFilter(e.target.value)}
-              className="h-9 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-            >
-              <option value="All">All Batches</option>
-              <option value="Batch A">Batch A</option>
-              <option value="Batch B">Batch B</option>
-              <option value="Batch C">Batch C</option>
-            </select>
-
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-9 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-            >
-              <option value="All">All Statuses</option>
-              <option value="Scheduled">Upcoming</option>
-              <option value="Live Now">Live Now</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-
-            <select
-              value={platformFilter}
-              onChange={(e) => setPlatformFilter(e.target.value)}
-              className="h-9 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-            >
-              <option value="All">All Platforms</option>
-              <option value="Google Meet">Google Meet</option>
-              <option value="Zoom">Zoom</option>
-              <option value="Microsoft Teams">Microsoft Teams</option>
-            </select>
-
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="h-9 rounded-button border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none ml-auto"
-            >
-              <option value="upcoming">Upcoming First</option>
-              <option value="completed">Completed First</option>
-              <option value="newest">Newest Added</option>
-              <option value="oldest">Oldest Added</option>
-            </select>
+            <input
+              type="text"
+              placeholder="Filter by date (e.g. Aug 12)..."
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="h-8.5 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none placeholder:text-muted-foreground/60"
+            />
           </Card>
 
-          {/* Splitted Main Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
-            {/* Left Column: Live Class Table */}
-            <div className="w-full overflow-x-auto border border-border bg-card rounded-card shadow-sm">
-              <table className="w-full text-xs text-left min-w-[1200px]">
-                <thead className="bg-muted/30 border-b border-border text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80">
-                  <tr>
-                    <th className="p-3">Class Title</th>
-                    <th className="p-3">Course</th>
-                    <th className="p-3 text-center">Batch</th>
-                    <th className="p-3 text-center">Date & Time</th>
-                    <th className="p-3 text-center">Duration</th>
-                    <th className="p-3 text-center">Platform</th>
-                    <th className="p-3 text-center">Meeting Link</th>
-                    <th className="p-3 text-center">Attendance</th>
-                    <th className="p-3 text-center">Recording</th>
-                    <th className="p-3 text-center">Status</th>
-                    <th className="p-3 text-right pr-4">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40 font-semibold text-muted-foreground">
-                  {filteredSessions.map((session) => (
-                    <tr
-                      key={session.id}
-                      className="hover:bg-muted/15 cursor-pointer transition-colors"
-                      onClick={() => setSelectedStudentViewClass(session)}
-                    >
-                      <td className="p-3 text-foreground font-bold text-xs">{session.title}</td>
-                      <td className="p-3 text-muted-foreground/80 max-w-[180px] truncate">{session.course}</td>
-                      <td className="p-3 text-center text-foreground">{session.batch}</td>
-                      <td className="p-3 text-center text-muted-foreground/75 font-medium">{session.time}</td>
-                      <td className="p-3 text-center text-foreground">{session.duration}</td>
-                      <td className="p-3 text-center text-foreground">
-                        <span className="bg-muted/50 border border-border/40 px-2 py-0.5 rounded text-[10px]">
-                          {session.platform}
-                        </span>
-                      </td>
-                      <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => handleCopyLink(session.meetingLink)}
-                          className="text-primary hover:underline flex items-center justify-center gap-1 mx-auto"
-                        >
-                          <Link2 size={12} /> Copy URL
-                        </button>
-                      </td>
-                      <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        {session.status === "Completed" ? (
-                          <button
-                            onClick={() => setSelectedAttendanceViewClass(session)}
-                            className="text-foreground hover:underline font-bold"
-                          >
-                            View ({session.attendanceCount}/{session.studentsCount})
-                          </button>
-                        ) : (
-                          <span className="text-muted-foreground/50">—</span>
-                        )}
-                      </td>
-                      <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        {session.status === "Completed" ? (
-                          session.recordingUrl ? (
-                            <div className="flex items-center justify-center gap-1 text-emerald-500">
-                              <Play size={11} className="fill-emerald-500" /> Recorded
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => handleUploadRecording(session.id)}
-                              className="text-primary hover:underline text-[10px]"
-                            >
-                              Upload
-                            </button>
-                          )
-                        ) : (
-                          <span className="text-muted-foreground/50">—</span>
-                        )}
-                      </td>
-                      <td className="p-3 text-center">
-                        <span
-                          className={`text-[8px] font-extrabold uppercase px-2.5 py-0.5 rounded border ${
-                            session.status === "Completed"
-                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
-                              : session.status === "Cancelled"
-                              ? "bg-muted border-border text-muted-foreground"
-                              : session.status === "Live Now"
-                              ? "bg-rose-500/10 border-rose-500/20 text-rose-500 animate-pulse"
-                              : "bg-sky-500/10 border-sky-500/20 text-sky-500"
-                          }`}
-                        >
-                          {session.status}
-                        </span>
-                      </td>
-                      <td className="p-3 text-right pr-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1.5">
-                          {session.status === "Live Now" || session.status === "Scheduled" ? (
-                            <Button
-                              onClick={() => navigateToClassroom(router, session.id)}
-                              size="sm"
-                              className="h-7 text-[10px] px-2 bg-primary hover:bg-primary/95 text-white font-bold"
-                            >
-                              Join Now
-                            </Button>
-                          ) : null}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleStartEdit(session)}
-                            className="h-7 text-[10px] px-2 font-bold"
-                          >
-                            Edit
-                          </Button>
-                          {session.status !== "Completed" && session.status !== "Cancelled" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleCancelSession(session.id)}
-                              className="h-7 text-[10px] px-2 font-bold text-amber-600"
-                            >
-                              Cancel
-                            </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteSession(session.id)}
-                            className="h-7 text-[10px] px-2 font-bold text-rose-600"
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Right Column: Today's Schedule panel */}
+          {/* Section 3: UPCOMING LIVE CLASSES */}
+          {(activeFilterTab === "all" || activeFilterTab === "upcoming") && (
             <div className="space-y-4">
-              <Card variant="glass" className="p-4 space-y-4">
-                <h4 className="text-xs font-bold uppercase text-muted-foreground border-b border-border/60 pb-2">
-                  Today&apos;s Schedule
-                </h4>
-                <div className="space-y-3">
-                  {enrichedSessions.filter(s => {
-                    const d = new Date(s.time);
-                    return !isNaN(d.getTime()) && d.toDateString() === new Date().toDateString();
-                  }).map(session => (
-                    <div key={session.id} className="p-3 bg-muted/30 border border-border/40 rounded-card space-y-2.5">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h5 className="text-xs font-bold text-foreground leading-tight">{session.title}</h5>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{session.time}</p>
-                        </div>
-                        <span className={`text-[8px] font-extrabold uppercase px-2 py-0.5 rounded border ${
-                          session.status === "Live Now" ? "bg-rose-500/10 border-rose-500/20 text-rose-500" : "bg-sky-500/10 border-sky-500/20 text-sky-500"
-                        }`}>
-                          {session.status}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-2 select-none">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider font-heading">Upcoming Live Classes</h3>
+                <div className="flex gap-1">
+                  {[
+                    { id: "all", label: "All Upcoming" },
+                    { id: "today", label: "Today" },
+                    { id: "tomorrow", label: "Tomorrow" },
+                    { id: "week", label: "This Week" }
+                  ].map(tf => (
+                    <button
+                      key={tf.id}
+                      onClick={() => setUpcomingTimeframe(tf.id as any)}
+                      className={`px-2.5 py-1 text-[9.5px] font-black rounded transition border-none cursor-pointer uppercase tracking-wider ${
+                        upcomingTimeframe === tf.id
+                          ? "bg-primary text-white"
+                          : "text-muted-foreground hover:text-foreground bg-transparent"
+                      }`}
+                    >
+                      {tf.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredSessions.filter(s => s.status === "Scheduled" && !s.isDoubtSession).map(session => (
+                  <Card key={session.id} variant="glass" className="p-5 border-border/60 hover:border-primary/20 transition flex flex-col justify-between h-[255px] text-left">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start select-none">
+                        <span className="text-[10px] font-black uppercase text-rose-500 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse" />
+                          {session.platform || "Google Meet"}
+                        </span>
+                        <span className="text-[9px] font-bold text-foreground bg-muted/65 px-2 py-0.5 rounded border border-border/40 uppercase">
+                          {session.status || "Scheduled"}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-muted-foreground font-semibold">
-                        <span>Platform: {session.platform}</span>
-                        {session.status === "Live Now" && (
-                          <span className="text-rose-500 flex items-center gap-1 animate-pulse">
-                            <Clock size={11} /> Live Now
-                          </span>
-                        )}
+                      <h4 className="font-extrabold text-xs text-foreground line-clamp-1 leading-snug">{session.title}</h4>
+                      <p className="text-[10px] text-muted-foreground font-semibold leading-relaxed truncate">{session.course} • {session.batch}</p>
+                      
+                      <div className="space-y-1 pt-1 text-[10px] font-bold text-muted-foreground/90 select-none">
+                        <div className="flex items-center gap-1.5"><CalendarIcon size={11} className="text-primary" /> {session.time}</div>
+                        <div className="flex items-center gap-1.5"><Users size={11} className="text-primary" /> {session.studentsCount || 24} / {session.maxParticipants || 30} registered</div>
+                        <div className="text-[9.5px] text-indigo-500 uppercase tracking-wide">Access: {session.course} Package</div>
                       </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 select-none border-t border-border/20 pt-3">
                       <div className="flex gap-2">
                         <Button
                           onClick={() => navigateToClassroom(router, session.id)}
                           size="sm"
-                          className="h-7 text-[10px] font-bold flex-1 bg-primary text-white font-semibold"
+                          className="h-8 text-[10px] font-bold flex-1 bg-primary text-white border-none"
                         >
-                          Join Meeting
+                          Start Class
                         </Button>
                         <Button
+                          onClick={() => setSelectedStudentViewClass(session)}
+                          size="sm"
                           variant="outline"
-                          onClick={() => handleStartEdit(session)}
-                          className="h-7 text-[10px] px-2.5 font-semibold text-foreground"
+                          className="h-8 text-[10px] px-2.5 font-bold border-border/60 hover:bg-muted"
                         >
-                          Edit
+                          Details
+                        </Button>
+                        
+                        <div className="relative group/upcoming-actions">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-2 font-bold border-border/60"
+                          >
+                            <MoreVertical size={12} />
+                          </Button>
+                          <div className="absolute right-0 bottom-full mb-1 hidden group-hover/upcoming-actions:flex flex-col bg-card border border-border rounded-lg shadow-floating py-1 w-24 z-30 font-semibold">
+                            <button
+                              onClick={() => {
+                                setRescheduleDate(session.time.split(",")[0] || "");
+                                setShowRescheduleModalForSession(session);
+                              }}
+                              className="px-3 py-1.5 text-[9.5px] text-left text-muted-foreground hover:text-foreground hover:bg-muted/50 transition cursor-pointer bg-transparent border-none"
+                            >
+                              Reschedule
+                            </button>
+                            <button
+                              onClick={() => handleCancelSession(session.id)}
+                              className="px-3 py-1.5 text-[9.5px] text-left text-amber-500 hover:text-amber-600 hover:bg-muted/50 transition cursor-pointer bg-transparent border-none"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleDeleteSession(session.id)}
+                              className="px-3 py-1.5 text-[9.5px] text-left text-rose-500 hover:text-rose-600 hover:bg-muted/50 transition cursor-pointer bg-transparent border-none"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={() => {
+                          navigator.clipboard.writeText(session.meetingLink || "");
+                          toast.success("Protected meeting link copied!");
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-[9px] font-bold border-dashed border-border"
+                      >
+                        Copy Meeting Link
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+                {filteredSessions.filter(s => s.status === "Scheduled" && !s.isDoubtSession).length === 0 && (
+                  <div className="col-span-full py-8 text-center text-xs text-muted-foreground italic select-none">
+                    No upcoming live classes found matching selected filters.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Section 4: LIVE DOUBT SESSIONS */}
+          {(activeFilterTab === "all" || activeFilterTab === "doubt-sessions") && (
+            <div className="space-y-4 text-left">
+              <div className="flex justify-between items-center border-b border-border/40 pb-2 select-none">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider font-heading flex items-center gap-1.5">
+                  <BookOpen size={15} className="text-indigo-500" />
+                  Live Doubt Sessions
+                </h3>
+                <span className="text-[10px] text-muted-foreground font-semibold">Support student self-learning cohorts</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredSessions.filter(s => s.isDoubtSession).map(session => (
+                  <Card key={session.id} variant="glass" className="p-4 border-border/60 hover:border-indigo-500/20 transition flex flex-col justify-between h-44">
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-start select-none">
+                        <span className="text-[9.5px] font-black uppercase text-indigo-500">Interactive Doubt Room</span>
+                        <span className="text-[9.5px] text-muted-foreground font-semibold">• {session.time}</span>
+                      </div>
+                      <h4 className="font-extrabold text-xs text-foreground line-clamp-1">{session.title}</h4>
+                      <p className="text-[10px] text-muted-foreground font-semibold truncate">Topics: {session.learningObjectives || "Course Modules 1–6 Review"}</p>
+                      <p className="text-[10px] text-muted-foreground/80 font-semibold">{session.studentsCount || 18} students registered</p>
+                    </div>
+
+                    <div className="flex gap-2 select-none border-t border-border/20 pt-3">
+                      <Button
+                        onClick={() => navigateToClassroom(router, session.id)}
+                        size="sm"
+                        className="h-7 text-[10px] font-bold flex-1 bg-indigo-600 hover:bg-indigo-700 text-white border-none"
+                      >
+                        Start Session
+                      </Button>
+                      <Button
+                        onClick={() => setSelectedStudentViewClass(session)}
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[10px] px-3 font-bold border-border/60 hover:bg-muted"
+                      >
+                        Manage Session
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+                {filteredSessions.filter(s => s.isDoubtSession).length === 0 && (
+                  <div className="col-span-full py-8 text-center text-xs text-muted-foreground italic select-none">
+                    No scheduled doubt sessions found.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Section 5: COMPLETED CLASSES & PIPELINE */}
+          {(activeFilterTab === "all" || activeFilterTab === "completed" || activeFilterTab === "recordings") && (
+            <div className="space-y-6">
+              <div className="border-b border-border/40 pb-2 select-none">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider font-heading">Completed Classes &amp; Recorded Assets</h3>
+              </div>
+
+              <div className="space-y-6">
+                {filteredSessions.filter(s => s.status === "Completed").map(session => (
+                  <Card key={session.id} variant="glass" className="p-5 border-border/60 hover:border-primary/20 transition grid grid-cols-1 lg:grid-cols-12 gap-6 text-left">
+                    
+                    {/* Lecture metadata & details */}
+                    <div className="lg:col-span-4 space-y-3">
+                      <div className="space-y-0.5">
+                        <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded text-[8.5px] uppercase font-black px-2 py-0.5 select-none">
+                          ✓ COMPLETED
+                        </span>
+                        <h4 className="text-xs font-black text-foreground mt-1.5">{session.title}</h4>
+                        <p className="text-[10px] text-muted-foreground font-semibold leading-relaxed truncate">{session.course} • {session.batch}</p>
+                      </div>
+
+                      <div className="space-y-1.5 text-[10px] font-bold text-muted-foreground select-none">
+                        <div>Time taught: <span className="text-foreground">{session.time} ({session.duration})</span></div>
+                        <div>Turnout: <span className="text-foreground">{session.attendanceCount} attended / {session.studentsCount} registered ({Math.round(((session.attendanceCount || 0) / (session.studentsCount || 1)) * 100)}%)</span></div>
+                      </div>
+
+                      <div className="flex gap-2 pt-2 border-t border-border/10 select-none">
+                        <Button
+                          onClick={() => window.open(session.recordingUrl)}
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px] px-2.5 font-bold border-border/60"
+                          disabled={!session.recordingUrl}
+                        >
+                          Watch Recording
+                        </Button>
+                        <Button
+                          onClick={() => setSelectedAttendanceViewClass(session)}
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px] px-2.5 font-bold border-border/60"
+                        >
+                          Attendance
                         </Button>
                       </div>
                     </div>
-                  ))}
-                  {enrichedSessions.filter(s => {
-                    const d = new Date(s.time);
-                    return !isNaN(d.getTime()) && d.toDateString() === new Date().toDateString();
-                  }).length === 0 && (
-                    <p className="text-[11px] text-muted-foreground italic text-center py-6">No classes scheduled for today.</p>
-                  )}
-                </div>
-              </Card>
 
-              {/* Recorded Uploads List */}
-              <Card variant="glass" className="p-4 space-y-3">
-                <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 border-b border-border/60 pb-2">
-                  <Laptop size={12} className="text-primary animate-pulse" /> Live Recordings
-                </h4>
-                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                  {enrichedSessions.filter(s => s.status === "Completed").map(session => (
-                    <div key={session.id} className="p-2.5 bg-muted/40 rounded border border-border/40 space-y-2 text-[10px]">
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-foreground truncate max-w-[150px]">{session.title}</span>
-                        <span className="text-muted-foreground/70">{session.recordingViews} views</span>
+                    {/* Pipeline Visual Stepper */}
+                    <div className="lg:col-span-4 border-l border-r border-border/30 px-6 space-y-3">
+                      <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider block select-none">Live-to-Content Pipeline</span>
+                      <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-muted-foreground">
+                        <div className="flex items-center gap-1.5 text-emerald-500 select-none">
+                          <CheckCircle size={12} /> Live completed
+                        </div>
+                        <div className="flex items-center gap-1.5 text-emerald-500 select-none">
+                          <CheckCircle size={12} /> Processed
+                        </div>
+                        <div className={`flex items-center gap-1.5 ${session.pipelineState?.published ? "text-emerald-500" : "opacity-60"} select-none`}>
+                          {session.pipelineState?.published ? <CheckCircle size={12} /> : <span className="w-3 h-3 rounded-full border border-current" />}
+                          Published
+                        </div>
+                        <div className={`flex items-center gap-1.5 ${session.pipelineState?.shortsCreated ? "text-emerald-500" : "opacity-60"} select-none`}>
+                          {session.pipelineState?.shortsCreated ? <CheckCircle size={12} /> : <span className="w-3 h-3 rounded-full border border-current" />}
+                          Shorts Created
+                        </div>
+                        <div className={`flex items-center gap-1.5 ${session.pipelineState?.notesAttached ? "text-emerald-500" : "opacity-60"} select-none`}>
+                          {session.pipelineState?.notesAttached ? <CheckCircle size={12} /> : <span className="w-3 h-3 rounded-full border border-current" />}
+                          Notes Attached
+                        </div>
+                        <div className={`flex items-center gap-1.5 ${session.pipelineState?.addedToCourse ? "text-emerald-500" : "opacity-60"} select-none`}>
+                          {session.pipelineState?.addedToCourse ? <CheckCircle size={12} /> : <span className="w-3 h-3 rounded-full border border-current" />}
+                          Added to Course
+                        </div>
                       </div>
-                      <div className="flex gap-2 justify-end">
-                        {session.recordingUrl ? (
-                          <>
-                            <Button
-                              onClick={() => window.open(session.recordingUrl)}
-                              variant="outline"
-                              className="h-6 text-[9px] px-2 font-bold gap-1 text-foreground"
-                            >
-                              <Play size={10} className="fill-foreground" /> Play
-                            </Button>
-                            <Button
-                              onClick={() => handleDeleteRecording(session.id)}
-                              variant="outline"
-                              className="h-6 text-[9px] px-2 font-bold text-rose-500"
-                            >
-                              Delete
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            onClick={() => handleUploadRecording(session.id)}
-                            variant="outline"
-                            className="h-6 text-[9px] px-2 font-bold text-primary w-full"
-                          >
-                            <Upload size={10} /> Upload Recording
-                          </Button>
-                        )}
+                      
+                      {session.attachedNotesName && (
+                        <div className="bg-muted/30 border border-border/40 p-2 rounded-lg text-[9.5px] text-foreground flex items-center justify-between select-none">
+                          <span className="truncate max-w-[150px] font-bold">📚 {session.attachedNotesName}</span>
+                          <span className="text-[8.5px] text-emerald-500 font-extrabold uppercase">Attached</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Content Generation Actions */}
+                    <div className="lg:col-span-4 space-y-3.5 select-none">
+                      <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider block">Reuse &amp; Monetize Assets</span>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-[10px]">
+                        <Button
+                          onClick={() => handlePublishRecording(session)}
+                          size="sm"
+                          variant={session.pipelineState?.published ? "outline" : "primary"}
+                          className={`h-8 font-bold border-none ${session.pipelineState?.published ? "bg-muted/40 hover:bg-muted text-foreground" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}
+                        >
+                          {session.pipelineState?.published ? "Unpublish" : "Publish Video"}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setShortTitle(`${session.title} - Clip`);
+                            setShortCourse(session.course || "");
+                            setShowShortModalForSession(session);
+                          }}
+                          size="sm"
+                          className="h-8 bg-primary hover:bg-primary/95 text-white border-none font-bold"
+                        >
+                          Create Short
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setNotesTitle(`${session.title} Study Notes`);
+                            setShowAttachNotesModalForSession(session);
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="h-8 border-border/80 text-foreground font-bold"
+                        >
+                          Attach Notes
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setTargetCourseId(session.course || "");
+                            setShowAddToCourseModalForSession(session);
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="h-8 border-border/80 text-foreground font-bold"
+                        >
+                          Add to Course
+                        </Button>
+                      </div>
+
+                      {/* Performance card stats */}
+                      <div className="bg-muted/20 border border-border/40 p-2.5 rounded-xl grid grid-cols-3 gap-2 text-center text-[10px] font-bold text-muted-foreground leading-snug">
+                        <div>
+                          <span className="text-[8px] font-black text-muted-foreground/60 uppercase block">VIEWS</span>
+                          <span className="text-foreground font-black">{session.viewsCount}</span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] font-black text-muted-foreground/60 uppercase block">RETENTION</span>
+                          <span className="text-foreground font-black">{session.watchCompletionRate}%</span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] font-black text-muted-foreground/60 uppercase block">REVENUE</span>
+                          <span className="text-emerald-500 font-black">₹{session.revenueEarned?.toLocaleString() || "0"}</span>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </Card>
+
+                  </Card>
+                ))}
+                {filteredSessions.filter(s => s.status === "Completed").length === 0 && (
+                  <div className="py-8 text-center text-xs text-muted-foreground italic select-none">
+                    No completed sessions found matching selected filters.
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
         </div>
       )}
 
       {/* TAB CONTENT: INTERACTIVE CALENDAR */}
       {currentModuleTab === "calendar" && (
-        <Card className="p-5 border border-border bg-card shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
+        <Card className="p-5 border border-border bg-card shadow-sm space-y-4 text-left">
+          <div className="flex items-center justify-between border-b border-border/40 pb-3">
             <h4 className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1.5 font-heading">
-              <CalendarIcon size={13} className="text-primary" /> Calendar View Mode
+              <CalendarIcon size={14} className="text-primary" /> Live Classes Calendar Planner
             </h4>
-            <div className="flex bg-muted/40 p-0.5 rounded-button text-[10px] font-semibold">
+            <div className="flex bg-muted/40 p-0.5 rounded-xl text-[10px] font-semibold border border-border/30">
               {["month", "week", "day", "agenda"].map(mode => (
                 <button
                   key={mode}
                   onClick={() => setCalViewMode(mode as any)}
-                  className={`px-2.5 py-1 rounded-button cursor-pointer capitalize transition-colors ${calViewMode === mode ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`px-3 py-1.5 rounded-lg cursor-pointer capitalize transition-colors border-none font-bold ${calViewMode === mode ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground bg-transparent"}`}
                 >
                   {mode}
                 </button>
@@ -708,42 +1122,43 @@ export const LiveClasses = React.memo(function LiveClasses({
             </div>
           </div>
 
-          {/* Calendar Grid Render mock */}
-          <div className="border border-border/60 rounded-card overflow-hidden">
-            <div className="grid grid-cols-7 bg-muted/30 p-2 text-center text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground/80 border-b border-border/60">
+          <div className="border border-border/60 rounded-2xl overflow-hidden bg-card">
+            <div className="grid grid-cols-7 bg-muted/20 p-2.5 text-center text-[9px] uppercase tracking-wider font-extrabold text-muted-foreground border-b border-border/60">
               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => <span key={d}>{d}</span>)}
             </div>
             
-            {/* Monthly view rendering */}
             {calViewMode === "month" && (
-              <div className="grid grid-cols-7 gap-px bg-border/40">
+              <div className="grid grid-cols-7 gap-px bg-border/30">
                 {Array.from({ length: 35 }).map((_, idx) => {
                   const dayNum = ((idx + 2) % 31) + 1;
-                  const dateStr = `2026-07-${dayNum < 10 ? "0" + dayNum : dayNum}`;
-                  const daySessions = enrichedSessions.filter(s => s.time.includes(dateStr));
+                  const dateStr = `2026-08-${dayNum < 10 ? "0" + dayNum : dayNum}`;
+                  const daySessions = localSessions.filter(s => s.time.includes(dateStr) || (dayNum === 17 && s.status === "Live Now"));
 
                   return (
                     <div
                       key={idx}
                       onClick={() => {
-                        setCreateForm(f => ({ ...f, date: dateStr }));
+                        setCreateClassDate(dateStr);
                         setIsSchedulingLive(true);
                       }}
-                      className="bg-card min-h-[70px] p-2 hover:bg-muted/15 cursor-pointer transition-colors relative space-y-1"
+                      className="bg-card min-h-[75px] p-2 hover:bg-muted/15 cursor-pointer transition-colors relative space-y-1 flex flex-col justify-between"
                     >
-                      <span className="text-[10px] font-bold text-muted-foreground/60">{dayNum}</span>
+                      <span className="text-[10px] font-black text-muted-foreground/60 block">{dayNum}</span>
                       <div className="space-y-1">
                         {daySessions.map(s => (
                           <div
                             key={s.id}
-                            draggable
-                            onDragEnd={() => toast.success(`Rescheduled "${s.title}" automatically!`)}
-                            className="bg-primary/10 border border-primary/20 text-primary text-[8px] font-bold p-1 rounded truncate leading-tight cursor-grab"
+                            className={`text-[8.5px] font-black p-1 rounded truncate leading-tight border ${
+                              s.status === "Live Now"
+                                ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                                : s.isDoubtSession
+                                ? "bg-indigo-500/10 text-indigo-500 border-indigo-500/20"
+                                : "bg-primary/10 text-primary border-primary/20"
+                            }`}
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedStudentViewClass(s);
                             }}
-                            title="Drag card to reschedule"
                           >
                             {s.title}
                           </div>
@@ -755,15 +1170,14 @@ export const LiveClasses = React.memo(function LiveClasses({
               </div>
             )}
 
-            {/* Weekly/Day view placeholders */}
             {calViewMode !== "month" && (
-              <div className="p-8 text-center text-xs text-muted-foreground italic bg-card flex flex-col items-center justify-center gap-2">
+              <div className="p-8 text-center text-xs text-muted-foreground italic flex flex-col items-center justify-center gap-2 select-none">
                 <CalendarIcon size={24} className="text-primary/70" />
                 <p>Showing Interactive Calendar {calViewMode} Agenda schedule.</p>
                 <Button
                   onClick={() => setIsSchedulingLive(true)}
                   size="sm"
-                  className="h-8 mt-2 bg-primary text-white text-[10px] font-bold"
+                  className="h-8 mt-2 bg-primary text-white text-[10px] font-bold border-none"
                 >
                   Schedule Class on Selected Slot
                 </Button>
@@ -775,51 +1189,51 @@ export const LiveClasses = React.memo(function LiveClasses({
 
       {/* TAB CONTENT: ANALYTICS & REPORTS */}
       {currentModuleTab === "analytics" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="p-5 border border-border bg-card shadow-sm space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 select-none">
+          <Card className="p-5 border border-border bg-card shadow-sm space-y-4 text-left">
             <h4 className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1.5 border-b border-border/60 pb-2">
-              <TrendingUp size={13} className="text-primary" /> Attendance & Engagement
+              <TrendingUp size={13} className="text-primary" /> Attendance &amp; Engagement Reports
             </h4>
             <div className="space-y-4 text-xs font-semibold">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Average Attendance Rate</span>
-                <span className="text-foreground font-bold text-foreground">92.4%</span>
+              <div className="flex justify-between border-b border-border/10 pb-2">
+                <span className="text-muted-foreground">Average Attendance Rate:</span>
+                <strong className="text-foreground">92.4%</strong>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Most Attended Course</span>
-                <span className="text-foreground font-bold text-primary">Linear Algebra & Applications</span>
+              <div className="flex justify-between border-b border-border/10 pb-2">
+                <span className="text-muted-foreground">Most Attended Course:</span>
+                <strong className="text-primary">Linear Algebra &amp; Applications</strong>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Least Attended Course</span>
-                <span className="text-foreground font-bold text-foreground">Full-Stack Web Dev Bootcamp</span>
+              <div className="flex justify-between border-b border-border/10 pb-2">
+                <span className="text-muted-foreground">Total Cumulative Live Hours:</span>
+                <strong className="text-foreground">48 hours</strong>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Total Cumulative Teaching Hours</span>
-                <span className="text-foreground font-bold text-foreground">48 hours</span>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Recorded Completion Rate:</span>
+                <strong className="text-emerald-500">82.1% average watch completion</strong>
               </div>
             </div>
           </Card>
 
-          <Card className="p-5 border border-border bg-card shadow-sm space-y-4">
+          <Card className="p-5 border border-border bg-card shadow-sm space-y-4 text-left">
             <h4 className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1.5 border-b border-border/60 pb-2">
-              <Laptop size={13} className="text-primary" /> Video Recordings & Cancellations
+              <Laptop size={13} className="text-primary" /> Video Recordings &amp; Shorts Analytics
             </h4>
             <div className="space-y-4 text-xs font-semibold">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Recording Upload Rate</span>
-                <span className="text-foreground font-bold text-foreground">100% of Completed Sessions</span>
+              <div className="flex justify-between border-b border-border/10 pb-2">
+                <span className="text-muted-foreground">Recording Compilation Rate:</span>
+                <strong className="text-foreground">100% of Completed Sessions</strong>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Recording View Counts</span>
-                <span className="text-foreground font-bold text-foreground">148 cumulative views</span>
+              <div className="flex justify-between border-b border-border/10 pb-2">
+                <span className="text-muted-foreground">Cumulative Recordings Views:</span>
+                <strong className="text-foreground">1,262 views</strong>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Cancelled Classes</span>
-                <span className="text-rose-500 font-bold">1 session this month</span>
+              <div className="flex justify-between border-b border-border/10 pb-2">
+                <span className="text-muted-foreground">Educational Shorts Created:</span>
+                <strong className="text-primary">4 Shorts cropped</strong>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Average Recording Retention</span>
-                <span className="text-foreground font-bold text-foreground">Unlimited</span>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Shorts total view counts:</span>
+                <strong className="text-foreground">4,800 views</strong>
               </div>
             </div>
           </Card>
@@ -842,7 +1256,7 @@ export const LiveClasses = React.memo(function LiveClasses({
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 320, damping: 28 }}
-              className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-card border-l border-border z-50 overflow-y-auto shadow-floating flex flex-col justify-between"
+              className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-card border-l border-border z-50 overflow-y-auto shadow-floating flex flex-col justify-between text-left"
             >
               <div className="p-5 space-y-5 overflow-y-auto flex-1 text-xs font-semibold">
                 <div className="flex items-center justify-between border-b border-border/40 pb-4">
@@ -851,7 +1265,7 @@ export const LiveClasses = React.memo(function LiveClasses({
                       <Video size={18} />
                     </div>
                     <div>
-                      <h3 className="text-xs font-bold text-foreground leading-tight">
+                      <h3 className="text-xs font-black text-foreground leading-tight">
                         {selectedStudentViewClass.title}
                       </h3>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -861,49 +1275,218 @@ export const LiveClasses = React.memo(function LiveClasses({
                   </div>
                   <button
                     onClick={() => setSelectedStudentViewClass(null)}
-                    aria-label="Close"
-                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded"
+                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded border-none bg-transparent"
                   >
                     <X size={16} />
                   </button>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="p-3 bg-muted/20 border border-border/40 rounded">
-                    <p className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">Course</p>
+                  <div className="p-3 bg-muted/20 border border-border/40 rounded-xl">
+                    <p className="text-[9px] font-black uppercase text-muted-foreground mb-0.5">Course Connection</p>
                     <p className="font-bold text-foreground">{selectedStudentViewClass.course}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-muted/20 border border-border/40 rounded">
-                      <p className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">Batch</p>
+                    <div className="p-3 bg-muted/20 border border-border/40 rounded-xl">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground mb-0.5">Batch</p>
                       <p className="font-bold text-foreground">{selectedStudentViewClass.batch}</p>
                     </div>
-                    <div className="p-3 bg-muted/20 border border-border/40 rounded">
-                      <p className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">Duration</p>
+                    <div className="p-3 bg-muted/20 border border-border/40 rounded-xl">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground mb-0.5">Duration</p>
                       <p className="font-bold text-foreground">{selectedStudentViewClass.duration}</p>
                     </div>
                   </div>
 
-                  <div className="p-3 bg-muted/20 border border-border/40 rounded">
-                    <p className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">Meeting Platform</p>
-                    <p className="font-bold text-foreground">{selectedStudentViewClass.platform}</p>
-                    <button
-                      onClick={() => handleCopyLink(selectedStudentViewClass.meetingLink)}
-                      className="text-primary hover:underline text-[10px] flex items-center gap-1 mt-1 font-bold"
-                    >
-                      <Link2 size={11} /> Copy Meeting URL
-                    </button>
+                  <div className="p-3.5 bg-muted/20 border border-border/40 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[9px] font-black uppercase text-muted-foreground">Meeting Details</p>
+                      <span className={`text-[8.5px] font-bold px-2 py-0.5 rounded ${selectedStudentViewClass.platform === "Zoom" ? "bg-sky-500/10 text-sky-500" : "bg-emerald-500/10 text-emerald-500"}`}>
+                        {selectedStudentViewClass.platform || "Google Meet"}
+                      </span>
+                    </div>
+
+                    {isEditingLink ? (
+                      <div className="space-y-2.5">
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-muted-foreground uppercase">Platform</label>
+                          <select
+                            value={tempPlatform}
+                            onChange={e => setTempPlatform(e.target.value as any)}
+                            className="h-8 w-full rounded-lg border border-border bg-card px-2 font-semibold text-foreground focus:outline-none"
+                          >
+                            <option value="Google Meet">Google Meet</option>
+                            <option value="Zoom">Zoom</option>
+                            <option value="Custom Meeting Link">Custom Meeting Link</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-muted-foreground uppercase">Meeting Link</label>
+                          <input
+                            type="text"
+                            value={tempMeetingLink}
+                            onChange={e => setTempMeetingLink(e.target.value)}
+                            className="h-8 w-full rounded-lg border border-border bg-card px-2 font-semibold text-foreground focus:outline-none"
+                            placeholder="Paste meeting URL..."
+                          />
+                        </div>
+
+                        {(tempPlatform === "Zoom" || tempPlatform === "Google Meet") && (
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-muted-foreground uppercase">Meeting ID</label>
+                              <input
+                                type="text"
+                                value={tempMeetingId}
+                                onChange={e => setTempMeetingId(e.target.value)}
+                                className="h-8 w-full rounded-lg border border-border bg-card px-2 font-semibold text-foreground"
+                                placeholder="Optional"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-bold text-muted-foreground uppercase">Passcode</label>
+                              <input
+                                type="text"
+                                value={tempPasscode}
+                                onChange={e => setTempPasscode(e.target.value)}
+                                className="h-8 w-full rounded-lg border border-border bg-card px-2 font-semibold text-foreground"
+                                placeholder="Optional"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex gap-2 justify-end pt-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setIsEditingLink(false)}
+                            className="h-7 text-[10px] px-2.5 font-bold"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (selectedStudentViewClass.status === "Live Now") {
+                                const confirmChange = window.confirm("Warning: This live class is already in progress. Changing the meeting link now might disrupt active student connections. Are you sure you want to proceed?");
+                                if (!confirmChange) return;
+                              }
+                              setLiveSessions(prev => prev.map(s => {
+                                if (s.id === selectedStudentViewClass.id) {
+                                  return {
+                                    ...s,
+                                    platform: tempPlatform,
+                                    meetingLink: tempMeetingLink,
+                                    meetingId: tempMeetingId || undefined,
+                                    passcode: tempPasscode || undefined,
+                                  };
+                                }
+                                return s;
+                              }));
+                              setSelectedStudentViewClass(prev => prev ? {
+                                ...prev,
+                                platform: tempPlatform,
+                                meetingLink: tempMeetingLink,
+                                meetingId: tempMeetingId || undefined,
+                                passcode: tempPasscode || undefined,
+                              } : null);
+                              setIsEditingLink(false);
+                              toast.success("Meeting link updated successfully.");
+                            }}
+                            className="h-7 text-[10px] px-3 font-bold bg-primary text-white border-none"
+                          >
+                            Save Link
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between bg-muted/40 p-2 rounded-lg border border-border/20">
+                          <div className="truncate">
+                            <span className="text-[9.5px] font-semibold text-muted-foreground block uppercase">Secure Live URL</span>
+                            <span className="text-[11px] font-mono text-muted-foreground/90 tracking-widest block truncate">
+                              {selectedStudentViewClass.meetingLink ? "••••••••••••••••" : "No link set"}
+                            </span>
+                          </div>
+                          {selectedStudentViewClass.meetingLink && (
+                            <Button
+                              onClick={() => {
+                                navigator.clipboard.writeText(selectedStudentViewClass.meetingLink || "");
+                                toast.success("Protected meeting link copied!");
+                              }}
+                              size="sm"
+                              variant="outline"
+                              className="h-6.5 text-[9px] px-2 font-bold"
+                            >
+                              Copy
+                            </Button>
+                          )}
+                        </div>
+
+                        {selectedStudentViewClass.meetingId && (
+                          <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-muted-foreground select-none">
+                            <div>Meeting ID: <span className="text-foreground">{selectedStudentViewClass.meetingId}</span></div>
+                            {selectedStudentViewClass.passcode && (
+                              <div>Passcode: <span className="text-foreground">{selectedStudentViewClass.passcode}</span></div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2 justify-end pt-1 border-t border-border/10">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setIsEditingLink(true)}
+                            className="h-7 text-[9.5px] px-2 font-extrabold hover:bg-muted"
+                          >
+                            Edit Link
+                          </Button>
+                          {selectedStudentViewClass.meetingLink && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const confirmRemove = window.confirm("Are you sure you want to remove the meeting link? Students will not be able to join the class.");
+                                if (!confirmRemove) return;
+                                setLiveSessions(prev => prev.map(s => {
+                                  if (s.id === selectedStudentViewClass.id) {
+                                    return {
+                                      ...s,
+                                      meetingLink: "",
+                                      meetingId: undefined,
+                                      passcode: undefined,
+                                    };
+                                  }
+                                  return s;
+                                }));
+                                setSelectedStudentViewClass(prev => prev ? {
+                                  ...prev,
+                                  meetingLink: "",
+                                  meetingId: undefined,
+                                  passcode: undefined,
+                                } : null);
+                                toast.success("Meeting link removed.");
+                              }}
+                              className="h-7 text-[9.5px] px-2 font-extrabold text-rose-500 hover:text-rose-600 hover:bg-rose-500/5 border-border/60"
+                            >
+                              Remove Link
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Student List */}
-                  <div className="p-3 bg-muted/20 border border-border/40 rounded space-y-2">
-                    <p className="text-[9px] font-bold uppercase text-muted-foreground">Class Attendance list</p>
+                  <div className="p-3 bg-muted/20 border border-border/40 rounded-xl space-y-2">
+                    <p className="text-[9px] font-black uppercase text-muted-foreground">Cohorts Student list</p>
                     <div className="space-y-1 max-h-[140px] overflow-y-auto pr-1">
                       {["Aarav Mehta", "Isha Sharma", "Rohan Das", "Ananya Iyer", "Kabir Singh"].map((name, i) => (
                         <div key={name} className="flex items-center justify-between text-[10px] py-1 border-b border-border/20 last:border-0">
                           <span className="text-foreground">{name}</span>
-                          <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${i % 3 === 0 ? "text-emerald-500 bg-emerald-500/10" : i % 4 === 0 ? "text-rose-500 bg-rose-500/10" : "text-amber-500 bg-amber-500/10"}`}>
+                          <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${i % 3 === 0 ? "text-emerald-500 bg-emerald-500/10 animate-pulse" : i % 4 === 0 ? "text-rose-500 bg-rose-500/10" : "text-amber-500 bg-amber-500/10"}`}>
                             {i % 3 === 0 ? "Present" : i % 4 === 0 ? "Absent" : "Late Join"}
                           </span>
                         </div>
@@ -912,30 +1495,18 @@ export const LiveClasses = React.memo(function LiveClasses({
                   </div>
 
                   {/* Notes panel */}
-                  <div className="p-3 bg-muted/20 border border-border/40 rounded space-y-1.5">
-                    <p className="text-[9px] font-bold uppercase text-muted-foreground">Class Notes</p>
+                  <div className="p-3 bg-muted/20 border border-border/40 rounded-xl space-y-1.5">
+                    <p className="text-[9px] font-black uppercase text-muted-foreground">Class Description</p>
                     <textarea
                       rows={3}
-                      defaultValue={selectedStudentViewClass.notes || "No extra session notes added."}
+                      readOnly
+                      value={selectedStudentViewClass.description || "No extra session details added."}
                       className="w-full bg-card border border-border rounded p-2 focus:outline-none text-[10px] font-semibold text-foreground resize-none"
                     />
                   </div>
-
-                  {/* Recording play options */}
-                  {selectedStudentViewClass.recordingUrl && (
-                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded flex items-center justify-between">
-                      <span className="font-bold">Recorded Session Available</span>
-                      <Button
-                        onClick={() => window.open(selectedStudentViewClass.recordingUrl)}
-                        className="h-7 text-[9px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
-                      >
-                        Play Video
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </div>
-              <div className="p-5 border-t border-border/40 flex flex-col gap-2 bg-muted/10">
+              <div className="p-5 border-t border-border/40 flex flex-col gap-2 bg-muted/10 select-none">
                 <Button
                   onClick={() => setSelectedStudentViewClass(null)}
                   variant="outline"
@@ -949,7 +1520,7 @@ export const LiveClasses = React.memo(function LiveClasses({
         )}
       </AnimatePresence>
 
-      {/* ATTENDANCE PREVIEW DETAILS DRAWER */}
+      {/* ATTENDANCE & INSIGHTS DRAWER */}
       <AnimatePresence>
         {selectedAttendanceViewClass && (
           <>
@@ -965,7 +1536,7 @@ export const LiveClasses = React.memo(function LiveClasses({
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 320, damping: 28 }}
-              className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-card border-l border-border z-50 overflow-y-auto shadow-floating flex flex-col justify-between"
+              className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-card border-l border-border z-50 overflow-y-auto shadow-floating flex flex-col justify-between text-left"
             >
               <div className="p-5 space-y-5 overflow-y-auto flex-1 text-xs font-semibold">
                 <div className="flex items-center justify-between border-b border-border/40 pb-4">
@@ -974,51 +1545,70 @@ export const LiveClasses = React.memo(function LiveClasses({
                       <Users size={18} />
                     </div>
                     <div>
-                      <h3 className="text-xs font-bold text-foreground leading-tight">
-                        {selectedAttendanceViewClass.title} Attendance
+                      <h3 className="text-xs font-black text-foreground leading-tight">
+                        {selectedAttendanceViewClass.title} Insights
                       </h3>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
-                        Audit records
+                        Attendance &amp; Engagement stats
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setSelectedAttendanceViewClass(null)}
-                    aria-label="Close"
-                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded"
+                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded border-none bg-transparent"
                   >
                     <X size={16} />
                   </button>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="grid grid-cols-4 gap-2 text-center text-[10px]">
-                    <div className="bg-muted/30 border border-border/40 p-2 rounded">
-                      <p className="text-[8px] font-bold uppercase opacity-85">Enrolled</p>
-                      <p className="font-bold text-xs mt-0.5">24</p>
+                  <div className="grid grid-cols-4 gap-2 text-center text-[10px] select-none">
+                    <div className="bg-muted/30 border border-border/40 p-2 rounded-xl">
+                      <p className="text-[8px] font-black uppercase opacity-85">Enrolled</p>
+                      <p className="font-black text-xs mt-0.5">{selectedAttendanceViewClass.studentsCount || 40}</p>
                     </div>
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 p-2 rounded">
-                      <p className="text-[8px] font-bold uppercase opacity-85">Present</p>
-                      <p className="font-bold text-xs mt-0.5">20</p>
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 p-2 rounded-xl">
+                      <p className="text-[8px] font-black uppercase opacity-85">Attended</p>
+                      <p className="font-black text-xs mt-0.5">{selectedAttendanceViewClass.attendanceCount || 32}</p>
                     </div>
-                    <div className="bg-rose-500/10 border border-rose-500/20 text-rose-600 p-2 rounded">
-                      <p className="text-[8px] font-bold uppercase opacity-85">Absent</p>
-                      <p className="font-bold text-xs mt-0.5">2</p>
+                    <div className="bg-rose-500/10 border border-rose-500/20 text-rose-600 p-2 rounded-xl">
+                      <p className="text-[8px] font-black uppercase opacity-85">Absent</p>
+                      <p className="font-black text-xs mt-0.5">{(selectedAttendanceViewClass.studentsCount || 40) - (selectedAttendanceViewClass.attendanceCount || 32)}</p>
                     </div>
-                    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 p-2 rounded">
-                      <p className="text-[8px] font-bold uppercase opacity-85">Late</p>
-                      <p className="font-bold text-xs mt-0.5">2</p>
+                    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 p-2 rounded-xl">
+                      <p className="text-[8px] font-black uppercase opacity-85">Rate</p>
+                      <p className="font-black text-xs mt-0.5">{Math.round(((selectedAttendanceViewClass.attendanceCount || 32) / (selectedAttendanceViewClass.studentsCount || 40)) * 100)}%</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-muted/20 border border-border/40 p-3 rounded-xl space-y-2 select-none text-[10.5px]">
+                    <h5 className="font-black text-foreground">Lecture Insights</h5>
+                    <div className="flex justify-between border-b border-border/10 pb-1.5">
+                      <span className="text-muted-foreground">Average Watch Time:</span>
+                      <strong className="text-foreground">45 mins</strong>
+                    </div>
+                    <div className="flex justify-between border-b border-border/10 pb-1.5">
+                      <span className="text-muted-foreground">Questions Asked:</span>
+                      <strong className="text-foreground">12 questions</strong>
+                    </div>
+                    <div className="flex justify-between border-b border-border/10 pb-1.5">
+                      <span className="text-muted-foreground">Questions Answered:</span>
+                      <strong className="text-foreground">10 answers</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Student Rating:</span>
+                      <strong className="text-amber-500">4.8 ★ average</strong>
                     </div>
                   </div>
 
                   {/* Student list detailed */}
-                  <div className="border border-border/60 rounded-card overflow-hidden">
-                    <div className="grid grid-cols-3 bg-muted/30 p-2 border-b border-border/60 text-[9px] uppercase font-extrabold text-muted-foreground">
+                  <div className="border border-border/60 rounded-xl overflow-hidden bg-card">
+                    <div className="grid grid-cols-3 bg-muted/20 p-2 border-b border-border/60 text-[9px] uppercase font-extrabold text-muted-foreground select-none">
                       <span>Student</span>
                       <span className="text-center">Join Time</span>
                       <span className="text-right">Status</span>
                     </div>
-                    <div className="divide-y divide-border/20 max-h-[300px] overflow-y-auto font-semibold">
+                    <div className="divide-y divide-border/20 max-h-[220px] overflow-y-auto font-semibold">
                       {[
                         { name: "Aarav Mehta", time: "05:01 PM", status: "Present" },
                         { name: "Isha Sharma", time: "05:00 PM", status: "Present" },
@@ -1038,10 +1628,10 @@ export const LiveClasses = React.memo(function LiveClasses({
                   </div>
                 </div>
               </div>
-              <div className="p-5 border-t border-border/40 flex flex-col gap-2 bg-muted/10">
+              <div className="p-5 border-t border-border/40 flex flex-col gap-2 bg-muted/10 select-none">
                 <Button
                   onClick={() => downloadAttendanceCSV(selectedAttendanceViewClass)}
-                  className="w-full h-9 text-xs font-bold bg-primary text-white gap-1.5"
+                  className="w-full h-9 text-xs font-bold bg-primary text-white border-none gap-1.5"
                 >
                   <Download size={13} /> Download Attendance CSV
                 </Button>
@@ -1058,7 +1648,7 @@ export const LiveClasses = React.memo(function LiveClasses({
         )}
       </AnimatePresence>
 
-      {/* CREATE LIVE CLASS MODAL */}
+      {/* SCHEDULE LIVE CLASS MODAL */}
       <AnimatePresence>
         {isSchedulingLive && (
           <>
@@ -1073,7 +1663,7 @@ export const LiveClasses = React.memo(function LiveClasses({
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="fixed inset-0 m-auto z-50 h-fit max-h-[90vh] w-[90%] max-w-lg bg-card border border-border rounded-card p-5 shadow-floating overflow-y-auto space-y-4"
+              className="fixed inset-0 m-auto z-50 h-fit max-h-[90vh] w-[90%] max-w-lg bg-card border border-border rounded-2xl p-5 shadow-floating overflow-y-auto space-y-4 text-left"
             >
               <form onSubmit={handleScheduleSubmit} className="space-y-4 text-xs">
                 <div className="flex items-center justify-between border-b border-border/60 pb-2">
@@ -1083,7 +1673,7 @@ export const LiveClasses = React.memo(function LiveClasses({
                   <button
                     type="button"
                     onClick={() => setIsSchedulingLive(false)}
-                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded"
+                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded border-none bg-transparent"
                   >
                     <X size={16} />
                   </button>
@@ -1095,31 +1685,105 @@ export const LiveClasses = React.memo(function LiveClasses({
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Advanced Linear Algebra Concepts"
-                      value={createForm.title}
-                      onChange={e => setCreateForm(f => ({ ...f, title: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                      placeholder="e.g. Python Programming — Loops & OOP"
+                      value={createClassTitle}
+                      onChange={e => setCreateClassTitle(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none placeholder:text-muted-foreground/60"
                     />
                   </div>
                   
-                  <div className="space-y-1">
-                    <label className="font-bold text-foreground">Course *</label>
+                  <div className="space-y-1 col-span-2">
+                    <label className="font-bold text-foreground">Connect to Course / Package *</label>
                     <select
-                      value={createForm.course}
-                      onChange={e => setCreateForm(f => ({ ...f, course: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                      value={createClassCourse}
+                      onChange={e => setCreateClassCourse(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
                     >
+                      <option value="">Select Course/Package</option>
+                      {myCourses.map(c => (
+                        <option key={c.id} value={c.title}>{c.title}</option>
+                      ))}
                       <option value="Linear Algebra & Applications">Linear Algebra & Applications</option>
                       <option value="Full-Stack Web Dev Bootcamp">Full-Stack Web Dev Bootcamp</option>
                     </select>
                   </div>
                   
                   <div className="space-y-1">
+                    <label className="font-bold text-foreground font-heading uppercase text-[9.5px]">Live Platform *</label>
+                    <select
+                      value={createClassPlatform}
+                      onChange={e => {
+                        const plat = e.target.value as any;
+                        setCreateClassPlatform(plat);
+                        if (plat === "Google Meet") setCreateClassMeetingLink("https://meet.google.com/abc-defg-hij");
+                        else if (plat === "Zoom") setCreateClassMeetingLink("https://zoom.us/j/1234567890");
+                        else setCreateClassMeetingLink("");
+                      }}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                    >
+                      <option value="Google Meet">Google Meet</option>
+                      <option value="Zoom">Zoom</option>
+                      <option value="Custom Meeting Link">Custom Meeting Link</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 col-span-2">
+                    <label className="font-bold text-foreground">Meeting Link *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder={createClassPlatform === "Google Meet" ? "Paste Google Meet Link..." : createClassPlatform === "Zoom" ? "Paste Zoom Link..." : "Paste Custom Link..."}
+                      value={createClassMeetingLink}
+                      onChange={e => setCreateClassMeetingLink(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none placeholder:text-muted-foreground/60"
+                    />
+                    <span className="text-[9.5px] text-muted-foreground italic font-semibold">Your meeting link is protected and will only be shown to eligible students.</span>
+                  </div>
+
+                  {(createClassPlatform === "Zoom" || createClassPlatform === "Google Meet") && (
+                    <div className="grid grid-cols-2 gap-4 col-span-2">
+                      <div className="space-y-1">
+                        <label className="font-bold text-foreground">Meeting ID (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 123 456 7890"
+                          value={createClassMeetingId}
+                          onChange={e => setCreateClassMeetingId(e.target.value)}
+                          className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none placeholder:text-muted-foreground/60"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-foreground">Passcode (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 12345"
+                          value={createClassPasscode}
+                          onChange={e => setCreateClassPasscode(e.target.value)}
+                          className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none placeholder:text-muted-foreground/60"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-1 col-span-2">
+                    <label className="font-bold text-foreground font-heading uppercase text-[9.5px]">Access Scope Control *</label>
+                    <select
+                      value={createClassAccessScope}
+                      onChange={e => setCreateClassAccessScope(e.target.value as any)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                    >
+                      <option value="course">Course Access: Students enrolled in this course</option>
+                      <option value="package">Package Access: Students enrolled in the Complete Package</option>
+                      <option value="batch">Batch Access: Students in the specific batch</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
                     <label className="font-bold text-foreground">Batch *</label>
                     <select
-                      value={createForm.batch}
-                      onChange={e => setCreateForm(f => ({ ...f, batch: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                      value={createClassBatch}
+                      onChange={e => setCreateClassBatch(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
                     >
                       <option value="Batch A">Batch A</option>
                       <option value="Batch B">Batch B</option>
@@ -1128,24 +1792,13 @@ export const LiveClasses = React.memo(function LiveClasses({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="font-bold text-foreground">Instructor *</label>
-                    <input
-                      type="text"
-                      required
-                      value={createForm.instructor}
-                      onChange={e => setCreateForm(f => ({ ...f, instructor: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-foreground">Date Picker *</label>
+                    <label className="font-bold text-foreground">Date *</label>
                     <input
                       type="date"
                       required
-                      value={createForm.date}
-                      onChange={e => setCreateForm(f => ({ ...f, date: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                      value={createClassDate}
+                      onChange={e => setCreateClassDate(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
                     />
                   </div>
 
@@ -1154,9 +1807,9 @@ export const LiveClasses = React.memo(function LiveClasses({
                     <input
                       type="time"
                       required
-                      value={createForm.startTime}
-                      onChange={e => setCreateForm(f => ({ ...f, startTime: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                      value={createClassStartTime}
+                      onChange={e => setCreateClassStartTime(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
                     />
                   </div>
 
@@ -1165,111 +1818,74 @@ export const LiveClasses = React.memo(function LiveClasses({
                     <input
                       type="time"
                       required
-                      value={createForm.endTime}
-                      onChange={e => setCreateForm(f => ({ ...f, endTime: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                      value={createClassEndTime}
+                      onChange={e => setCreateClassEndTime(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
                     />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Max Students *</label>
+                    <input
+                      type="number"
+                      required
+                      value={createClassMaxStudents}
+                      onChange={e => setCreateClassMaxStudents(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Price (Free or Paid) *</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={createClassPriceType}
+                        onChange={e => setCreateClassPriceType(e.target.value as any)}
+                        className="h-9 rounded-xl border border-border bg-card px-2 font-semibold text-foreground focus:outline-none"
+                      >
+                        <option value="paid">Paid</option>
+                        <option value="free">Free</option>
+                      </select>
+                      {createClassPriceType === "paid" && (
+                        <input
+                          type="number"
+                          value={createClassPrice}
+                          onChange={e => setCreateClassPrice(e.target.value)}
+                          className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                        />
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-1 col-span-2">
-                    <label className="font-bold text-foreground">Description</label>
+                    <label className="font-bold text-foreground">Learning Objectives / Description</label>
                     <textarea
                       rows={2}
-                      placeholder="Enter description..."
-                      value={createForm.description}
-                      onChange={e => setCreateForm(f => ({ ...f, description: e.target.value }))}
-                      className="w-full bg-card border border-border rounded p-2 focus:outline-none font-semibold text-foreground resize-none"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-foreground">Platform *</label>
-                    <select
-                      value={createForm.platform}
-                      onChange={e => setCreateForm(f => ({ ...f, platform: e.target.value as any }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
-                    >
-                      <option value="Google Meet">Google Meet</option>
-                      <option value="Zoom">Zoom</option>
-                      <option value="Microsoft Teams">Microsoft Teams</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-foreground">Meeting URL *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="https://meet.google.com/..."
-                      value={createForm.meetingLink}
-                      onChange={e => setCreateForm(f => ({ ...f, meetingLink: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-foreground">Password (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="Meeting passcode"
-                      value={createForm.password}
-                      onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-foreground">Max Participants</label>
-                    <input
-                      type="number"
-                      value={createForm.maxParticipants}
-                      onChange={e => setCreateForm(f => ({ ...f, maxParticipants: parseInt(e.target.value) || 100 }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                      placeholder="Objectives and syllabus covered..."
+                      value={createClassObjectives}
+                      onChange={e => setCreateClassObjectives(e.target.value)}
+                      className="w-full bg-card border border-border rounded-xl p-2.5 focus:outline-none font-semibold text-foreground resize-none"
                     />
                   </div>
                 </div>
 
-                {/* Additional Settings Checkboxes */}
-                <div className="border-t border-border/40 pt-3 grid grid-cols-2 gap-2 font-bold text-foreground">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                {/* Auto Recording Checkbox */}
+                <div className="border-t border-border/40 pt-3 space-y-2 font-bold text-foreground">
+                  <label className="flex items-start gap-2.5 cursor-pointer text-xs">
                     <input
                       type="checkbox"
-                      checked={createForm.waitingRoom}
-                      onChange={e => setCreateForm(f => ({ ...f, waitingRoom: e.target.checked }))}
-                      className="rounded border-border text-primary"
+                      checked={createClassRecording}
+                      onChange={e => setCreateClassRecording(e.target.checked)}
+                      className="rounded border-border text-primary mt-0.5"
                     />
-                    Enable Waiting Room
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={createForm.recordingEnabled}
-                      onChange={e => setCreateForm(f => ({ ...f, recordingEnabled: e.target.checked }))}
-                      className="rounded border-border text-primary"
-                    />
-                    Enable Auto Recording
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer col-span-2">
-                    <input
-                      type="checkbox"
-                      checked={createForm.attendanceTrackingEnabled}
-                      onChange={e => setCreateForm(f => ({ ...f, attendanceTrackingEnabled: e.target.checked }))}
-                      className="rounded border-border text-primary"
-                    />
-                    Enable Auto Attendance Tracking
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer col-span-2 text-primary mt-1">
-                    <input
-                      type="checkbox"
-                      checked={sendReminder}
-                      onChange={e => setSendReminder(e.target.checked)}
-                      className="rounded border-border text-primary"
-                    />
-                    Send Automated Attendance/Email alerts
+                    <div>
+                      <span>Record this class</span>
+                      <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Your recording can later be published as reusable learning content.</p>
+                    </div>
                   </label>
                 </div>
 
-                <div className="flex gap-2 justify-end pt-3 border-t border-border/40">
+                <div className="flex gap-2 justify-end pt-3 border-t border-border/40 select-none">
                   <Button
                     type="button"
                     variant="outline"
@@ -1280,9 +1896,9 @@ export const LiveClasses = React.memo(function LiveClasses({
                   </Button>
                   <Button
                     type="submit"
-                    className="h-9 text-xs bg-primary text-white font-bold"
+                    className="h-9 text-xs bg-primary text-white font-bold border-none"
                   >
-                    Publish Live Class
+                    Schedule Class
                   </Button>
                 </div>
               </form>
@@ -1291,130 +1907,213 @@ export const LiveClasses = React.memo(function LiveClasses({
         )}
       </AnimatePresence>
 
-      {/* EDIT SESSION DIALOG */}
+      {/* SCHEDULE LIVE DOUBT SESSION MODAL */}
       <AnimatePresence>
-        {editingSession && (
+        {showCreateDoubtModal && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm"
-              onClick={() => setEditingSession(null)}
+              onClick={() => setShowCreateDoubtModal(false)}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="fixed inset-0 m-auto z-50 h-fit max-h-[85vh] w-[90%] max-w-md bg-card border border-border rounded-card p-5 shadow-floating overflow-y-auto space-y-4"
+              className="fixed inset-0 m-auto z-50 h-fit max-h-[90vh] w-[90%] max-w-lg bg-card border border-border rounded-2xl p-5 shadow-floating overflow-y-auto space-y-4 text-left"
             >
-              <form onSubmit={handleSaveEdit} className="space-y-4 text-xs font-semibold">
+              <form onSubmit={(e) => {
+                setCreateClassIsDoubt(true);
+                handleScheduleSubmit(e);
+              }} className="space-y-4 text-xs">
                 <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                  <h4 className="text-sm font-bold uppercase text-foreground">
-                    Edit Live Class Details
+                  <h4 className="text-sm font-bold uppercase text-foreground flex items-center gap-1">
+                    <BookOpen size={16} className="text-indigo-500" />
+                    Schedule Live Doubt Session
                   </h4>
                   <button
                     type="button"
-                    onClick={() => setEditingSession(null)}
-                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded"
+                    onClick={() => setShowCreateDoubtModal(false)}
+                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded border-none bg-transparent"
                   >
                     <X size={16} />
                   </button>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="font-bold text-foreground">Session Title *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editForm.title || ""}
-                    onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
-                    className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-bold text-foreground">Date & Time *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editForm.time || ""}
-                    onChange={(e) => setEditForm((f) => ({ ...f, time: e.target.value }))}
-                    className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-                  />
-                </div>
-
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="font-bold text-foreground">Platform *</label>
+                  <div className="space-y-1 col-span-2">
+                    <label className="font-bold text-foreground">Doubt Session Title *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Python Masterclass Weekly Doubt Session"
+                      value={createClassTitle}
+                      onChange={e => setCreateClassTitle(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none placeholder:text-muted-foreground/60"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1 col-span-2">
+                    <label className="font-bold text-foreground">Attach to Course / Course Package *</label>
                     <select
-                      value={editForm.platform || "Google Meet"}
-                      onChange={(e) => setEditForm((f) => ({ ...f, platform: e.target.value as any }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                      value={createClassCourse}
+                      onChange={e => setCreateClassCourse(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                    >
+                      <option value="">Select Course/Package</option>
+                      {myCourses.map(c => (
+                        <option key={c.id} value={c.title}>{c.title}</option>
+                      ))}
+                      <option value="Linear Algebra & Applications">Linear Algebra & Applications</option>
+                      <option value="Full-Stack Web Dev Bootcamp">Full-Stack Web Dev Bootcamp</option>
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground font-heading uppercase text-[9.5px]">Live Platform *</label>
+                    <select
+                      value={createClassPlatform}
+                      onChange={e => {
+                        const plat = e.target.value as any;
+                        setCreateClassPlatform(plat);
+                        if (plat === "Google Meet") setCreateClassMeetingLink("https://meet.google.com/abc-defg-hij");
+                        else if (plat === "Zoom") setCreateClassMeetingLink("https://zoom.us/j/1234567890");
+                        else setCreateClassMeetingLink("");
+                      }}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
                     >
                       <option value="Google Meet">Google Meet</option>
                       <option value="Zoom">Zoom</option>
-                      <option value="Microsoft Teams">Microsoft Teams</option>
+                      <option value="Custom Meeting Link">Custom Meeting Link</option>
                     </select>
                   </div>
-                  <div className="space-y-1">
+
+                  <div className="space-y-1 col-span-2">
                     <label className="font-bold text-foreground">Meeting Link *</label>
                     <input
                       type="text"
                       required
-                      value={editForm.meetingLink || ""}
-                      onChange={(e) => setEditForm((f) => ({ ...f, meetingLink: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                      placeholder={createClassPlatform === "Google Meet" ? "Paste Google Meet Link..." : createClassPlatform === "Zoom" ? "Paste Zoom Link..." : "Paste Custom Link..."}
+                      value={createClassMeetingLink}
+                      onChange={e => setCreateClassMeetingLink(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none placeholder:text-muted-foreground/60"
                     />
+                    <span className="text-[9.5px] text-muted-foreground italic font-semibold">Your meeting link is protected and will only be shown to eligible students.</span>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                  {(createClassPlatform === "Zoom" || createClassPlatform === "Google Meet") && (
+                    <div className="grid grid-cols-2 gap-4 col-span-2">
+                      <div className="space-y-1">
+                        <label className="font-bold text-foreground">Meeting ID (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 123 456 7890"
+                          value={createClassMeetingId}
+                          onChange={e => setCreateClassMeetingId(e.target.value)}
+                          className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none placeholder:text-muted-foreground/60"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-foreground">Passcode (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 12345"
+                          value={createClassPasscode}
+                          onChange={e => setCreateClassPasscode(e.target.value)}
+                          className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none placeholder:text-muted-foreground/60"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-1 col-span-2">
+                    <label className="font-bold text-foreground font-heading uppercase text-[9.5px]">Access Scope Control *</label>
+                    <select
+                      value={createClassAccessScope}
+                      onChange={e => setCreateClassAccessScope(e.target.value as any)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                    >
+                      <option value="course">Course Access: Students enrolled in this course</option>
+                      <option value="package">Package Access: Students enrolled in the Complete Package</option>
+                      <option value="batch">Batch Access: Students in the specific batch</option>
+                    </select>
+                  </div>
+
                   <div className="space-y-1">
-                    <label className="font-bold text-foreground">Password (Optional)</label>
-                    <input
-                      type="text"
-                      value={editForm.password || ""}
-                      onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-                    />
+                    <label className="font-bold text-foreground">Batch *</label>
+                    <select
+                      value={createClassBatch}
+                      onChange={e => setCreateClassBatch(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                    >
+                      <option value="Batch A">Batch A</option>
+                      <option value="Batch B">Batch B</option>
+                      <option value="Batch C">Batch C</option>
+                    </select>
                   </div>
+
                   <div className="space-y-1">
-                    <label className="font-bold text-foreground">Recording URL (Optional)</label>
+                    <label className="font-bold text-foreground">Date *</label>
                     <input
-                      type="text"
-                      value={editForm.recordingUrl || ""}
-                      onChange={(e) => setEditForm((f) => ({ ...f, recordingUrl: e.target.value }))}
-                      className="h-9 w-full rounded border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                      type="date"
+                      required
+                      value={createClassDate}
+                      onChange={e => setCreateClassDate(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Start Time *</label>
+                    <input
+                      type="time"
+                      required
+                      value={createClassStartTime}
+                      onChange={e => setCreateClassStartTime(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">End Time *</label>
+                    <input
+                      type="time"
+                      required
+                      value={createClassEndTime}
+                      onChange={e => setCreateClassEndTime(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1 col-span-2">
+                    <label className="font-bold text-foreground">Review Topics (e.g. Modules 1-6) *</label>
+                    <textarea
+                      rows={2}
+                      required
+                      placeholder="Specify topics covered for student reference..."
+                      value={createClassObjectives}
+                      onChange={e => setCreateClassObjectives(e.target.value)}
+                      className="w-full bg-card border border-border rounded-xl p-2.5 focus:outline-none font-semibold text-foreground resize-none"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="font-bold text-foreground">Notes (Optional)</label>
-                  <textarea
-                    rows={2}
-                    value={editForm.notes || ""}
-                    onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
-                    className="w-full bg-card border border-border rounded p-2 focus:outline-none text-xs font-semibold text-foreground resize-none"
-                  />
-                </div>
-
-                <div className="flex gap-2 justify-end pt-2 border-t border-border/40">
+                <div className="flex gap-2 justify-end pt-3 border-t border-border/40 select-none">
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setEditingSession(null)}
+                    onClick={() => setShowCreateDoubtModal(false)}
                     className="h-9 text-xs"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="h-9 text-xs bg-primary hover:bg-primary/95 text-white gap-1.5 font-bold"
+                    className="h-9 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold border-none"
                   >
-                    <Save size={13} />
-                    Save Changes
+                    Schedule Doubt Session
                   </Button>
                 </div>
               </form>
@@ -1422,6 +2121,388 @@ export const LiveClasses = React.memo(function LiveClasses({
           </>
         )}
       </AnimatePresence>
+
+      {/* SHORTS MODAL FROM RECORDING */}
+      <AnimatePresence>
+        {showShortModalForSession && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm"
+              onClick={() => setShowShortModalForSession(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 m-auto z-50 h-fit max-h-[90vh] w-[90%] max-w-md bg-card border border-border rounded-2xl p-5 shadow-floating overflow-y-auto space-y-4 text-left"
+            >
+              <form onSubmit={handleShortSubmit} className="space-y-4 text-xs">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                  <h4 className="text-sm font-bold uppercase text-foreground flex items-center gap-1.5">
+                    <Laptop size={15} className="text-primary" />
+                    Crop Educational Short
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowShortModalForSession(null)}
+                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded border-none bg-transparent"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="bg-primary/5 p-3 rounded-xl border border-primary/20 leading-relaxed font-semibold text-muted-foreground select-none">
+                  Select a maximum clip length of <strong className="text-primary">60 seconds</strong> to render into Shorts reels.
+                </div>
+
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-foreground">Crop Start Time *</label>
+                      <input
+                        type="text"
+                        value={shortStart}
+                        onChange={e => setShortStart(e.target.value)}
+                        className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-foreground">Crop End Time *</label>
+                      <input
+                        type="text"
+                        value={shortEnd}
+                        onChange={e => setShortEnd(e.target.value)}
+                        className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Short Title *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Python OOP structures in 60s"
+                      value={shortTitle}
+                      onChange={e => setShortTitle(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Short Description</label>
+                    <textarea
+                      rows={2}
+                      placeholder="Add description and hashtags..."
+                      value={shortDesc}
+                      onChange={e => setShortDesc(e.target.value)}
+                      className="w-full bg-card border border-border rounded-xl p-2 focus:outline-none font-semibold text-foreground resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-3 border-t border-border/40 select-none">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowShortModalForSession(null)}
+                    className="h-9 text-xs"
+                  >
+                    Save Draft
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="h-9 text-xs bg-primary text-white font-bold border-none"
+                  >
+                    Publish Short
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ATTACH NOTES MODAL */}
+      <AnimatePresence>
+        {showAttachNotesModalForSession && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm"
+              onClick={() => setShowAttachNotesModalForSession(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 m-auto z-50 h-fit max-h-[90vh] w-[90%] max-w-md bg-card border border-border rounded-2xl p-5 shadow-floating overflow-y-auto space-y-4 text-left"
+            >
+              <form onSubmit={handleAttachNotesSubmit} className="space-y-4 text-xs">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                  <h4 className="text-sm font-bold uppercase text-foreground">
+                    Attach Resource Handouts
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowAttachNotesModalForSession(null)}
+                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded border-none bg-transparent"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Handout Document Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Loops_OOP_Concepts_Practice.pdf"
+                      value={notesTitle}
+                      onChange={e => setNotesTitle(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Handout File Attachment *</label>
+                    <div className="border-2 border-dashed border-border/60 hover:border-primary/40 rounded-xl p-6 text-center text-xs text-muted-foreground select-none cursor-pointer flex flex-col items-center gap-1">
+                      <Upload size={20} className="text-primary" />
+                      <span>Drag &amp; drop document pdf/zip, or click to browse</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Affordable Pricing Monetization *</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={notesPriceType}
+                        onChange={e => setNotesPriceType(e.target.value as any)}
+                        className="h-9 rounded-xl border border-border bg-card px-2 font-semibold text-foreground focus:outline-none"
+                      >
+                        <option value="free">Free Handout</option>
+                        <option value="paid">Paid Handout</option>
+                      </select>
+                      {notesPriceType === "paid" && (
+                        <select
+                          value={notesPrice}
+                          onChange={e => setNotesPrice(e.target.value)}
+                          className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                        >
+                          <option value="50">₹50</option>
+                          <option value="75">₹75</option>
+                          <option value="99">₹99</option>
+                          <option value="129">₹129</option>
+                          <option value="149">₹149</option>
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-3 border-t border-border/40 select-none">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAttachNotesModalForSession(null)}
+                    className="h-9 text-xs"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="h-9 text-xs bg-primary text-white font-bold border-none"
+                  >
+                    Attach Notes
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ADD TO COURSE OUTLINE MODAL */}
+      <AnimatePresence>
+        {showAddToCourseModalForSession && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm"
+              onClick={() => setShowAddToCourseModalForSession(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 m-auto z-50 h-fit max-h-[90vh] w-[90%] max-w-md bg-card border border-border rounded-2xl p-5 shadow-floating overflow-y-auto space-y-4 text-left"
+            >
+              <form onSubmit={handleAddToCourseSubmit} className="space-y-4 text-xs">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                  <h4 className="text-sm font-bold uppercase text-foreground">
+                    Add Lecture to Course Syllabus
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddToCourseModalForSession(null)}
+                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded border-none bg-transparent"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Select Course Package *</label>
+                    <select
+                      value={targetCourseId}
+                      onChange={e => setTargetCourseId(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                    >
+                      <option value="">Select Course Outline</option>
+                      {myCourses.map(c => (
+                        <option key={c.id} value={c.id}>{c.title}</option>
+                      ))}
+                      <option value="Linear Algebra & Applications">Linear Algebra &amp; Applications</option>
+                      <option value="Full-Stack Web Dev Bootcamp">Full-Stack Web Dev Bootcamp</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Select Target Module Section *</label>
+                    <select
+                      value={targetModuleId}
+                      onChange={e => setTargetModuleId(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 font-semibold text-foreground focus:outline-none"
+                    >
+                      <option value="">Select Module Section</option>
+                      <option value="mod-1">Module 1: Introduction</option>
+                      <option value="mod-2">Module 2: Advanced Loops</option>
+                      <option value="mod-3">Module 3: Classes &amp; Objects</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-3 border-t border-border/40 select-none">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAddToCourseModalForSession(null)}
+                    className="h-9 text-xs"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="h-9 text-xs bg-primary text-white font-bold border-none"
+                  >
+                    Add Lecture
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* RESCHEDULE CLASS MODAL */}
+      <AnimatePresence>
+        {showRescheduleModalForSession && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm"
+              onClick={() => setShowRescheduleModalForSession(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 m-auto z-50 h-fit max-h-[90vh] w-[90%] max-w-md bg-card border border-border rounded-2xl p-5 shadow-floating overflow-y-auto space-y-4 text-left"
+            >
+              <form onSubmit={handleRescheduleSubmit} className="space-y-4 text-xs font-semibold">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                  <h4 className="text-sm font-bold uppercase text-foreground">
+                    Reschedule Lecture
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowRescheduleModalForSession(null)}
+                    className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded border-none bg-transparent"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-foreground">Reschedule Date *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Aug 24, 2026"
+                      value={rescheduleDate}
+                      onChange={e => setRescheduleDate(e.target.value)}
+                      className="h-9 w-full rounded-xl border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-foreground">Start Time *</label>
+                      <input
+                        type="time"
+                        required
+                        value={rescheduleStartTime}
+                        onChange={e => setRescheduleStartTime(e.target.value)}
+                        className="h-9 w-full rounded-xl border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-foreground">End Time *</label>
+                      <input
+                        type="time"
+                        required
+                        value={rescheduleEndTime}
+                        onChange={e => setRescheduleEndTime(e.target.value)}
+                        className="h-9 w-full rounded-xl border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-3 border-t border-border/40 select-none">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowRescheduleModalForSession(null)}
+                    className="h-9 text-xs"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="h-9 text-xs bg-primary text-white font-bold border-none"
+                  >
+                    Save Timing
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
     </motion.div>
   );
 });
