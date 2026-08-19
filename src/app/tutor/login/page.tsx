@@ -109,18 +109,18 @@ export default function TutorLoginPage() {
 
       toast.success(result.message);
 
-      // Immediately determine correct redirect route based on returned profile details
-      const role = result.role;
-      const complete = result.complete;
+      const userObj = useAuth.getState().user;
+      const role = result.role || userObj?.role || "tutor";
+      const complete = result.complete !== false && userObj?.complete !== false;
 
-      if (role === "tutor") {
+      if (role === "admin" || role === "super-admin") {
+        router.replace("/admin/dashboard");
+      } else if (role === "tutor") {
         if (complete) {
           router.replace("/tutor/dashboard");
         } else {
           router.replace("/tutor/onboarding");
         }
-      } else if (role === "admin") {
-        router.replace("/admin/dashboard");
       } else {
         router.replace("/student/dashboard");
       }
