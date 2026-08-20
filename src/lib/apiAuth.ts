@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "./supabase/server";
 import { IS_MOCK } from "./config";
-import { normalizeRole, CanonicalRole } from "@/utils/rbacResolver";
+import { normalizeRole, CanonicalRole, isPrimaryAdmin } from "@/utils/rbacResolver";
 
 export async function getApiUser(requiredRole?: CanonicalRole) {
   if (IS_MOCK) {
@@ -31,7 +31,7 @@ export async function getApiUser(requiredRole?: CanonicalRole) {
       return { error: "Unauthenticated", status: 401 };
     }
 
-    const isSuperAdminEmail = user.email === "suryasaiteja2005@gmail.com";
+    const isSuperAdminEmail = isPrimaryAdmin(user.email);
 
     const { data: profile, error: profileErr } = await supabase
       .from("profiles")

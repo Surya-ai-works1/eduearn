@@ -110,7 +110,7 @@ export default function TutorLoginPage() {
       toast.success(result.message);
 
       const userObj = useAuth.getState().user;
-      const role = result.role || userObj?.role || "tutor";
+      const role = result.role || userObj?.role || "student";
       const complete = result.complete !== false && userObj?.complete !== false;
 
       if (role === "admin" || role === "super-admin") {

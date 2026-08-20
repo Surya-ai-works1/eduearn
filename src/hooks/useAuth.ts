@@ -6,7 +6,7 @@ import { create } from "zustand";
 import { createClient } from "../lib/supabase";
 import { normalizeError } from "../utils/errors";
 import { IS_MOCK } from "../lib/config";
-import { normalizeRole, CanonicalRole } from "../utils/rbacResolver";
+import { normalizeRole, CanonicalRole, isPrimaryAdmin } from "../utils/rbacResolver";
 import { repairSessionInDev } from "../utils/sessionRepair";
 
 export interface UserSession {
@@ -70,7 +70,7 @@ function getAppOrigin() {
 
 function toUserSession(user: User, dbRole?: string | null): UserSession {
   const metadata = user.user_metadata ?? {};
-  const isSuperAdminEmail = user.email === "suryasaiteja2005@gmail.com";
+  const isSuperAdminEmail = isPrimaryAdmin(user.email);
   const rawRole = isSuperAdminEmail ? "admin" : (dbRole || metadata.role);
   const role = normalizeRole(rawRole);
 
@@ -158,22 +158,6 @@ export const useAuth = create<AuthStore>((set, get) => ({
 
   initialize: async () => {
     try {
-      if (typeof window !== "undefined") {
-        const isLocalhost = window.location.hostname === "localhost" || 
-          window.location.hostname === "127.0.0.1" || 
-          process.env.NODE_ENV === "development";
-        if (isLocalhost) {
-          const devUserStr = localStorage.getItem("eduearn_dev_preview_user");
-          if (devUserStr) {
-            try {
-              const devUser = JSON.parse(devUserStr);
-              set({ user: devUser, isAuthenticated: true, isLoading: false });
-              return;
-            } catch (e) {}
-          }
-        }
-      }
-
       repairSessionInDev();
       const supabase = getSafeSupabase();
       set({ isLoading: true });
@@ -181,8 +165,9 @@ export const useAuth = create<AuthStore>((set, get) => ({
       // ── Register listener FIRST so no events are missed during getSession() ─
       supabase.auth.onAuthStateChange((event: any, newSession: any) => {
         if (newSession?.user) {
+          const sessionUser = toUserSession(newSession.user);
           set({
-            user: toUserSession(newSession.user),
+            user: sessionUser,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -204,8 +189,9 @@ export const useAuth = create<AuthStore>((set, get) => ({
       } = await supabase.auth.getSession();
 
       if (session?.user) {
+        const sessionUser = toUserSession(session.user);
         set({
-          user: toUserSession(session.user),
+          user: sessionUser,
           isAuthenticated: true,
           isLoading: false,
         });
@@ -221,7 +207,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
       }
     } catch (err) {
       console.error("[useAuth initialize] Auth initialization failed:", err);
-      set({ isLoading: false });
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
 
@@ -304,16 +290,17 @@ export const useAuth = create<AuthStore>((set, get) => ({
 
       // Synchronous wait for profile sync to ensure authoritative role and completion status are available
       const profile = await syncProfile(supabase, data.user);
-      const userRole = profile?.role || data.user.user_metadata?.role || "student";
+      const sessionUser = toUserSession(data.user, profile?.role);
+      const resolvedRole = sessionUser.role || "student";
       const isComplete = (data.user.user_metadata?.complete !== false);
 
       // Set authenticated state immediately
-      set({ user: toUserSession(data.user, userRole), isAuthenticated: true, isLoading: false });
+      set({ user: sessionUser, isAuthenticated: true, isLoading: false });
 
       return { 
         ok: true, 
         message: "Welcome back to EduEarn.", 
-        role: userRole, 
+        role: resolvedRole, 
         complete: isComplete 
       };
     } catch (err) {

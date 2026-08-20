@@ -459,7 +459,7 @@ export function PublicHeader() {
                       </div>
                       
                       <Link
-                        href={user?.role === "admin" || user?.role === "super-admin" ? "/admin/dashboard" : "/student/dashboard"}
+                        href={user?.role === "admin" || user?.role === "super-admin" ? "/admin/dashboard" : user?.role === "tutor" ? "/tutor/dashboard" : "/student/dashboard"}
                         onClick={() => setActiveDropdown(null)}
                         className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-button transition-colors"
                       >
@@ -657,26 +657,36 @@ export function PublicHeader() {
               <div className="flex flex-col gap-3 mt-8 border-t border-border pt-6">
                 {isAuthenticated ? (
                   <Link
-                    href={user?.role === "tutor" ? "/tutor/dashboard" : "/student/dashboard"}
-                    className="w-full text-center py-2 rounded-button bg-muted hover:bg-muted/80 text-xs font-bold text-foreground transition-colors"
+                    href={user?.role === "admin" || user?.role === "super-admin" ? "/admin/dashboard" : user?.role === "tutor" ? "/tutor/dashboard" : "/student/dashboard"}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="w-full text-center py-2.5 rounded-button bg-primary text-white text-xs font-bold shadow-soft transition-colors"
                   >
-                    Dashboard Panel
+                    Go to Dashboard
                   </Link>
                 ) : (
-                  <>
+                  <div className="flex flex-col gap-2.5">
                     <Link
                       href="/login"
+                      onClick={() => setIsMobileMenuOpen(false)}
                       className="w-full text-center py-2 rounded-button bg-muted hover:bg-muted/80 text-xs font-bold text-foreground transition-colors"
                     >
-                      Login
+                      Log in
+                    </Link>
+                    <Link
+                      href="/tutor/onboarding"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="w-full text-center py-2 rounded-button bg-btn-gradient text-white text-xs font-bold hover:opacity-95 transition-colors shadow-soft"
+                    >
+                      Become a Tutor
                     </Link>
                     <Link
                       href="/register"
-                      className="w-full text-center py-2 rounded-button bg-primary text-white text-xs font-bold hover:opacity-95 transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="w-full text-center py-2 rounded-button bg-btn-gradient text-white text-xs font-bold hover:opacity-95 transition-colors shadow-soft"
                     >
-                      Sign Up
+                      Start Learning
                     </Link>
-                  </>
+                  </div>
                 )}
               </div>
             </motion.div>

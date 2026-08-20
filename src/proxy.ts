@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createMiddlewareClient } from "./lib/supabase/server";
-import { resolveRouteDecision, getPermissionsCountForRole, normalizeRole, type CanonicalRole } from "./utils/rbacResolver";
+import { resolveRouteDecision, getPermissionsCountForRole, normalizeRole, isPrimaryAdmin, type CanonicalRole } from "./utils/rbacResolver";
 
 /**
  * EduEarn Proxy
@@ -137,7 +137,7 @@ export async function proxy(request: NextRequest) {
     user = fetchedUser;
 
     if (user) {
-      const isSuperAdminEmail = user.email === "suryasaiteja2005@gmail.com";
+      const isSuperAdminEmail = isPrimaryAdmin(user.email);
       if (isSuperAdminEmail) {
         userRole = "admin";
       } else {
