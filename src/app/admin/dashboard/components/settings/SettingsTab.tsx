@@ -82,12 +82,12 @@ export default function SettingsTab({ logAuditAction }: SettingsTabProps) {
       { id: "bk-2", name: "eduearn_backup_prod_20260725.tar.gz", size: "3.1 GB", integrity: "Verified", date: "2026-07-25 04:00", status: "Archived" }
     ]);
 
-    // API keys registry (Module 6)
+    // API integrations status (Module 6)
     seedIfMissing("eduearn_api_keys", [
-      { id: "key-1", name: "Stripe Payment Gateway", value: "sk_live_51N...98ab", status: "Enabled", type: "Production" },
-      { id: "key-2", name: "Razorpay Checkout", value: "rzp_live_83...10cd", status: "Enabled", type: "Production" },
-      { id: "key-3", name: "Brevo SMTP Mailer", value: "xkeysib-92...75ef", status: "Enabled", type: "Production" },
-      { id: "key-4", name: "OpenAI GPT-4o Co-Pilot", value: "sk-proj-4a...12gh", status: "Disabled", type: "Experimental" }
+      { id: "key-1", name: "Stripe Payment Gateway", value: "Configured & Active", status: "Enabled", type: "Production" },
+      { id: "key-2", name: "Razorpay Checkout", value: "Configured & Active", status: "Enabled", type: "Production" },
+      { id: "key-3", name: "Brevo SMTP Mailer", value: "Configured & Active", status: "Enabled", type: "Production" },
+      { id: "key-4", name: "AI Model Service", value: "Configured & Active", status: "Enabled", type: "Production" }
     ]);
 
     // Email templates SMTP log queue (Module 7)

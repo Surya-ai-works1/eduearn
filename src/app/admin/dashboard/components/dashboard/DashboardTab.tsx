@@ -246,18 +246,23 @@ export default function DashboardTab({
 
           <div className="grid grid-cols-1 gap-2.5 text-xs font-semibold select-none">
             {[
-              { label: "Trigger Global Security Audit", desc: "Forced system security audit log consistency run.", act: "Security Audit Run" },
-              { label: "Clear Email Queue Buffer", desc: "SMTP queue buffers flushed and synced.", act: "SMTP Queue Flush" },
-              { label: "Verify Storage Backup Cluster", desc: "Database cluster backups verification verified.", act: "Backup Verification Check" },
-              { label: "Sync Platform Commissions", desc: "All escrow payouts commissions recalculated and synced.", act: "Commission Sync Run" }
+              { label: "Review Tutors", desc: "Review pending educator credentials & applications", tab: "tutors" },
+              { label: "Review Courses", desc: "Inspect submitted course curricula & approve publication", tab: "courses" },
+              { label: "Review Payments", desc: "Verify escrow transactions & authorize pending payouts", tab: "payments" },
+              { label: "View Reports", desc: "Investigate moderation flags & user support tickets", tab: "reports" },
+              { label: "Manage Categories", desc: "Organize course taxonomy & subject skills", tab: "categories" },
+              { label: "Check System Health", desc: "Monitor database latency & operational services", tab: "system-health" }
             ].map((action, i) => (
               <button
                 key={i}
-                onClick={() => triggerQuickAction(action.act, action.desc)}
-                className="w-full text-left px-3 py-2.5 rounded border border-border hover:bg-primary/5 hover:border-primary transition-all text-xs font-bold flex justify-between items-center group"
+                onClick={() => onNavigateTab(action.tab)}
+                className="w-full text-left px-3.5 py-3 rounded-lg border border-border bg-muted/20 hover:bg-primary/10 hover:border-primary/40 transition-all text-xs font-bold flex justify-between items-center group cursor-pointer"
               >
-                <span>{action.label}</span>
-                <span className="text-primary group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+                <div>
+                  <span className="text-foreground block">{action.label}</span>
+                  <span className="text-[10px] text-muted-foreground font-normal mt-0.5 block">{action.desc}</span>
+                </div>
+                <span className="text-primary group-hover:translate-x-1 transition-transform shrink-0 ml-2">&rarr;</span>
               </button>
             ))}
           </div>
