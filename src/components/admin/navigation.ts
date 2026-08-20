@@ -40,16 +40,27 @@ export const adminNavigation: AdminNavigationGroup[] = [
     items: [
       { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/admin/dashboard?tab=organizations", label: "Organizations", icon: School },
-      { href: "/admin/dashboard?tab=categories", label: "Categories", icon: FolderTree },
-      { href: "/admin/dashboard?tab=courses", label: "Courses", icon: BookOpenCheck },
-      { href: "/admin/dashboard?tab=tutors", label: "Tutors", icon: Users },
       { href: "/admin/dashboard?tab=students", label: "Students", icon: Users },
+      { href: "/admin/dashboard?tab=tutors", label: "Tutors", icon: Users },
+    ],
+  },
+  {
+    label: "CATALOG",
+    items: [
+      { href: "/admin/dashboard?tab=courses", label: "Courses", icon: BookOpenCheck },
+      { href: "/admin/dashboard?tab=categories", label: "Categories", icon: FolderTree },
+    ],
+  },
+  {
+    label: "COMMERCE",
+    items: [
+      { href: "/admin/dashboard?tab=payments", label: "Payments", icon: ReceiptText },
+      { href: "/admin/dashboard?tab=offers", label: "Coupons & Offers", icon: Tags },
     ],
   },
   {
     label: "FINANCE",
     items: [
-      { href: "/admin/dashboard?tab=payments", label: "Payments", icon: ReceiptText },
       { href: "/admin/dashboard?tab=finance", label: "Finance", icon: CircleDollarSign },
     ],
   },

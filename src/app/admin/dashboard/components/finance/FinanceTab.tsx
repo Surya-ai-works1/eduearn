@@ -20,6 +20,7 @@ import {
 
 interface FinanceTabProps {
   logAuditAction: (actionStr: string) => void;
+  activeTab?: string;
 }
 
 // --- EXTENDED SCHEMAS FOR ENTERPRISE FINANCE ---
@@ -57,11 +58,19 @@ const generatePureFinanceId = (prefix: string): string => {
   return `${prefix}_${financeCounter}_${Math.floor(Math.sin(financeCounter) * 100000).toString().replace("-", "")}`;
 };
 
-export default function FinanceTab({ logAuditAction }: FinanceTabProps) {
+export default function FinanceTab({ logAuditAction, activeTab }: FinanceTabProps) {
   // --- CORE STATE VARIABLES ---
   const [activeFinanceTab, setActiveFinanceTab] = useState<"dashboard" | "transactions" | "withdrawals" | "tutors" | "commissions" | "refunds" | "tax" | "gateways">("dashboard");
   const [currentTime] = useState(() => Date.now());
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (activeTab === "payments") {
+      setActiveFinanceTab("transactions");
+    } else {
+      setActiveFinanceTab("dashboard");
+    }
+  }, [activeTab]);
 
   // Synchronized service states
   const [payouts, setPayouts] = useState<WithdrawalRequest[]>([]);
@@ -485,75 +494,109 @@ export default function FinanceTab({ logAuditAction }: FinanceTabProps) {
       
       {/* 🚀 ENTERPRISE FINANCE HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-4 select-none">
-        <div>
-          <h3 className="text-sm font-heading font-extrabold uppercase tracking-wide text-foreground">
-            Enterprise Financial &amp; Payout Ledgers Hub
-          </h3>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            Track gross and net revenues, configure category commission splits, manage tutor payouts, and generate verified tax statements.
-          </p>
-        </div>
+        {activeTab === "payments" ? (
+          <div>
+            <h3 className="text-sm font-heading font-extrabold uppercase tracking-wide text-foreground">
+              Enterprise Transaction &amp; Payments Ledger
+            </h3>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Manage individual client payments, refund requests, failed transactions, and check webhook integrations.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <h3 className="text-sm font-heading font-extrabold uppercase tracking-wide text-foreground">
+              Platform Financial &amp; Payout Ledger
+            </h3>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Analyze platform gross/net revenue splits, track commissions, review pending tutor withdrawal requests, and download tax statements.
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* 📊 Financial KPI Summary widget Cards Grid (8 columns) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
-        <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
-          <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Gross Revenue</span>
-          <strong className="text-xl font-heading font-extrabold mt-1 text-primary">₹{metrics.gross.toLocaleString()}</strong>
-        </Card>
-        <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
-          <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Net Revenue</span>
-          <strong className="text-xl font-heading font-extrabold mt-1 text-emerald-500">₹{metrics.net.toLocaleString()}</strong>
-        </Card>
-        <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
-          <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Platform Commission</span>
-          <strong className="text-xl font-heading font-extrabold mt-1 text-cyan-500">₹{metrics.platform.toLocaleString()}</strong>
-        </Card>
-        <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
-          <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Tutor Earnings</span>
-          <strong className="text-xl font-heading font-extrabold mt-1 text-blue-500">₹{metrics.tutor.toLocaleString()}</strong>
-        </Card>
-        <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
-          <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Pending Withdrawals</span>
-          <strong className="text-xl font-heading font-extrabold mt-1 text-amber-500">₹{metrics.pendingWithdrawalSum.toLocaleString()}</strong>
-        </Card>
-        <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
-          <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Completed Payouts</span>
-          <strong className="text-xl font-heading font-extrabold mt-1 text-emerald-600 dark:text-emerald-400 font-extrabold">₹{metrics.completedPayoutSum.toLocaleString()}</strong>
-        </Card>
-        <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
-          <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block font-bold text-rose-500">Failed Transactions</span>
-          <strong className="text-xl font-heading font-extrabold mt-1 text-rose-600 dark:text-rose-400 font-extrabold">{metrics.failedTransactionsCount}</strong>
-        </Card>
-        <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
-          <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Monthly Growth</span>
-          <strong className="text-xl font-heading font-extrabold mt-1 text-teal-500">+12.4%</strong>
-        </Card>
-      </div>
+      {/* 📊 Financial KPI Summary widget Cards Grid */}
+      {activeTab === "payments" ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
+            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Gross Revenue Intake</span>
+            <strong className="text-xl font-heading font-extrabold mt-1 text-primary">₹{metrics.gross.toLocaleString()}</strong>
+          </Card>
+          <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
+            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Successful Payments</span>
+            <strong className="text-xl font-heading font-extrabold mt-1 text-emerald-500">{purchases.filter(p => p.status === "Success").length}</strong>
+          </Card>
+          <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
+            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block font-bold text-rose-500">Failed Payments</span>
+            <strong className="text-xl font-heading font-extrabold mt-1 text-rose-600 dark:text-rose-400 font-extrabold">{metrics.failedTransactionsCount}</strong>
+          </Card>
+          <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
+            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Pending Refunds Volume</span>
+            <strong className="text-xl font-heading font-extrabold mt-1 text-amber-500">₹{refundRequests.filter(r => r.status === "Pending").reduce((sum, r) => sum + r.amount, 0).toLocaleString()}</strong>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
+            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Gross Revenue</span>
+            <strong className="text-xl font-heading font-extrabold mt-1 text-primary">₹{metrics.gross.toLocaleString()}</strong>
+          </Card>
+          <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
+            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Net Revenue</span>
+            <strong className="text-xl font-heading font-extrabold mt-1 text-emerald-500">₹{metrics.net.toLocaleString()}</strong>
+          </Card>
+          <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
+            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Platform Commission</span>
+            <strong className="text-xl font-heading font-extrabold mt-1 text-cyan-500">₹{metrics.platform.toLocaleString()}</strong>
+          </Card>
+          <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
+            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Tutor Earnings</span>
+            <strong className="text-xl font-heading font-extrabold mt-1 text-blue-500">₹{metrics.tutor.toLocaleString()}</strong>
+          </Card>
+          <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
+            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Pending Withdrawals</span>
+            <strong className="text-xl font-heading font-extrabold mt-1 text-amber-500">₹{metrics.pendingWithdrawalSum.toLocaleString()}</strong>
+          </Card>
+          <Card className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
+            <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">Completed Payouts</span>
+            <strong className="text-xl font-heading font-extrabold mt-1 text-emerald-600 dark:text-emerald-400 font-extrabold">₹{metrics.completedPayoutSum.toLocaleString()}</strong>
+          </Card>
+        </div>
+      )}
 
       {/* ── WORKSPACE TABS SWITCHER NAVIGATION ── */}
       <div className="flex border-b border-border/40 pb-px gap-4 select-none overflow-x-auto">
-        {(["dashboard", "transactions", "withdrawals", "tutors", "commissions", "refunds", "tax", "gateways"] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveFinanceTab(tab)}
-            className={cn(
-              "pb-3 text-[10px] font-black uppercase tracking-wider border-b-2 transition-all relative focus:outline-none shrink-0",
-              activeFinanceTab === tab 
-                ? 'border-primary text-primary font-extrabold' 
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {tab === "dashboard" && "📈 Revenue Dashboard"}
-            {tab === "transactions" && "💸 Transaction Ledger"}
-            {tab === "withdrawals" && `📥 Withdrawals Queue (${payouts.filter(w => w.status === "Pending").length})`}
-            {tab === "tutors" && "👥 Tutor Balances"}
-            {tab === "commissions" && "⚙️ Commission Configs"}
-            {tab === "refunds" && `🔄 Refund requests (${refundRequests.filter(r => r.status === "Pending").length})`}
-            {tab === "tax" && "🏛️ Tax Management"}
-            {tab === "gateways" && "🔌 Gateways Health"}
-          </button>
-        ))}
+        {(["dashboard", "transactions", "withdrawals", "tutors", "commissions", "refunds", "tax", "gateways"] as const)
+          .filter(tab => {
+            if (activeTab === "payments") {
+              return tab === "transactions" || tab === "refunds" || tab === "gateways";
+            }
+            if (activeTab === "finance") {
+              return tab === "dashboard" || tab === "withdrawals" || tab === "tutors" || tab === "commissions" || tab === "tax";
+            }
+            return true;
+          })
+          .map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveFinanceTab(tab)}
+              className={cn(
+                "pb-3 text-[10px] font-black uppercase tracking-wider border-b-2 transition-all relative focus:outline-none shrink-0",
+                activeFinanceTab === tab 
+                  ? 'border-primary text-primary font-extrabold' 
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {tab === "dashboard" && "📈 Revenue Dashboard"}
+              {tab === "transactions" && "💸 Transaction Ledger"}
+              {tab === "withdrawals" && `📥 Withdrawals Queue (${payouts.filter(w => w.status === "Pending").length})`}
+              {tab === "tutors" && "👥 Tutor Balances"}
+              {tab === "commissions" && "⚙️ Commission Configs"}
+              {tab === "refunds" && `🔄 Refund requests (${refundRequests.filter(r => r.status === "Pending").length})`}
+              {tab === "tax" && "🏛️ Tax Management"}
+              {tab === "gateways" && "🔌 Gateways Health"}
+            </button>
+          ))}
       </div>
 
       {/* ── WORKSPACE CONTENT VIEWS PANEL ── */}

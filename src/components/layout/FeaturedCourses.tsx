@@ -7,17 +7,58 @@ import { CourseCard } from "../ui/card";
 import { MOCK_COURSES } from "../../constants/mockData";
 import { StaggerContainer, staggerChildVariants } from "../animations";
 import { motion } from "framer-motion";
+import { createClient } from "../../lib/supabase/client";
 
 export function FeaturedCourses() {
+  const [dbCourses, setDbCourses] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    async function fetchCourses() {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("courses")
+          .select("*, profiles:tutor_id(full_name)")
+          .eq("approval_status", "approved");
+        
+        if (data && data.length > 0) {
+          const mapped = data.map((c: any) => ({
+            id: c.id,
+            title: c.title,
+            tutorName: c.profiles?.full_name || "Tutor",
+            category: c.category || "General",
+            price: Number(c.price || 0),
+            rating: 4.8,
+            duration: "8 hours",
+            lessonsCount: 10,
+            studentsCount: 120,
+            thumbnail: c.thumbnail || ""
+          }));
+          setDbCourses(mapped);
+        }
+      } catch (err) {
+        console.warn("Error fetching courses from database, falling back:", err);
+      }
+    }
+    fetchCourses();
+  }, []);
+
+  const combinedCourses = React.useMemo(() => {
+    if (dbCourses.length === 0) return MOCK_COURSES;
+    const dbIds = new Set(dbCourses.map(c => c.id));
+    const uniqueMocks = MOCK_COURSES.filter(c => !dbIds.has(c.id));
+    return [...dbCourses, ...uniqueMocks];
+  }, [dbCourses]);
+
   // Select courses dynamically for each category tab
   // 1. Trending: Ratings of 4.8 or 4.9
-  const trendingCourses = MOCK_COURSES.filter((c) => c.rating >= 4.8).slice(0, 6);
+  const trendingCourses = combinedCourses.filter((c) => c.rating >= 4.8).slice(0, 6);
   
   // 2. New Arrivals: Sliced from the end of mock database representing recent additions
-  const newCourses = MOCK_COURSES.slice().reverse().slice(0, 6);
+  const newCourses = combinedCourses.slice().reverse().slice(0, 6);
 
   // 3. Best Sellers: Sliced from courses with high enrollment values
-  const bestSellerCourses = MOCK_COURSES.filter((c) => c.studentsCount > 180).slice(0, 6);
+  const bestSellerCourses = combinedCourses.filter((c) => c.studentsCount > 100).slice(0, 6);
 
   // Render course grids inside Stagger anim wrappers
   const renderCourseGrid = (courses: typeof MOCK_COURSES) => (

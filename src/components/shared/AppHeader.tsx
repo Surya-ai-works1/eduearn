@@ -48,9 +48,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
   return (
     <header
-      className={`h-16 px-4 sm:px-6 flex items-center justify-between navbar-surface-blur border-b border-border/20 fixed top-0 right-0 z-30 shrink-0 select-none transition-all duration-300 w-full ${
-        isSidebarCollapsed ? "md:pl-20" : "md:pl-64"
-      }`}
+      className="h-16 px-4 sm:px-6 flex items-center justify-between border-b border-border bg-card shrink-0 select-none w-full"
     >
       <div className="flex items-center gap-3">
         {/* Hamburger for mobile navigation drawer */}

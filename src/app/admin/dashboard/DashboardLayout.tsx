@@ -113,14 +113,15 @@ export default function DashboardLayout({
         { id: "categories", label: "Categories", icon: FolderKanban },
         { id: "courses", label: "Courses", icon: BookOpenCheck },
         { id: "tutors", label: "Tutors", icon: Users },
-        { id: "students", label: "Students", icon: Bookmark }
+        { id: "students", label: "Students", icon: Users }
       ]
     },
     {
       title: "FINANCE",
       items: [
         { id: "payments", label: "Payments", icon: FileSpreadsheet },
-        { id: "finance", label: "Finance", icon: DollarSign }
+        { id: "finance", label: "Finance", icon: DollarSign },
+        { id: "offers", label: "Coupons & Offers", icon: Tag }
       ]
     },
     {
@@ -402,7 +403,7 @@ export default function DashboardLayout({
           />
 
           {/* PAGE BODY VIEW */}
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-background relative z-10 scroll-smooth pt-20">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-background relative z-10 scroll-smooth">
             {children}
           </main>
         </div>

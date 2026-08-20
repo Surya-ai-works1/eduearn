@@ -163,6 +163,23 @@ export const lmsDb = {
   },
 
   createCourse: async (tutorId: string, courseData: Omit<Course, "id" | "tutor_id" | "created_at" | "approval_status">): Promise<Course> => {
+    const { BusinessRulesDb } = await import("./businessRulesDb");
+    const rules = await BusinessRulesDb.getCategoryRules();
+    const rule = rules.find(r => 
+      r.id === courseData.category.toLowerCase().replace(/[&\s]+/g, "-").replace(/[^\w\-]+/g, "") ||
+      r.name.toLowerCase() === courseData.category.toLowerCase()
+    );
+
+    const minPrice = rule ? rule.minPrice : 500;
+    const maxPrice = rule ? rule.maxPrice : 25000;
+
+    if (courseData.price < minPrice) {
+      throw new Error(`Minimum price for ${courseData.category} courses is ₹${minPrice}.`);
+    }
+    if (courseData.price > maxPrice) {
+      throw new Error(`Maximum price for ${courseData.category} courses is ₹${maxPrice}.`);
+    }
+
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from("courses")

@@ -30,6 +30,9 @@ export default function AuditLogsTab({ auditLogs: propAuditLogs, setAuditLogs: p
   const handleClearLogs = () => {
     if (confirm("Are you sure you want to purge the security audit logs trail? This action is irreversible.")) {
       setAuditLogs([]);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("eduearn_admin_audit_logs", JSON.stringify([]));
+      }
       toast.success("Security audit trail logs cleared.");
     }
   };

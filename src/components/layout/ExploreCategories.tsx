@@ -25,6 +25,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { MOCK_CATEGORIES } from "../../constants/mockData";
 import { getCategoryBanner } from "../../lib/courseThumbnailRegistry";
+import { MarketplaceService } from "../../features/payments/services/marketplaceService";
 import { StaggerContainer, staggerChildVariants } from "../animations";
 import { motion } from "framer-motion";
 
@@ -163,21 +164,30 @@ function getImageFitMode(src?: string): { fitClass: string; bgClass: string; sca
 export function ExploreCategories() {
   const [failedImages, setFailedImages] = React.useState<Record<string, boolean>>({});
   const [loadedImages, setLoadedImages] = React.useState<Record<string, boolean>>({});
-  const [categories, setCategories] = React.useState(() => [
-    { id: "academics", name: "Academic Education", type: "academic", count: 36 },
-    { id: "skills", name: "Skills & Extracurriculars", type: "skills", count: 32 },
-    { id: "ai", name: "AI & Innovation", type: "ai", count: 10 }
-  ]);
+  const [categories, setCategories] = React.useState<any[]>([]);
 
   React.useEffect(() => {
-    setCategories(MOCK_CATEGORIES);
+    try {
+      const dbCats = MarketplaceService.getCategories().filter(c => c.status !== "Disabled");
+      if (dbCats.length > 0) {
+        const mapped = dbCats.map(c => ({
+          id: c.id,
+          name: c.name,
+          count: c.subcategories.reduce((sum, s) => sum + s.skills.length, 0) || 12
+        }));
+        setCategories(mapped);
+      } else {
+        setCategories(MOCK_CATEGORIES);
+      }
+    } catch {
+      setCategories(MOCK_CATEGORIES);
+    }
   }, []);
 
   const handleImageError = (id: string) => {
     setFailedImages((prev) => ({ ...prev, [id]: true }));
   };
 
-  // Take all categories to show
   const showCategories = categories;
 
   return (

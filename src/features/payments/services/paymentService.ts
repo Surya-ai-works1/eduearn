@@ -38,6 +38,7 @@ export interface Coupon {
   expiryDate: string;
   usageLimit: number;
   usageCount: number;
+  status?: "Active" | "Inactive";
 }
 
 export interface RefundRequest {
@@ -258,7 +259,70 @@ export const PaymentService = {
     return JSON.parse(saved);
   },
 
-  addPurchase(courseId: string, courseTitle: string, amount: number) {
+  async addPurchase(courseId: string, courseTitle: string, amount: number) {
+    const { createClient } = require("../../../lib/supabase/client");
+    const supabase = createClient();
+    
+    let category = "Programming";
+    let basePrice = amount;
+    try {
+      const { data: dbCourse } = await supabase
+        .from("courses")
+        .select("category, price")
+        .eq("id", courseId)
+        .maybeSingle();
+      if (dbCourse) {
+        category = dbCourse.category;
+        basePrice = Number(dbCourse.price || amount);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch course details for purchase split:", err);
+    }
+
+    // 2. Fetch category pricing rule from Supabase
+    const { BusinessRulesDb } = require("../../../lib/businessRulesDb");
+    const rules = await BusinessRulesDb.getCategoryRules();
+    const rule = rules.find((r: any) => 
+      r.id === category.toLowerCase().replace(/[&\s]+/g, "-").replace(/[^\w\-]+/g, "") ||
+      r.name.toLowerCase() === category.toLowerCase()
+    );
+
+    const tutorBaseEarning = rule ? rule.tutorBaseEarning : Math.round(basePrice * 0.8);
+    const recommendedSellingPrice = rule ? rule.recommendedSellingPrice : basePrice;
+    const discountFunding = rule ? rule.discountFunding : "Platform-funded";
+
+    const discountAmount = Math.max(0, basePrice - amount);
+
+    let tutorShare = tutorBaseEarning;
+    let platformShare = basePrice - tutorBaseEarning;
+
+    if (discountAmount > 0) {
+      if (discountFunding === "Platform-funded") {
+        platformShare = Math.max(0, platformShare - discountAmount);
+        tutorShare = tutorBaseEarning;
+      } else if (discountFunding === "Tutor-funded") {
+        tutorShare = Math.max(0, tutorBaseEarning - discountAmount);
+        platformShare = basePrice - tutorBaseEarning;
+      } else if (discountFunding === "Shared") {
+        const tutorProp = tutorBaseEarning / (recommendedSellingPrice || 1);
+        const tutorAbsorb = Math.round(discountAmount * tutorProp);
+        const platformAbsorb = discountAmount - tutorAbsorb;
+
+        tutorShare = Math.max(0, tutorBaseEarning - tutorAbsorb);
+        platformShare = Math.max(0, (basePrice - tutorBaseEarning) - platformAbsorb);
+      }
+    }
+
+    const difference = amount - (tutorShare + platformShare);
+    if (difference !== 0) {
+      platformShare += difference;
+    }
+
+    if (platformShare < 0) {
+      tutorShare = Math.max(0, tutorShare + platformShare);
+      platformShare = 0;
+    }
+
     const history = this.getPurchaseHistory();
     const invNo = `INV-2026-${String(history.length + 1).padStart(3, "0")}`;
     const newPurchase: PurchaseHistoryItem = {
@@ -275,11 +339,6 @@ export const PaymentService = {
     if (isClient) {
       localStorage.setItem("eduearn_purchase_history", JSON.stringify(history));
     }
-
-    // Money Flow: platform commission splits
-    const config = this.getPlatformConfig();
-    const platformShare = Math.round((amount * config.commission) / 100);
-    const tutorShare = amount - platformShare;
 
     // Update Tutor Earnings
     const earnings = this.getTutorEarnings();
@@ -302,6 +361,16 @@ export const PaymentService = {
     escrowLogs.unshift(escrowTx);
     if (isClient) {
       localStorage.setItem("eduearn_escrow_logs", JSON.stringify(escrowLogs));
+    }
+
+    try {
+      await supabase.from("audit_logs").insert({
+        action: `Purchase Success: "${courseTitle}"`,
+        details: `Student paid ₹${amount}. Tutor earning: ₹${tutorShare}, Platform: ₹${platformShare}. Funding: ${discountFunding}.`,
+        ip_address: "127.0.0.1"
+      });
+    } catch (err) {
+      console.warn("Failed to write purchase audit log to Supabase:", err);
     }
 
     return newPurchase;
@@ -337,15 +406,34 @@ export const PaymentService = {
     }
     return false;
   },
-
   // --- COUPONS METHODS ---
   getCoupons(): Coupon[] {
     const defaults: Coupon[] = [
-      { code: "WELCOME10", type: "percentage", value: 10, minPurchase: 500, maxDiscount: 200, expiryDate: "2026-12-31", usageLimit: 1000, usageCount: 142 },
-      { code: "EDUSPARK500", type: "flat", value: 500, minPurchase: 1500, expiryDate: "2026-08-31", usageLimit: 500, usageCount: 88 },
-      { code: "FESTIVAL30", type: "festival", value: 30, minPurchase: 1000, maxDiscount: 500, expiryDate: "2026-07-15", usageLimit: 200, usageCount: 12 },
-      { code: "REF-LEARN", type: "referral", value: 15, minPurchase: 500, expiryDate: "2026-12-31", usageLimit: 100, usageCount: 4 },
+      { code: "WELCOME10", type: "percentage", value: 10, minPurchase: 500, maxDiscount: 200, expiryDate: "2026-12-31", usageLimit: 1000, usageCount: 142, status: "Active" },
+      { code: "EDUSPARK500", type: "flat", value: 500, minPurchase: 1500, expiryDate: "2026-08-31", usageLimit: 500, usageCount: 88, status: "Active" },
+      { code: "FESTIVAL30", type: "festival", value: 30, minPurchase: 1000, maxDiscount: 500, expiryDate: "2026-07-15", usageLimit: 200, usageCount: 12, status: "Inactive" },
+      { code: "REF-LEARN", type: "referral", value: 15, minPurchase: 500, expiryDate: "2026-12-31", usageLimit: 100, usageCount: 4, status: "Active" },
     ];
+    
+    if (isClient) {
+      const win = window as any;
+      if (!win.__eduearn_synced_coupons) {
+        win.__eduearn_synced_coupons = true;
+        try {
+          const { BusinessRulesDb } = require("../../../lib/businessRulesDb");
+          BusinessRulesDb.getCoupons().then((dbCoupons: any[]) => {
+            if (dbCoupons && dbCoupons.length > 0) {
+              localStorage.setItem("eduearn_coupons", JSON.stringify(dbCoupons));
+            } else {
+              BusinessRulesDb.saveCoupons(defaults).catch(console.error);
+            }
+          }).catch(console.error);
+        } catch (err) {
+          console.error("Async pull of coupons from Supabase failed:", err);
+        }
+      }
+    }
+
     if (!isClient) return defaults;
     const saved = localStorage.getItem("eduearn_coupons");
     if (!saved) {
@@ -355,6 +443,18 @@ export const PaymentService = {
     return JSON.parse(saved);
   },
 
+  saveCoupons(coupons: Coupon[]): void {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("eduearn_coupons", JSON.stringify(coupons));
+    
+    try {
+      const { BusinessRulesDb } = require("../../../lib/businessRulesDb");
+      BusinessRulesDb.saveCoupons(coupons).catch(console.error);
+    } catch (err) {
+      console.error("Async push of coupons to Supabase failed:", err);
+    }
+  },
+
   validateCoupon(code: string, purchaseAmount: number): { success: boolean; discountAmount: number; message: string } {
     const coupons = this.getCoupons();
     const coupon = coupons.find((c) => c.code.toUpperCase() === code.toUpperCase());
@@ -362,7 +462,11 @@ export const PaymentService = {
       return { success: false, discountAmount: 0, message: "Coupon code does not exist." };
     }
     
-    if (new Date(coupon.expiryDate) < new Date("2026-06-28")) {
+    if (coupon.status === "Inactive") {
+      return { success: false, discountAmount: 0, message: "Coupon is currently inactive." };
+    }
+
+    if (new Date(coupon.expiryDate) < new Date()) {
       return { success: false, discountAmount: 0, message: "Coupon has expired." };
     }
 
@@ -394,9 +498,7 @@ export const PaymentService = {
       usageCount: 0,
     };
     coupons.unshift(coupon);
-    if (isClient) {
-      localStorage.setItem("eduearn_coupons", JSON.stringify(coupons));
-    }
+    this.saveCoupons(coupons);
     return coupon;
   },
 
@@ -405,9 +507,7 @@ export const PaymentService = {
     const idx = coupons.findIndex(c => c.code.toUpperCase() === code.toUpperCase());
     if (idx !== -1) {
       coupons.splice(idx, 1);
-      if (isClient) {
-        localStorage.setItem("eduearn_coupons", JSON.stringify(coupons));
-      }
+      this.saveCoupons(coupons);
       return true;
     }
     return false;

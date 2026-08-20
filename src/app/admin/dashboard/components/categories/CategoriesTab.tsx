@@ -10,11 +10,12 @@ import {
   Code2, Palette, TrendingUp, Atom, Globe2, HeartPulse, Languages, Music, Target, Briefcase,
   FileText, Settings, Users, ArrowUpRight, ArrowDownRight,
   Shield, CheckCircle, Ban, MessageSquare, AlertCircle, Sparkles, Filter, ChevronDown,
-  DollarSign, Activity, FileCheck, Layers, BookOpenCheck, Clock, History, UserCheck, BarChart3
+  DollarSign, Activity, FileCheck, Layers, BookOpenCheck, Clock, History, UserCheck, BarChart3, Coins
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "../../../../../components/ui/card";
 import { Button } from "../../../../../components/ui/button";
+import { MarketplaceService } from "../../../../../features/payments/services/marketplaceService";
 
 // Interfaces
 interface CategoriesTabProps {
@@ -126,6 +127,12 @@ interface CategoryMetric {
   pendingModeration: number;
   lastUpdated: string;
   healthScore: number; // 0 - 100
+  minPrice?: number;
+  recommendedPrice?: number;
+  maxPrice?: number;
+  platformCommission?: number;
+  defaultDiscount?: number;
+  status?: "Enabled" | "Disabled";
 }
 
 interface CourseOperation {
@@ -222,15 +229,15 @@ interface AuditHistoryLog {
 
 // Initial Mock Seed Data
 const DEFAULT_CATEGORY_OPS: CategoryMetric[] = [
-  { id: "academics", name: "Academic Education", icon: "BookOpenCheck", banner: "from-violet-600 to-indigo-800", totalCourses: 14, publishedCourses: 10, draftCourses: 3, archivedCourses: 1, totalTutors: 6, totalStudents: 180, activeEnrollments: 140, monthlyRevenue: 155000, averageRating: 4.6, completionRate: 76, certificatesIssued: 98, refundRequests: 2, pendingModeration: 1, lastUpdated: "2026-07-30", healthScore: 88 },
-  { id: "technology-programming", name: "Technology & Programming", icon: "Code2", banner: "from-blue-600 to-cyan-800", totalCourses: 24, publishedCourses: 18, draftCourses: 4, archivedCourses: 2, totalTutors: 9, totalStudents: 420, activeEnrollments: 380, monthlyRevenue: 480000, averageRating: 4.8, completionRate: 84, certificatesIssued: 245, refundRequests: 4, pendingModeration: 0, lastUpdated: "2026-07-30", healthScore: 95 },
-  { id: "creative-arts-design", name: "Creative Arts & Design", icon: "Palette", banner: "from-pink-600 to-rose-800", totalCourses: 11, publishedCourses: 8, draftCourses: 2, archivedCourses: 1, totalTutors: 4, totalStudents: 125, activeEnrollments: 95, monthlyRevenue: 95000, averageRating: 4.5, completionRate: 70, certificatesIssued: 55, refundRequests: 1, pendingModeration: 0, lastUpdated: "2026-07-30", healthScore: 89 },
-  { id: "business-marketing", name: "Business & Marketing", icon: "TrendingUp", banner: "from-emerald-600 to-teal-800", totalCourses: 16, publishedCourses: 12, draftCourses: 3, archivedCourses: 1, totalTutors: 7, totalStudents: 260, activeEnrollments: 210, monthlyRevenue: 240000, averageRating: 4.7, completionRate: 79, certificatesIssued: 135, refundRequests: 3, pendingModeration: 1, lastUpdated: "2026-07-30", healthScore: 92 },
-  { id: "science-math", name: "Science & Mathematics", icon: "Atom", banner: "from-purple-600 to-deep-purple-800", totalCourses: 9, publishedCourses: 7, draftCourses: 1, archivedCourses: 1, totalTutors: 3, totalStudents: 95, activeEnrollments: 80, monthlyRevenue: 85000, averageRating: 4.4, completionRate: 72, certificatesIssued: 48, refundRequests: 1, pendingModeration: 0, lastUpdated: "2026-07-30", healthScore: 90 },
-  { id: "humanities-social", name: "Humanities & Social Sciences", icon: "Globe2", banner: "from-amber-600 to-orange-800", totalCourses: 8, publishedCourses: 6, draftCourses: 1, archivedCourses: 1, totalTutors: 4, totalStudents: 85, activeEnrollments: 65, monthlyRevenue: 60000, averageRating: 4.3, completionRate: 68, certificatesIssued: 35, refundRequests: 0, pendingModeration: 0, lastUpdated: "2026-07-30", healthScore: 85 },
-  { id: "health-fitness", name: "Health, Wellness & Fitness", icon: "HeartPulse", banner: "from-red-600 to-rose-850", totalCourses: 6, publishedCourses: 5, draftCourses: 1, archivedCourses: 0, totalTutors: 3, totalStudents: 72, activeEnrollments: 55, monthlyRevenue: 55000, averageRating: 4.6, completionRate: 81, certificatesIssued: 38, refundRequests: 0, pendingModeration: 0, lastUpdated: "2026-07-30", healthScore: 91 },
-  { id: "languages-linguistics", name: "Languages & Linguistics", icon: "Languages", banner: "from-indigo-600 to-blue-800", totalCourses: 10, publishedCourses: 8, draftCourses: 1, archivedCourses: 1, totalTutors: 5, totalStudents: 110, activeEnrollments: 85, monthlyRevenue: 90000, averageRating: 4.4, completionRate: 75, certificatesIssued: 62, refundRequests: 1, pendingModeration: 0, lastUpdated: "2026-07-30", healthScore: 87 },
-  { id: "music-performance", name: "Music & Performance", icon: "Music", banner: "from-purple-600 to-fuchsia-850", totalCourses: 7, publishedCourses: 5, draftCourses: 2, archivedCourses: 0, totalTutors: 3, totalStudents: 65, activeEnrollments: 50, monthlyRevenue: 65000, averageRating: 4.2, completionRate: 65, certificatesIssued: 30, refundRequests: 2, pendingModeration: 2, lastUpdated: "2026-07-30", healthScore: 80 }
+  { id: "academics", name: "Academic Education", icon: "BookOpenCheck", banner: "from-violet-600 to-indigo-800", totalCourses: 14, publishedCourses: 10, draftCourses: 3, archivedCourses: 1, totalTutors: 6, totalStudents: 180, activeEnrollments: 140, monthlyRevenue: 155000, averageRating: 4.6, completionRate: 76, certificatesIssued: 98, refundRequests: 2, pendingModeration: 1, lastUpdated: "2026-07-30", healthScore: 88, minPrice: 500, recommendedPrice: 999, maxPrice: 5000, platformCommission: 10, defaultDiscount: 10, status: "Enabled" },
+  { id: "technology-programming", name: "Technology & Programming", icon: "Code2", banner: "from-blue-600 to-cyan-800", totalCourses: 24, publishedCourses: 18, draftCourses: 4, archivedCourses: 2, totalTutors: 9, totalStudents: 420, activeEnrollments: 380, monthlyRevenue: 480000, averageRating: 4.8, completionRate: 84, certificatesIssued: 245, refundRequests: 4, pendingModeration: 0, lastUpdated: "2026-07-30", healthScore: 95, minPrice: 1000, recommendedPrice: 1499, maxPrice: 10000, platformCommission: 15, defaultDiscount: 15, status: "Enabled" },
+  { id: "creative-arts-design", name: "Creative Arts & Design", icon: "Palette", banner: "from-pink-600 to-rose-800", totalCourses: 11, publishedCourses: 8, draftCourses: 2, archivedCourses: 1, totalTutors: 4, totalStudents: 125, activeEnrollments: 95, monthlyRevenue: 95000, averageRating: 4.5, completionRate: 70, certificatesIssued: 55, refundRequests: 1, pendingModeration: 0, lastUpdated: "2026-07-30", healthScore: 89, minPrice: 800, recommendedPrice: 1299, maxPrice: 8000, platformCommission: 12, defaultDiscount: 10, status: "Enabled" },
+  { id: "business-marketing", name: "Business & Marketing", icon: "TrendingUp", banner: "from-emerald-600 to-teal-800", totalCourses: 16, publishedCourses: 12, draftCourses: 3, archivedCourses: 1, totalTutors: 7, totalStudents: 260, activeEnrollments: 210, monthlyRevenue: 240000, averageRating: 4.7, completionRate: 79, certificatesIssued: 135, refundRequests: 3, pendingModeration: 1, lastUpdated: "2026-07-30", healthScore: 92, minPrice: 1000, recommendedPrice: 1499, maxPrice: 12000, platformCommission: 15, defaultDiscount: 15, status: "Enabled" },
+  { id: "science-math", name: "Science & Mathematics", icon: "Atom", banner: "from-purple-600 to-deep-purple-800", totalCourses: 9, publishedCourses: 7, draftCourses: 1, archivedCourses: 1, totalTutors: 3, totalStudents: 95, activeEnrollments: 80, monthlyRevenue: 85000, averageRating: 4.4, completionRate: 72, certificatesIssued: 48, refundRequests: 1, pendingModeration: 0, lastUpdated: "2026-07-30", healthScore: 90, minPrice: 600, recommendedPrice: 1199, maxPrice: 6000, platformCommission: 10, defaultDiscount: 5, status: "Enabled" },
+  { id: "humanities-social", name: "Humanities & Social Sciences", icon: "Globe2", banner: "from-amber-600 to-orange-800", totalCourses: 8, publishedCourses: 6, draftCourses: 1, archivedCourses: 1, totalTutors: 4, totalStudents: 85, activeEnrollments: 65, monthlyRevenue: 60000, averageRating: 4.3, completionRate: 68, certificatesIssued: 35, refundRequests: 0, pendingModeration: 0, lastUpdated: "2026-07-30", healthScore: 85, minPrice: 500, recommendedPrice: 999, maxPrice: 5000, platformCommission: 10, defaultDiscount: 5, status: "Enabled" },
+  { id: "health-fitness", name: "Health, Wellness & Fitness", icon: "HeartPulse", banner: "from-red-600 to-rose-850", totalCourses: 6, publishedCourses: 5, draftCourses: 1, archivedCourses: 0, totalTutors: 3, totalStudents: 72, activeEnrollments: 55, monthlyRevenue: 55000, averageRating: 4.6, completionRate: 81, certificatesIssued: 38, refundRequests: 0, pendingModeration: 0, lastUpdated: "2026-07-30", healthScore: 91, minPrice: 800, recommendedPrice: 1299, maxPrice: 8000, platformCommission: 12, defaultDiscount: 10, status: "Enabled" },
+  { id: "languages-linguistics", name: "Languages & Linguistics", icon: "Languages", banner: "from-indigo-600 to-blue-800", totalCourses: 10, publishedCourses: 8, draftCourses: 1, archivedCourses: 1, totalTutors: 5, totalStudents: 110, activeEnrollments: 85, monthlyRevenue: 90000, averageRating: 4.4, completionRate: 75, certificatesIssued: 62, refundRequests: 1, pendingModeration: 0, lastUpdated: "2026-07-30", healthScore: 87, minPrice: 700, recommendedPrice: 999, maxPrice: 5000, platformCommission: 10, defaultDiscount: 10, status: "Enabled" },
+  { id: "music-performance", name: "Music & Performance", icon: "Music", banner: "from-purple-600 to-fuchsia-850", totalCourses: 7, publishedCourses: 5, draftCourses: 2, archivedCourses: 0, totalTutors: 3, totalStudents: 65, activeEnrollments: 50, monthlyRevenue: 65000, averageRating: 4.2, completionRate: 65, certificatesIssued: 30, refundRequests: 2, pendingModeration: 2, lastUpdated: "2026-07-30", healthScore: 80, minPrice: 1200, recommendedPrice: 1999, maxPrice: 15000, platformCommission: 15, defaultDiscount: 15, status: "Enabled" }
 ];
 
 const SEED_COURSES: CourseOperation[] = [
@@ -1419,7 +1426,8 @@ export default function CategoriesTab({ logAuditAction }: CategoriesTabProps) {
                     const cat = categoriesOps.find(c => c.id === currentNav.selectedCategoryId);
                     if (!cat) return null;
                     return (
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 select-none">
+                      <>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 select-none">
                         <Card className="p-4 border-border bg-card shadow-soft text-left space-y-1">
                           <span className="text-[9px] font-black uppercase text-muted-foreground">Monthly Category Revenue</span>
                           <p className="text-lg font-heading font-black text-primary">₹{cat.monthlyRevenue.toLocaleString()}</p>
@@ -1445,8 +1453,6 @@ export default function CategoriesTab({ logAuditAction }: CategoriesTabProps) {
                           <span className="text-[9px] text-emerald-500 font-bold block mt-1">✓ 100% Verified Blockchain</span>
                         </Card>
                       </div>
-                    );
-                  })()}
 
                   {/* AI Recommendation Insights (Phase 8) */}
                   <Card className="p-5 border-border bg-card shadow-soft text-left space-y-4">
@@ -1473,6 +1479,116 @@ export default function CategoriesTab({ logAuditAction }: CategoriesTabProps) {
                       </div>
                     </div>
                   </Card>
+
+                  {/* Category Pricing Rule Card */}
+                  <Card className="p-5 border-border bg-card shadow-soft text-left space-y-4">
+                    <div className="flex items-center gap-2 select-none border-b border-border/20 pb-2 justify-between">
+                      <div className="flex items-center gap-2">
+                        <Coins size={16} className="text-primary" />
+                        <h4 className="text-xs font-heading font-extrabold uppercase text-foreground">Category Pricing Rule Configurator</h4>
+                      </div>
+                      <span className={`text-[8.5px] font-black uppercase px-2 py-0.5 rounded ${
+                        cat.status === "Disabled" ? "bg-rose-500/10 text-rose-500" : "bg-emerald-500/10 text-emerald-500"
+                      }`}>{cat.status || "Enabled"}</span>
+                    </div>
+
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const form = e.currentTarget;
+                      const minPrice = parseFloat((form.elements.namedItem("minPrice") as HTMLInputElement).value) || 0;
+                      const recommendedPrice = parseFloat((form.elements.namedItem("recommendedPrice") as HTMLInputElement).value) || 0;
+                      const maxPrice = parseFloat((form.elements.namedItem("maxPrice") as HTMLInputElement).value) || 0;
+                      const tutorBaseEarning = parseFloat((form.elements.namedItem("tutorBaseEarning") as HTMLInputElement).value) || 0;
+                      const platformCommission = parseFloat((form.elements.namedItem("platformCommission") as HTMLInputElement).value) || 0;
+                      const defaultDiscount = parseFloat((form.elements.namedItem("defaultDiscount") as HTMLInputElement).value) || 0;
+                      const discountFunding = (form.elements.namedItem("discountFunding") as HTMLSelectElement).value as "Platform-funded" | "Shared" | "Tutor-funded";
+                      const status = (form.elements.namedItem("status") as HTMLSelectElement).value as "Enabled" | "Disabled";
+
+                      const updated = categoriesOps.map(c => c.id === cat.id ? {
+                        ...c,
+                        minPrice,
+                        recommendedPrice,
+                        maxPrice,
+                        tutorBaseEarning,
+                        platformCommission,
+                        defaultDiscount,
+                        discountFunding,
+                        status
+                      } : c);
+                      
+                      setCategoriesOps(updated);
+                      saveCategoriesToLocal(updated);
+
+                      // Also sync with MarketplaceCategory list to keep tutor creation aligned
+                      const mpCats = MarketplaceService.getCategories();
+                      const updatedMp = mpCats.map(m => m.id === cat.id ? {
+                        ...m,
+                        status,
+                        minPrice,
+                        recommendedPrice,
+                        maxPrice,
+                        tutorBaseEarning,
+                        platformCommission,
+                        defaultDiscount,
+                        discountFunding
+                      } as any : m);
+                      MarketplaceService.saveCategories(updatedMp);
+
+                      toast.success(`Pricing configuration saved for ${cat.name}!`);
+                    }} className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-muted-foreground uppercase">Minimum Course Price (₹)</label>
+                          <input type="number" name="minPrice" defaultValue={cat.minPrice || 0} className="w-full h-9 px-3 text-xs border border-border bg-muted/10 text-foreground rounded focus:outline-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-muted-foreground uppercase">Recommended Price (₹)</label>
+                          <input type="number" name="recommendedPrice" defaultValue={cat.recommendedPrice || 0} className="w-full h-9 px-3 text-xs border border-border bg-muted/10 text-foreground rounded focus:outline-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-muted-foreground uppercase">Maximum Price (₹)</label>
+                          <input type="number" name="maxPrice" defaultValue={cat.maxPrice || 0} className="w-full h-9 px-3 text-xs border border-border bg-muted/10 text-foreground rounded focus:outline-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-muted-foreground uppercase">Tutor Base Earning (₹)</label>
+                          <input type="number" name="tutorBaseEarning" defaultValue={(cat as any).tutorBaseEarning || 0} className="w-full h-9 px-3 text-xs border border-border bg-muted/10 text-foreground rounded focus:outline-none" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-muted-foreground uppercase">Platform Commission (%)</label>
+                          <input type="number" name="platformCommission" defaultValue={cat.platformCommission || 0} className="w-full h-9 px-3 text-xs border border-border bg-muted/10 text-foreground rounded focus:outline-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-muted-foreground uppercase">Default Discount (%)</label>
+                          <input type="number" name="defaultDiscount" defaultValue={cat.defaultDiscount || 0} className="w-full h-9 px-3 text-xs border border-border bg-muted/10 text-foreground rounded focus:outline-none" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-muted-foreground uppercase">Discount Funding Rule</label>
+                          <select name="discountFunding" defaultValue={(cat as any).discountFunding || "Platform-funded"} className="w-full h-9 px-2 text-xs border border-border bg-card text-foreground rounded focus:outline-none">
+                            <option value="Platform-funded">Platform-funded</option>
+                            <option value="Shared">Shared</option>
+                            <option value="Tutor-funded">Tutor-funded</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-muted-foreground uppercase">Category Status</label>
+                          <select name="status" defaultValue={cat.status || "Enabled"} className="w-full h-9 px-2 text-xs border border-border bg-card text-foreground rounded focus:outline-none">
+                            <option value="Enabled">Enabled (Visible)</option>
+                            <option value="Disabled">Disabled (Hidden)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end pt-2">
+                        <Button type="submit" size="sm" className="h-8 text-[10px] uppercase tracking-wider font-extrabold px-5">Save Configuration</Button>
+                      </div>
+                    </form>
+                  </Card>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 

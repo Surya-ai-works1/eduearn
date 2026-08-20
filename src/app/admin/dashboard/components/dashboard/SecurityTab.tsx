@@ -32,7 +32,10 @@ export default function SecurityTab() {
   const [sessionTimeout, setSessionTimeout] = useState("30");
   const [twoFactorForce, setTwoFactorForce] = useState(true);
 
-  const defaultAlerts: SecurityAlert[] = [];
+  const defaultAlerts: SecurityAlert[] = [
+    { id: "al-1", type: "Role Elevation Attempt", severity: "High", timestamp: "2026-08-20 12:44", ip: "192.168.1.15", actor: "anonymous", description: "Blocked attempt to access admin settings route from unauthenticated session", status: "Dismissed" },
+    { id: "al-2", type: "Multiple Login Failures", severity: "Medium", timestamp: "2026-08-20 15:10", ip: "103.22.44.89", actor: "tutor_candidate@eduearn.com", description: "Tutor account locked after 5 failed authentication challenges", status: "Flagged" }
+  ];
 
   const defaultSessions: AdminSession[] = [
     { id: "ses-1", adminName: "Surya (Admin)", role: "Super Admin", ip: "127.0.0.1", browser: "Current Web Session", activeSince: "Active Now" }
