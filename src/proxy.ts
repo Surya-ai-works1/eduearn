@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createMiddlewareClient } from "./lib/supabase/server";
-import { resolveRouteDecision, getPermissionsCountForRole } from "./utils/rbacResolver";
+import { resolveRouteDecision, getPermissionsCountForRole, normalizeRole, isPrimaryAdmin, type CanonicalRole } from "./utils/rbacResolver";
 
 /**
  * EduEarn Proxy
@@ -102,7 +102,9 @@ export async function proxy(request: NextRequest) {
     url.pathname.startsWith("/login") ||
     url.pathname.startsWith("/register") ||
     url.pathname.startsWith("/tutor/login") ||
-    url.pathname.startsWith("/tutor/register");
+    url.pathname.startsWith("/tutor/register") ||
+    url.pathname.startsWith("/student/login") ||
+    url.pathname.startsWith("/student/register");
 
   const isProtectedPage =
     url.pathname.startsWith("/complete-profile") ||
@@ -111,27 +113,47 @@ export async function proxy(request: NextRequest) {
     (url.pathname.startsWith("/tutor") &&
       !url.pathname.startsWith("/tutor/login") &&
       !url.pathname.startsWith("/tutor/register")) ||
-    url.pathname.startsWith("/student") ||
+    (url.pathname.startsWith("/student") &&
+      !url.pathname.startsWith("/student/login") &&
+      !url.pathname.startsWith("/student/register")) ||
     url.pathname.startsWith("/admin") ||
     url.pathname.startsWith("/profile") ||
     url.pathname.startsWith("/settings") ||
     url.pathname.startsWith("/learn") ||
     url.pathname.startsWith("/dashboard");
 
-  // ── Session detection ────────────────────────────────────────────────────
-  // If Supabase is not configured, skip remote checks.
+  // ── Session detection & Authoritative Database Role Retrieval ───────────
   if (!supabase) {
     return response;
   }
 
-  // getUser() is authoritative — it validates the token with the Supabase server.
-  // This also silently refreshes the access token when it is close to expiry.
   let user = null;
+  let userRole: CanonicalRole = "student";
+
   try {
     const {
       data: { user: fetchedUser },
     } = await supabase.auth.getUser();
     user = fetchedUser;
+
+    if (user) {
+      const isSuperAdminEmail = isPrimaryAdmin(user.email);
+      if (isSuperAdminEmail) {
+        userRole = "admin";
+      } else {
+        // Query authoritative profiles table for database role
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        const metadata = user.user_metadata ?? {};
+        const appMetadata = user.app_metadata ?? {};
+        const rawRole = profile?.role || metadata.role || appMetadata.role || "student";
+        userRole = normalizeRole(rawRole);
+      }
+    }
   } catch (err) {
     console.error("Supabase session verification failed:", err);
     if (isProtectedPage) {
@@ -170,20 +192,18 @@ export async function proxy(request: NextRequest) {
       // If email IS confirmed, and they try to visit /verify-email or /verify-otp, bypass it
       if (url.pathname.startsWith("/verify-email") || url.pathname.startsWith("/verify-otp")) {
         const metadata = user.user_metadata ?? {};
-        const appMetadata = user.app_metadata ?? {};
-        const role = metadata.role || appMetadata.role || "student";
         const isComplete = metadata.complete !== false;
 
         if (!isComplete) {
-          if (role === "tutor") {
+          if (userRole === "tutor") {
             url.pathname = "/tutor/onboarding";
           } else {
             url.pathname = "/complete-profile";
           }
         } else {
-          if (role === "admin" || role === "super-admin") {
+          if (userRole === "admin" || userRole === "super-admin") {
             url.pathname = "/admin/dashboard";
-          } else if (role === "tutor") {
+          } else if (userRole === "tutor") {
             url.pathname = "/tutor/dashboard";
           } else {
             url.pathname = "/student/dashboard";
@@ -208,20 +228,18 @@ export async function proxy(request: NextRequest) {
   // ── 2. Authenticated → auth page ─────────────────────────────────────────
   if (user && isAuthPage) {
     const metadata = user.user_metadata ?? {};
-    const appMetadata = user.app_metadata ?? {};
-    const role = metadata.role || appMetadata.role || "student";
     const isComplete = metadata.complete !== false;
 
     if (!isComplete) {
-      if (role === "tutor") {
+      if (userRole === "tutor") {
         url.pathname = "/tutor/onboarding";
       } else {
         url.pathname = "/complete-profile";
       }
     } else {
-      if (role === "admin" || role === "super-admin") {
+      if (userRole === "admin" || userRole === "super-admin") {
         url.pathname = "/admin/dashboard";
-      } else if (role === "tutor") {
+      } else if (userRole === "tutor") {
         url.pathname = "/tutor/dashboard";
       } else {
         url.pathname = "/student/dashboard";
@@ -234,18 +252,16 @@ export async function proxy(request: NextRequest) {
   // ── 3. Authenticated + incomplete onboarding ──────────────────────────────
   if (user && isProtectedPage) {
     const metadata = user.user_metadata ?? {};
-    const appMetadata = user.app_metadata ?? {};
-    const role = metadata.role || appMetadata.role || "student";
     const isComplete = metadata.complete !== false;
 
     // Tutors go to /tutor/onboarding, Students go to /complete-profile
     if (!isComplete) {
-      if (role === "tutor") {
+      if (userRole === "tutor") {
         if (url.pathname !== "/tutor/onboarding") {
           url.pathname = "/tutor/onboarding";
           return createRedirectResponse(url, response);
         }
-      } else {
+      } else if (userRole === "student") {
         if (url.pathname !== "/complete-profile") {
           url.pathname = "/complete-profile";
           return createRedirectResponse(url, response);
@@ -255,9 +271,9 @@ export async function proxy(request: NextRequest) {
 
     // Redirect already completed users away from onboarding pages
     if (isComplete && (url.pathname === "/choose-role" || url.pathname === "/complete-profile" || url.pathname === "/tutor/onboarding")) {
-      if (role === "admin" || role === "super-admin") {
+      if (userRole === "admin" || userRole === "super-admin") {
         url.pathname = "/admin/dashboard";
-      } else if (role === "tutor") {
+      } else if (userRole === "tutor") {
         url.pathname = "/tutor/dashboard";
       } else {
         url.pathname = "/student/dashboard";
@@ -268,12 +284,8 @@ export async function proxy(request: NextRequest) {
 
   // ── 4. Role-based Access Control (RBAC) security checks ─────────────────
   if (user && isProtectedPage) {
-    const metadata = user.user_metadata ?? {};
-    const appMetadata = user.app_metadata ?? {};
-    const role = metadata.role || appMetadata.role || "student";
-
     // Learner/Student cannot access tutor/admin paths (except tutor onboarding)
-    if (role === "learner" || role === "student") {
+    if (userRole === "student") {
       if (
         (url.pathname.startsWith("/tutor") && !url.pathname.startsWith("/tutor/onboarding")) ||
         url.pathname.startsWith("/admin")
@@ -284,9 +296,17 @@ export async function proxy(request: NextRequest) {
     }
 
     // Tutor cannot access admin paths
-    if (role === "tutor") {
+    if (userRole === "tutor") {
       if (url.pathname.startsWith("/admin")) {
         url.pathname = "/forbidden";
+        return createRedirectResponse(url, response);
+      }
+    }
+
+    // Admin redirected from /tutor/* or /student/* to canonical Admin Console
+    if (userRole === "admin" || userRole === "super-admin") {
+      if (url.pathname.startsWith("/tutor") || url.pathname.startsWith("/student")) {
+        url.pathname = "/admin/dashboard";
         return createRedirectResponse(url, response);
       }
     }

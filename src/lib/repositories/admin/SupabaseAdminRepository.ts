@@ -1,7 +1,7 @@
 // src/lib/repositories/admin/SupabaseAdminRepository.ts
 
 import { IAdminRepository } from "./IAdminRepository";
-import { createClient } from "../../supabase/server";
+import { BusinessRulesDb } from "../../businessRulesDb";
 import {
   AdminDashboardStats,
   AdminUser,
@@ -20,7 +20,14 @@ import {
 
 export class SupabaseAdminRepository implements IAdminRepository {
   private async getSupabase() {
-    const client = await createClient();
+    let client;
+    if (typeof window === "undefined") {
+      const { createClient } = await import("../../supabase/server");
+      client = await createClient();
+    } else {
+      const { createClient } = await import("../../supabase/client");
+      client = createClient();
+    }
     if (!client) {
       throw new Error(
         "SupabaseAdminRepository requires Supabase credentials. " +
@@ -80,8 +87,8 @@ export class SupabaseAdminRepository implements IAdminRepository {
       .select("status");
 
     const totalCourses = coursesData?.length || 0;
-    const publishedCourses = coursesData?.filter((c) => c.status === "published" || c.status === "Approved").length || 0;
-    const pendingCourses = coursesData?.filter((c) => c.status === "pending" || c.status === "Pending").length || 0;
+    const publishedCourses = coursesData?.filter((c: any) => c.status === "published" || c.status === "Approved").length || 0;
+    const pendingCourses = coursesData?.filter((c: any) => c.status === "pending" || c.status === "Pending").length || 0;
 
     // 3. Get transactions & revenue
     const { data: paymentsData } = await supabase
@@ -89,8 +96,8 @@ export class SupabaseAdminRepository implements IAdminRepository {
       .select("amount, status");
 
     const totalRevenue = (paymentsData || [])
-      .filter((p) => p.status === "success" || p.status === "Success" || p.status === "completed")
-      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      .filter((p: any) => p.status === "success" || p.status === "Success" || p.status === "completed")
+      .reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
 
     // Fetch exact counts from enrollments table live
     const { count: dbEnrollmentsCount } = await supabase
@@ -174,7 +181,7 @@ export class SupabaseAdminRepository implements IAdminRepository {
       safeQuery("tutor_earnings")
     ]);
 
-    const courseMap = new Map<string, any>(coursesRes.map(c => [c.id, c]));
+    const courseMap = new Map<string, any>(coursesRes.map((c: any) => [c.id, c]));
 
     let list: AdminUser[] = (data || []).map((u: any) => {
       // 1. Map student details if student
@@ -612,74 +619,91 @@ export class SupabaseAdminRepository implements IAdminRepository {
 
   // --- CATEGORIES ---
   async getCategories(): Promise<AdminCategory[]> {
-    const supabase = await this.getSupabase();
-    const { data, error } = await supabase
-      .from("categories")
-      .select("*");
-
-    if (error) throw error;
-
-    return (data || []).map((c: any) => ({
-      id: String(c.id),
-      name: c.name,
-      status: (c.status || "Enabled") as any,
-      description: c.description,
-      created_at: c.created_at
-    }));
+    const rules = await BusinessRulesDb.getCategoryRules();
+    return rules.map((r) => ({
+      id: r.id,
+      name: r.name,
+      status: r.status === "Active" ? "Enabled" : "Disabled",
+      description: `Tutor Earning: ₹${r.tutorBaseEarning}, Recommended: ₹${r.recommendedSellingPrice}, Allowed Range: ₹${r.minPrice}-₹${r.maxPrice}`,
+      created_at: new Date().toISOString(),
+      minPrice: r.minPrice,
+      recommendedPrice: r.recommendedSellingPrice,
+      maxPrice: r.maxPrice,
+      platformCommission: r.platformCommission,
+      defaultDiscount: r.defaultDiscount,
+      tutorBaseEarning: r.tutorBaseEarning,
+      discountFunding: r.discountFunding
+    } as any));
   }
 
   async createCategory(name: string, description?: string): Promise<AdminCategory> {
-    const supabase = await this.getSupabase();
-    const { data, error } = await supabase
-      .from("categories")
-      .insert({ name, description, status: "Enabled" })
-      .select()
-      .single();
-
-    if (error) throw error;
-
+    const rules = await BusinessRulesDb.getCategoryRules();
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const newRule = {
+      id,
+      name,
+      status: "Active" as const,
+      tutorBaseEarning: 1500,
+      recommendedSellingPrice: 1800,
+      minPrice: 1500,
+      maxPrice: 25000,
+      platformCommission: 16.67,
+      defaultDiscount: 10,
+      discountFunding: "Platform-funded" as const
+    };
+    rules.push(newRule);
+    await BusinessRulesDb.saveCategoryRules(rules);
     return {
-      id: String(data.id),
-      name: data.name,
-      status: data.status as any,
-      description: data.description,
-      created_at: data.created_at
+      id,
+      name,
+      status: "Enabled",
+      description: description || "",
+      created_at: new Date().toISOString()
     };
   }
 
   async updateCategory(categoryId: string, updates: Partial<AdminCategory>): Promise<AdminCategory> {
-    const supabase = await this.getSupabase();
-    const payload: any = {};
-    if (updates.name) payload.name = updates.name;
-    if (updates.status) payload.status = updates.status;
-    if (updates.description !== undefined) payload.description = updates.description;
+    const rules = await BusinessRulesDb.getCategoryRules();
+    let updatedRule: any = null;
+    const newRules = rules.map((r) => {
+      if (r.id === categoryId) {
+        const nextStatus = updates.status === "Enabled" ? "Active" : updates.status === "Disabled" ? "Inactive" : r.status;
+        updatedRule = {
+          ...r,
+          name: updates.name || r.name,
+          status: nextStatus,
+          tutorBaseEarning: (updates as any).tutorBaseEarning !== undefined ? (updates as any).tutorBaseEarning : r.tutorBaseEarning,
+          recommendedSellingPrice: (updates as any).recommendedPrice !== undefined ? (updates as any).recommendedPrice : r.recommendedSellingPrice,
+          minPrice: (updates as any).minPrice !== undefined ? (updates as any).minPrice : r.minPrice,
+          maxPrice: (updates as any).maxPrice !== undefined ? (updates as any).maxPrice : r.maxPrice,
+          platformCommission: (updates as any).platformCommission !== undefined ? (updates as any).platformCommission : r.platformCommission,
+          defaultDiscount: (updates as any).defaultDiscount !== undefined ? (updates as any).defaultDiscount : r.defaultDiscount,
+          discountFunding: (updates as any).discountFunding !== undefined ? (updates as any).discountFunding : r.discountFunding
+        };
+        return updatedRule;
+      }
+      return r;
+    });
 
-    const { data, error } = await supabase
-      .from("categories")
-      .update(payload)
-      .eq("id", Number(categoryId))
-      .select()
-      .single();
+    if (!updatedRule) {
+      throw new Error(`Category rule ${categoryId} not found`);
+    }
 
-    if (error) throw error;
+    await BusinessRulesDb.saveCategoryRules(newRules);
 
     return {
-      id: String(data.id),
-      name: data.name,
-      status: data.status as any,
-      description: data.description,
-      created_at: data.created_at
+      id: categoryId,
+      name: updatedRule.name,
+      status: updatedRule.status === "Active" ? "Enabled" : "Disabled",
+      description: updates.description || "",
+      created_at: new Date().toISOString()
     };
   }
 
   async deleteCategory(categoryId: string): Promise<boolean> {
-    const supabase = await this.getSupabase();
-    const { error } = await supabase
-      .from("categories")
-      .delete()
-      .eq("id", Number(categoryId));
-
-    if (error) throw error;
+    const rules = await BusinessRulesDb.getCategoryRules();
+    const filtered = rules.filter(r => r.id !== categoryId);
+    await BusinessRulesDb.saveCategoryRules(filtered);
     return true;
   }
 

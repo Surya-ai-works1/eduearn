@@ -24,7 +24,7 @@ export function AdminSidebar({ collapsed, onToggle, onNavigate, mobile = false }
       collapsed ? "w-[76px]" : "w-72"
     )}>
       <div className="flex h-16 items-center border-b border-border/70 px-4">
-        <Link href="/admin/dashboard" className="flex min-w-0 items-center gap-3 hover:opacity-95 transition-opacity" aria-label="EduEarn Admin Dashboard">
+        <Link href="/" className="flex min-w-0 items-center gap-3 hover:opacity-95 transition-opacity" aria-label="EduEarn Public Home">
           <div className={cn(
             "relative transition-all duration-200 shrink-0",
             collapsed ? "w-9 h-9 overflow-hidden rounded-xl" : "w-[140px] h-[40px]"

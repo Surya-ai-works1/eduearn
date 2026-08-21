@@ -6,6 +6,13 @@
 
 export type CanonicalRole = "student" | "tutor" | "admin" | "super-admin" | "finance" | "moderator" | "support";
 
+export const PRIMARY_ADMIN_EMAIL = "suryasaiteja2005@gmail.com";
+
+export function isPrimaryAdmin(email?: string | null): boolean {
+  if (!email) return false;
+  return email.toLowerCase().trim() === PRIMARY_ADMIN_EMAIL;
+}
+
 export function normalizeRole(rawRole: any): CanonicalRole {
   if (!rawRole) return "student";
   const normalized = String(rawRole).trim().toLowerCase();
@@ -87,14 +94,20 @@ export function resolveRouteDecision(
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
     pathname.startsWith("/tutor/login") ||
-    pathname.startsWith("/tutor/register");
+    pathname.startsWith("/tutor/register") ||
+    pathname.startsWith("/student/login") ||
+    pathname.startsWith("/student/register");
 
   const isProtectedPage =
     pathname.startsWith("/complete-profile") ||
     pathname.startsWith("/choose-role") ||
     pathname.startsWith("/welcome") ||
-    pathname.startsWith("/tutor") ||
-    pathname.startsWith("/student") ||
+    (pathname.startsWith("/tutor") &&
+      !pathname.startsWith("/tutor/login") &&
+      !pathname.startsWith("/tutor/register")) ||
+    (pathname.startsWith("/student") &&
+      !pathname.startsWith("/student/login") &&
+      !pathname.startsWith("/student/register")) ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/profile") ||
     pathname.startsWith("/settings") ||
@@ -158,21 +171,31 @@ export function resolveRouteDecision(
 
   // 6. Role-based directory authorization checks
   if (isProtectedPage) {
-    // Admin routes
+    // Admin routes protection & canonical destination
     if (pathname.startsWith("/admin")) {
       if (normRole !== "admin" && normRole !== "super-admin") {
         return { allowed: false, redirectPath: "/forbidden", reason: "Standard user blocked from Admin route" };
       }
     }
-    // Tutor routes
+
+    // Admin canonical destination enforcement (Requirement #7):
+    // Admins visiting /tutor/*, /student/*, or onboarding pages are redirected to /admin/dashboard
+    if (normRole === "admin" || normRole === "super-admin") {
+      if (pathname.startsWith("/tutor") || pathname.startsWith("/student") || pathname === "/complete-profile" || pathname === "/choose-role") {
+        return { allowed: false, redirectPath: "/admin/dashboard", reason: "Admin redirected to canonical Admin Console" };
+      }
+    }
+
+    // Tutor routes protection
     if (pathname.startsWith("/tutor")) {
-      if (normRole !== "tutor" && normRole !== "admin" && normRole !== "super-admin") {
+      if (normRole !== "tutor") {
         return { allowed: false, redirectPath: "/forbidden", reason: "Standard user blocked from Tutor route" };
       }
     }
-    // Student routes
+
+    // Student routes protection
     if (pathname.startsWith("/student")) {
-      if (normRole !== "student" && normRole !== "admin" && normRole !== "super-admin") {
+      if (normRole !== "student") {
         return { allowed: false, redirectPath: "/forbidden", reason: "Standard user blocked from Student route" };
       }
     }

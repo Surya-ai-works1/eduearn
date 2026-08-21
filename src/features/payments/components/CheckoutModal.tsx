@@ -76,11 +76,11 @@ export function CheckoutModal({
     }
   };
 
-  const handlePaymentSuccess = (paymentId: string) => {
+  const handlePaymentSuccess = async (paymentId: string) => {
     setIsRazorpayOpen(false);
     
     // Save to purchase history
-    PaymentService.addPurchase(courseId, courseTitle, finalTotal);
+    await PaymentService.addPurchase(courseId, courseTitle, finalTotal);
     
     // Deduct wallet if used
     if (walletApplied > 0) {

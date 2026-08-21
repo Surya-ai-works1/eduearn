@@ -6,7 +6,7 @@ import { create } from "zustand";
 import { createClient } from "../lib/supabase";
 import { normalizeError } from "../utils/errors";
 import { IS_MOCK } from "../lib/config";
-import { normalizeRole, CanonicalRole } from "../utils/rbacResolver";
+import { normalizeRole, CanonicalRole, isPrimaryAdmin } from "../utils/rbacResolver";
 import { repairSessionInDev } from "../utils/sessionRepair";
 
 export interface UserSession {
@@ -76,7 +76,8 @@ function getAppOrigin() {
 
 function toUserSession(user: User, dbRole?: string | null): UserSession {
   const metadata = user.user_metadata ?? {};
-  const rawRole = dbRole || metadata.role;
+  const isSuperAdminEmail = isPrimaryAdmin(user.email);
+  const rawRole = isSuperAdminEmail ? "admin" : (dbRole || metadata.role);
   const role = normalizeRole(rawRole);
 
   return {
@@ -87,7 +88,7 @@ function toUserSession(user: User, dbRole?: string | null): UserSession {
         ? metadata.fullName
         : typeof metadata.full_name === "string"
           ? metadata.full_name
-          : "Student Learner",
+          : isSuperAdminEmail ? "Surya (Admin)" : "Student Learner",
     role,
     complete: metadata.complete !== false,
     emailVerified: !!user.email_confirmed_at,
@@ -174,8 +175,9 @@ export const useAuth = create<AuthStore>((set, get) => ({
       // ── Register listener FIRST so no events are missed during getSession() ─
       supabase.auth.onAuthStateChange((event: any, newSession: any) => {
         if (newSession?.user) {
+          const sessionUser = toUserSession(newSession.user);
           set({
-            user: toUserSession(newSession.user),
+            user: sessionUser,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -197,8 +199,9 @@ export const useAuth = create<AuthStore>((set, get) => ({
       } = await supabase.auth.getSession();
 
       if (session?.user) {
+        const sessionUser = toUserSession(session.user);
         set({
-          user: toUserSession(session.user),
+          user: sessionUser,
           isAuthenticated: true,
           isLoading: false,
         });
@@ -214,14 +217,19 @@ export const useAuth = create<AuthStore>((set, get) => ({
       }
     } catch (err) {
       console.error("[useAuth initialize] Auth initialization failed:", err);
-      set({ isLoading: false });
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
 
   login: async (email, password, remember = true) => {
     try {
-      const supabase = getSafeSupabase();
-      
+      let isLocalhost = false;
+      if (typeof window !== "undefined") {
+        isLocalhost = window.location.hostname === "localhost" || 
+          window.location.hostname === "127.0.0.1" || 
+          process.env.NODE_ENV === "development";
+      }
+
       // Remember Me persistence logic
       if (typeof window !== "undefined") {
         if (remember) {
@@ -231,6 +239,30 @@ export const useAuth = create<AuthStore>((set, get) => ({
           localStorage.removeItem("eduearn_remembered_email");
           localStorage.removeItem("eduearn_remember_me");
         }
+      }
+
+      let supabase;
+      try {
+        supabase = getSafeSupabase();
+      } catch (err: any) {
+        if (isLocalhost) {
+          console.warn("[DEV MODE] Supabase integration keys unconfigured. Using localhost fallback for:", email);
+          const isOwnerEmail = email.toLowerCase().trim() === "suryasaiteja2005@gmail.com";
+          const role: CanonicalRole = (isOwnerEmail || email.includes("admin")) ? "admin" : email.includes("tutor") ? "tutor" : "student";
+          const devUser: UserSession = {
+            id: role === "admin" ? "preview-admin-id" : role === "tutor" ? "preview-tutor-id" : "preview-student-id",
+            email,
+            fullName: isOwnerEmail ? "Surya (Admin)" : role === "admin" ? "Admin User" : role === "tutor" ? "Preview Tutor" : "Preview Student",
+            role,
+            complete: true,
+          };
+          if (typeof window !== "undefined") {
+            localStorage.setItem("eduearn_dev_preview_user", JSON.stringify(devUser));
+          }
+          set({ user: devUser, isAuthenticated: true, isLoading: false });
+          return { ok: true, message: "Welcome back to EduEarn (Development Mode).", role, complete: true };
+        }
+        throw err;
       }
 
       set({ isLoading: true });
@@ -286,6 +318,24 @@ export const useAuth = create<AuthStore>((set, get) => ({
       });
 
       if (error || !data.user) {
+        const errorMsg = error?.message || "";
+        if (isLocalhost && (errorMsg.includes("API key") || errorMsg.includes("not configured") || errorMsg.includes("invalid") || errorMsg.includes("Invalid"))) {
+          console.warn("[DEV MODE] Supabase API key invalid locally. Using localhost fallback for:", email);
+          const isOwnerEmail = email.toLowerCase().trim() === "suryasaiteja2005@gmail.com";
+          const role: CanonicalRole = (isOwnerEmail || email.includes("admin")) ? "admin" : email.includes("tutor") ? "tutor" : "student";
+          const devUser: UserSession = {
+            id: role === "admin" ? "preview-admin-id" : role === "tutor" ? "preview-tutor-id" : "preview-student-id",
+            email,
+            fullName: isOwnerEmail ? "Surya (Admin)" : role === "admin" ? "Admin User" : role === "tutor" ? "Preview Tutor" : "Preview Student",
+            role,
+            complete: true,
+          };
+          if (typeof window !== "undefined") {
+            localStorage.setItem("eduearn_dev_preview_user", JSON.stringify(devUser));
+          }
+          set({ user: devUser, isAuthenticated: true, isLoading: false });
+          return { ok: true, message: "Welcome back to EduEarn (Development Mode).", role, complete: true };
+        }
         set({ isLoading: false });
         return {
           ok: false,
@@ -295,16 +345,17 @@ export const useAuth = create<AuthStore>((set, get) => ({
 
       // Synchronous wait for profile sync to ensure authoritative role and completion status are available
       const profile = await syncProfile(supabase, data.user);
-      const userRole = profile?.role || data.user.user_metadata?.role || "student";
+      const sessionUser = toUserSession(data.user, profile?.role);
+      const resolvedRole = sessionUser.role || "student";
       const isComplete = (data.user.user_metadata?.complete !== false);
 
       // Set authenticated state immediately
-      set({ user: toUserSession(data.user, userRole), isAuthenticated: true, isLoading: false });
+      set({ user: sessionUser, isAuthenticated: true, isLoading: false });
 
       return { 
         ok: true, 
         message: "Welcome back to EduEarn.", 
-        role: userRole, 
+        role: resolvedRole, 
         complete: isComplete 
       };
     } catch (err) {
@@ -847,6 +898,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
 
     // Clear stale auth storage and cookies
     if (typeof window !== "undefined") {
+      localStorage.removeItem("eduearn_dev_preview_user");
       localStorage.removeItem("eduearn_mock_user");
       localStorage.removeItem("eduearn_session");
       localStorage.removeItem("eduearn_mock_session");

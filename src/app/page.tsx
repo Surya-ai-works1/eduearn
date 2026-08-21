@@ -29,7 +29,29 @@ import { FaqSection } from "../components/layout/FaqSection";
 import { Newsletter } from "../components/layout/Newsletter";
 import { useAuth } from "../hooks/useAuth";
 import { Tuitions } from "../components/layout/Tuitions";
-
+import { AdminOperatingSystem } from "../components/admin/AdminOperatingSystem";
+import { cn } from "../utils/cn";
+import { TutorProvider, useTutor } from "../context/TutorContext";
+import { useMemo } from "react";
+import { 
+  BookOpen, 
+  Video, 
+  Users, 
+  TrendingUp, 
+  Wallet, 
+  Clock, 
+  Plus, 
+  Calendar, 
+  Award, 
+  FileText, 
+  Activity, 
+  ArrowUpRight, 
+  Edit, 
+  BarChart3, 
+  CheckCircle,
+  HelpCircle,
+  Heart
+} from "lucide-react";
 
 import {
   HoverLift,
@@ -38,18 +60,410 @@ import {
   RevealOnScroll,
 } from "../components/animations";
 
+function TutorHomepageWorkspace() {
+  const {
+    myCourses = [],
+    students = [],
+    liveSessions = [],
+    earningsBalanceState = { total: 0, available: 0, pending: 0 },
+    recentActivities = [],
+  } = useTutor();
+  const router = useRouter();
+
+  // Metrics calculations
+  const totalCourses = myCourses.length;
+  const activeStudents = students.length;
+  const totalEarnings = earningsBalanceState.total || 0;
+  const averageRating = useMemo(() => {
+    const rated = myCourses.filter(c => c.rating > 0);
+    if (rated.length === 0) return 4.8;
+    return Number((rated.reduce((sum, c) => sum + c.rating, 0) / rated.length).toFixed(1));
+  }, [myCourses]);
+
+  const recentActivitiesList = useMemo(() => {
+    if (recentActivities && recentActivities.length > 0) return recentActivities;
+    return [
+      { id: "act-1", title: "New enrollment in Python Basics", type: "enrollment", detail: "Aarav Sharma enrolled", time: "2 hours ago" },
+      { id: "act-2", title: "Student completed lesson", type: "progress", detail: "Meera Nair finished 'Control Flow'", time: "4 hours ago" },
+      { id: "act-3", title: "New student question", type: "question", detail: "Kabir Dev asked about 'OOP Polymorphism'", time: "1 day ago" },
+      { id: "act-4", title: "New review received", type: "review", detail: "5 stars from Ishaan Gupta on Web Dev", time: "2 days ago" },
+      { id: "act-5", title: "Certificate issued", type: "certificate", detail: "Riya Verma completed React Masterclass", time: "3 days ago" },
+    ];
+  }, [recentActivities]);
+
+  const upcomingClasses = useMemo(() => {
+    if (liveSessions && liveSessions.length > 0) {
+      return liveSessions.filter(s => s.status === "Scheduled");
+    }
+    return [
+      { 
+        id: "live-1", 
+        title: "Python Advanced OOP Doubt Clearing", 
+        time: "04:00 PM (2026-08-20)", 
+        studentsCount: 18, 
+        maxParticipants: 25, 
+        status: "Scheduled" as const,
+        countdown: "",
+        meetingLink: "",
+        platform: "Google Meet" as const
+      },
+      { 
+        id: "live-2", 
+        title: "React State Management Live Q&A", 
+        time: "06:00 PM (2026-08-22)", 
+        studentsCount: 22, 
+        maxParticipants: 25, 
+        status: "Scheduled" as const,
+        countdown: "",
+        meetingLink: "",
+        platform: "Google Meet" as const
+      },
+    ];
+  }, [liveSessions]);
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10 text-left">
+      {/* 1. Quick Actions & Earnings Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Earnings Card */}
+        <div className="bg-card border border-border p-6 rounded-xl shadow-soft flex flex-col justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Financial Summary</span>
+            <h3 className="text-2xl font-extrabold text-foreground">Earnings Wallet</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-4 my-6">
+            <div>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase">Total Revenue</p>
+              <p className="text-xl font-extrabold text-foreground mt-0.5">₹{totalEarnings.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase">Available Balance</p>
+              <p className="text-xl font-extrabold text-emerald-500 mt-0.5">₹{earningsBalanceState.available.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase">Pending Payout</p>
+              <p className="text-sm font-extrabold text-amber-500 mt-0.5">₹{earningsBalanceState.pending.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase">This Month</p>
+              <p className="text-sm font-extrabold text-foreground mt-0.5">₹{(totalEarnings * 0.45).toLocaleString()}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push("/tutor/wallet")}
+            className="w-full py-2 bg-primary/10 hover:bg-primary/15 text-primary text-xs font-bold rounded-button transition flex items-center justify-center gap-1 cursor-pointer bg-transparent border-none"
+          >
+            <Wallet size={13} />
+            <span>Open Wallet View</span>
+          </button>
+        </div>
+
+        {/* Quick Actions Card */}
+        <div className="bg-card border border-border p-6 rounded-xl shadow-soft flex flex-col justify-between col-span-2">
+          <div className="space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Shortcuts</span>
+            <h3 className="text-2xl font-extrabold text-foreground">Creator Actions</h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 my-6">
+            {[
+              { label: "Create Course", icon: Plus, path: "/tutor/studio/create" },
+              { label: "Upload Lesson", icon: FileText, path: "/tutor/studio" },
+              { label: "Schedule Live Class", icon: Video, path: "/tutor/live-classes" },
+              { label: "View Students", icon: Users, path: "/tutor/students" },
+              { label: "View Analytics", icon: BarChart3, path: "/tutor/analytics" },
+              { label: "Open Wallet", icon: Wallet, path: "/tutor/wallet" },
+            ].map((act, i) => {
+              const Icon = act.icon;
+              return (
+                <button
+                  key={i}
+                  onClick={() => router.push(act.path)}
+                  className="p-3 border border-border/80 hover:border-primary/40 bg-muted/10 hover:bg-muted/30 rounded-lg text-left transition flex flex-col gap-2 group cursor-pointer focus:outline-none bg-transparent"
+                >
+                  <Icon size={16} className="text-primary group-hover:scale-105 transition-transform" />
+                  <span className="text-xs font-bold text-foreground leading-tight">{act.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-muted-foreground font-semibold">Quick access routes to managed Tutor studio features.</p>
+        </div>
+      </div>
+
+      {/* 2. Tutor Overview Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Courses Created", value: `${totalCourses} Courses`, icon: BookOpen, color: "text-primary bg-primary/10 border-primary/20" },
+          { label: "Active Students", value: `${activeStudents} Pupils`, icon: Users, color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
+          { label: "Total Earnings", value: `₹${totalEarnings.toLocaleString()}`, icon: Wallet, color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20" },
+          { label: "Average Rating", value: `${averageRating} ★`, icon: Award, color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
+        ].map((item, i) => {
+          const Icon = item.icon;
+          return (
+            <div key={i} className="bg-card border border-border p-4 rounded-xl shadow-soft flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-[10.5px] font-bold text-muted-foreground uppercase">{item.label}</p>
+                <h4 className="text-xl font-extrabold text-foreground">{item.value}</h4>
+              </div>
+              <span className={`p-2 rounded-lg shrink-0 ${item.color}`}><Icon size={16} /></span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 3. My Courses & Live Classes (2 columns) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* My Courses Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 select-none font-heading">
+              <BookOpen size={16} className="text-primary" />
+              Manage My Courses
+            </h3>
+            <button
+              onClick={() => router.push("/tutor/studio")}
+              className="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5 cursor-pointer bg-transparent border-none"
+            >
+              <span>Tutor Studio</span>
+              <ArrowUpRight size={11} />
+            </button>
+          </div>
+
+          <div className="space-y-3.5">
+            {myCourses.length === 0 ? (
+              <div className="border border-border rounded-xl p-8 text-center text-xs text-muted-foreground/60 bg-muted/5">
+                No courses created yet. Let&apos;s build one!
+              </div>
+            ) : (
+              myCourses.slice(0, 3).map((course) => (
+                <div key={course.id} className="bg-card border border-border hover:border-primary/20 p-4 rounded-xl transition flex flex-col justify-between gap-4 shadow-sm">
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[8.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                          course.status === "published" 
+                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
+                            : course.status === "draft"
+                            ? "bg-slate-500/10 text-slate-500 border-slate-500/20"
+                            : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                        }`}>
+                          {course.status}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground font-semibold">{course.studentsCount} Students</span>
+                      </div>
+                      <h4 className="font-extrabold text-sm text-foreground leading-snug">{course.title}</h4>
+                      <p className="text-[10.5px] text-muted-foreground font-semibold">Category: {course.category} • Level: {course.level}</p>
+                    </div>
+                    {course.rating > 0 && (
+                      <span className="text-[10px] font-black text-amber-500 bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/15 shrink-0">
+                        {course.rating} ★
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 border-t border-border/40 pt-3 select-none">
+                    <button
+                      onClick={() => router.push(`/tutor/studio/manage/${course.id}`)}
+                      className="px-3 py-1.5 bg-primary text-white text-[10.5px] font-bold rounded hover:opacity-95 transition flex items-center gap-1 cursor-pointer border-none"
+                    >
+                      <Edit size={11} />
+                      <span>Edit Course</span>
+                    </button>
+                    <button
+                      onClick={() => router.push(`/tutor/studio/manage/${course.id}`)}
+                      className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-[10.5px] font-bold rounded transition cursor-pointer border-none"
+                    >
+                      Manage Lessons
+                    </button>
+                    <button
+                      onClick={() => router.push("/tutor/analytics")}
+                      className="px-3 py-1.5 bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground text-[10.5px] font-bold rounded transition ml-auto cursor-pointer border-none"
+                    >
+                      Analytics
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Live Classes Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 select-none font-heading">
+              <Video size={16} className="text-rose-500" />
+              Hosting Timetable
+            </h3>
+            <button
+              onClick={() => router.push("/tutor/live-classes")}
+              className="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5 cursor-pointer bg-transparent border-none"
+            >
+              <span>All Sessions</span>
+              <ArrowUpRight size={11} />
+            </button>
+          </div>
+
+          <div className="space-y-3.5">
+            {upcomingClasses.length === 0 ? (
+              <div className="border border-border rounded-xl p-8 text-center text-xs text-muted-foreground/60 bg-muted/5">
+                No active live classrooms scheduled.
+              </div>
+            ) : (
+              upcomingClasses.slice(0, 3).map((session) => (
+                <div key={session.id} className="bg-card border border-border hover:border-rose-500/20 p-4 rounded-xl transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-rose-500/10 text-rose-500 border-rose-500/20">
+                        {session.status}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-semibold">Registered: {session.studentsCount || 0}/{session.maxParticipants || 25}</span>
+                    </div>
+                    <h4 className="font-extrabold text-sm text-foreground leading-snug">{session.title}</h4>
+                    <p className="text-[10.5px] text-muted-foreground font-bold flex items-center gap-1">
+                      <Clock size={11} className="text-primary" />
+                      <span>{session.time}</span>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 select-none w-full sm:w-auto justify-end sm:justify-start">
+                    <button
+                      onClick={() => router.push("/tutor/live-classes")}
+                      className="px-3 py-1.5 bg-rose-500 text-white text-[10.5px] font-bold rounded hover:opacity-95 transition flex items-center gap-1 cursor-pointer border-none"
+                    >
+                      <Play size={11} className="fill-white" />
+                      <span>Start Class</span>
+                    </button>
+                    <button
+                      onClick={() => router.push("/tutor/live-classes")}
+                      className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-[10.5px] font-bold rounded transition cursor-pointer border-none"
+                    >
+                      Manage
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Student Activity & Performance Analytics (2 columns) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Student Activity Log */}
+        <div className="lg:col-span-2 space-y-4">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 select-none font-heading">
+            <Activity size={16} className="text-emerald-500 animate-pulse" />
+            Concise Student Activity
+          </h3>
+
+          <div className="bg-card border border-border rounded-xl divide-y divide-border/40 overflow-hidden shadow-sm">
+            {recentActivitiesList.slice(0, 5).map((act, i) => (
+              <div key={i} className="p-4 flex items-center justify-between gap-4 hover:bg-muted/10 transition">
+                <div className="flex items-center gap-3">
+                  <span className={`p-1.5 rounded-lg shrink-0 border ${
+                    act.type === "enrollment" 
+                      ? "text-primary bg-primary/10 border-primary/20" 
+                      : act.type === "progress"
+                      ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
+                      : act.type === "question"
+                      ? "text-sky-500 bg-sky-500/10 border-sky-500/20"
+                      : act.type === "review"
+                      ? "text-amber-500 bg-amber-500/10 border-amber-500/20"
+                      : "text-purple-500 bg-purple-500/10 border-purple-500/20"
+                  }`}>
+                    {act.type === "enrollment" && <Users size={13} />}
+                    {act.type === "progress" && <CheckCircle size={13} />}
+                    {act.type === "question" && <HelpCircle size={13} />}
+                    {act.type === "review" && <Heart size={13} />}
+                    {act.type === "certificate" && <Award size={13} />}
+                  </span>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-foreground leading-snug">{act.title}</p>
+                    <p className="text-[10px] text-muted-foreground font-semibold">{act.detail}</p>
+                  </div>
+                </div>
+                <span className="text-[10px] text-muted-foreground font-bold shrink-0">{act.time}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Analytics Card */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5 select-none font-heading">
+            <BarChart3 size={16} className="text-indigo-500" />
+            Course Performance
+          </h3>
+
+          <div className="bg-card border border-border p-5 rounded-xl space-y-4 shadow-sm">
+            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider block">Student Engagement Metrics</span>
+            <div className="space-y-3.5">
+              {[
+                { label: "Course Views", value: "1,245 Views", pct: 75, color: "bg-primary" },
+                { label: "Total Enrollments", value: `${students.length} Enrollments`, pct: 60, color: "bg-emerald-500" },
+                { label: "Completion Rate", value: "84% Complete", pct: 84, color: "bg-indigo-500" },
+                { label: "Avg Star Rating", value: "4.8 / 5.0 Rating", pct: 96, color: "bg-amber-500" },
+              ].map((metric, i) => (
+                <div key={i} className="space-y-1 text-xs">
+                  <div className="flex justify-between font-bold">
+                    <span className="text-muted-foreground">{metric.label}</span>
+                    <span className="text-foreground">{metric.value}</span>
+                  </div>
+                  <div className="h-1.5 bg-muted/65 rounded-full overflow-hidden">
+                    <div className={`h-full ${metric.color} rounded-full`} style={{ width: `${metric.pct}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => router.push("/tutor/analytics")}
+              className="w-full py-2 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-button transition flex items-center justify-center gap-1 cursor-pointer border-none"
+            >
+              <span>Detailed Analytics Panel</span>
+              <ArrowUpRight size={12} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RootLandingPage() {
   const router = useRouter();
   const { user } = useAuth();
   
-  // Redirect authenticated admins directly to the enterprise dashboard
+  // Redirect incomplete users to onboarding steps, allow completed users/admins to view public landing page at "/"
   useEffect(() => {
-    if (user?.role === "admin" || user?.role === "super-admin") {
-      router.replace("/admin/dashboard");
+    if (user) {
+      if (!user.complete) {
+        if (user.role === "tutor") {
+          router.replace("/tutor/onboarding");
+        } else {
+          router.replace("/complete-profile");
+        }
+      }
     }
   }, [user, router]);
 
   const [isDemoOpen, setIsDemoOpen] = useState(false);
+  const [heroSubtitle, setHeroSubtitle] = useState("Learn from Students. Teach Students. Grow Together. India's AI-Powered Student-to-Student Learning Marketplace.");
+
+  useEffect(() => {
+    const loadCms = () => {
+      try {
+        const stored = localStorage.getItem("eduearn_landing_cms");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.heroSubtitle) setHeroSubtitle(parsed.heroSubtitle);
+        }
+      } catch {}
+    };
+    loadCms();
+    window.addEventListener("storage", loadCms);
+    return () => window.removeEventListener("storage", loadCms);
+  }, []);
 
   // Active index for headline words highlight cycling (0: Learn, 1: Teach, 2: Earn)
   const [activeHeadlineIndex, setActiveHeadlineIndex] = useState(0);
@@ -75,7 +489,7 @@ export default function RootLandingPage() {
         }}
         className="text-blue-600 dark:text-blue-500 inline-block origin-left"
       >
-        Learn.
+        {user?.role === "tutor" ? "Build." : "Learn."}
       </span>
       <span
         style={{
@@ -157,12 +571,92 @@ export default function RootLandingPage() {
     </div>
   );
 
+  if (user?.role === "tutor") {
+    return (
+      <TutorProvider>
+        <div className="w-full relative min-h-screen bg-background text-foreground transition-colors duration-300 overflow-x-hidden">
+          <HeroLayout
+            title={animatedTitle}
+            subtitle={heroSubtitle}
+            illustration={<HeroIllustration />}
+            floatingWidgets={floatingWidgets}
+            ctas={
+              <div className="flex flex-wrap items-center gap-3.5 select-none pointer-events-auto">
+                <Button
+                  onClick={() => {
+                    router.push("/tutor/dashboard?tab=courses");
+                  }}
+                  size="md"
+                >
+                  + Create Course
+                </Button>
+                <Button
+                  onClick={() => {
+                    router.push("/tutor/dashboard?tab=resources");
+                  }}
+                  variant="outline"
+                  size="md"
+                  className="border-border/60 hover:bg-muted text-foreground"
+                >
+                  Upload Lesson
+                </Button>
+                <button
+                  onClick={() => {
+                    router.push("/tutor/dashboard?tab=live-classes");
+                  }}
+                  className="text-xs font-bold text-primary hover:underline ml-2 cursor-pointer bg-transparent border-none"
+                >
+                  Go Live
+                </button>
+              </div>
+            }
+            statistics={[
+              {
+                value: (
+                  <span className="flex items-baseline">
+                    <AnimatedCounter value={5000} />+
+                  </span>
+                ),
+                label: "Learners",
+              },
+              {
+                value: (
+                  <span className="flex items-baseline">
+                    <AnimatedCounter value={200} />+
+                  </span>
+                ),
+                label: "Tutors",
+              },
+              {
+                value: (
+                  <span className="flex items-baseline">
+                    <AnimatedCounter value={250} />+
+                  </span>
+                ),
+                label: "Skill Categories",
+              },
+              {
+                value: (
+                  <span className="flex items-baseline">
+                    <AnimatedCounter value={150} />+
+                  </span>
+                ),
+                label: "Live Classes",
+              },
+            ]}
+          />
+          <TutorHomepageWorkspace />
+        </div>
+      </TutorProvider>
+    );
+  }
+
   return (
     <div className="w-full relative min-h-screen bg-background text-foreground transition-colors duration-300 overflow-x-hidden">
       {/* 1. Landing Page Hero Grid */}
       <HeroLayout
         title={animatedTitle}
-        subtitle="Learn from Students. Teach Students. Grow Together. India's AI-Powered Student-to-Student Learning Marketplace."
+        subtitle={heroSubtitle}
         illustration={<HeroIllustration />}
         floatingWidgets={floatingWidgets}
         ctas={
@@ -224,82 +718,86 @@ export default function RootLandingPage() {
         ]}
       />
 
-      {/* 2. Trusted By logo wall */}
-      <RevealOnScroll direction="fade" delay={0.1}>
-        <TrustedBy />
-      </RevealOnScroll>
+      {/* 2. Conditionally render Admin OS or Student Homepage sections */}
+      {user?.role === "admin" || user?.role === "super-admin" ? (
+        <AdminOperatingSystem />
+      ) : (
+        <>
+          {/* 2. Trusted By logo wall */}
+          <RevealOnScroll direction="fade" delay={0.1}>
+            <TrustedBy />
+          </RevealOnScroll>
+          {/* 2.5. Tuitions (Online Learning Packages) Section */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <Tuitions />
+          </RevealOnScroll>
 
-      {/* 2.5. Tuitions (Online Learning Packages) Section */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <Tuitions />
-      </RevealOnScroll>
+          {/* 3. Explore Categories Grid */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <ExploreCategories />
+          </RevealOnScroll>
 
-      {/* 3. Explore Categories Grid */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <ExploreCategories />
-      </RevealOnScroll>
+          {/* 4. Featured Courses catalog */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <FeaturedCourses />
+          </RevealOnScroll>
 
-      {/* 4. Featured Courses catalog */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <FeaturedCourses />
-      </RevealOnScroll>
+          {/* 5. Learning Paths roadmaps */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <LearningPaths />
+          </RevealOnScroll>
 
-      {/* 5. Learning Paths roadmaps */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <LearningPaths />
-      </RevealOnScroll>
+          {/* 6. Top-Rated Tutors Grid */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <TopTutors />
+          </RevealOnScroll>
 
-      {/* 6. Top-Rated Tutors Grid */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <TopTutors />
-      </RevealOnScroll>
+          {/* 7. Live Classes Doubt Sessions */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <LiveClasses />
+          </RevealOnScroll>
 
-      {/* 7. Live Classes Doubt Sessions */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <LiveClasses />
-      </RevealOnScroll>
+          {/* 8. AI Innovation Capabilities */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <AiFeatures />
+          </RevealOnScroll>
 
-      {/* 8. AI Innovation Capabilities */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <AiFeatures />
-      </RevealOnScroll>
+          {/* 9. Become a Tutor CTA */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <BecomeTutor />
+          </RevealOnScroll>
 
-      {/* 9. Become a Tutor CTA */}
-      {user?.role !== "tutor" && (
-        <RevealOnScroll direction="up" delay={0.15}>
-          <BecomeTutor />
-        </RevealOnScroll>
+          {/* 10. Success Stories Testimonials */}
+          <RevealOnScroll direction="fade" delay={0.1}>
+            <SuccessStories />
+          </RevealOnScroll>
+
+          {/* 11. Stats Achievements counters */}
+          <RevealOnScroll direction="fade" delay={0.1}>
+            <StatsGrid />
+          </RevealOnScroll>
+
+          {/* 12. Why Choose EduEarn Feature Grid */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <WhyEduEarn />
+          </RevealOnScroll>
+
+          {/* 13. Mobile App Preview mockup */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <MobileAppPreview />
+          </RevealOnScroll>
+
+          {/* 14. Interactive FAQ Accordion */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <FaqSection />
+          </RevealOnScroll>
+
+          {/* 15. Newsletter Subscribe Card */}
+          <RevealOnScroll direction="fade" delay={0.1}>
+            <Newsletter />
+          </RevealOnScroll>
+        </>
       )}
-
-      {/* 10. Success Stories Testimonials */}
-      <RevealOnScroll direction="fade" delay={0.1}>
-        <SuccessStories />
-      </RevealOnScroll>
-
-      {/* 11. Stats Achievements counters */}
-      <RevealOnScroll direction="fade" delay={0.1}>
-        <StatsGrid />
-      </RevealOnScroll>
-
-      {/* 12. Why Choose EduEarn Feature Grid */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <WhyEduEarn />
-      </RevealOnScroll>
-
-      {/* 13. Mobile App Preview mockup */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <MobileAppPreview />
-      </RevealOnScroll>
-
-      {/* 14. Interactive FAQ Accordion */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <FaqSection />
-      </RevealOnScroll>
-
-      {/* 15. Newsletter Subscribe Card */}
-      <RevealOnScroll direction="fade" delay={0.1}>
-        <Newsletter />
-      </RevealOnScroll>
 
       {/* Watch Demo Mock Dialog Popup */}
       <Dialog

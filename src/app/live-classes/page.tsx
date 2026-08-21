@@ -8,6 +8,7 @@ import { Container } from "../../components/layout/Container";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
+import { useAuth } from "../../hooks/useAuth";
 
 interface LiveClass {
   id: string;
@@ -94,6 +95,7 @@ const MOCK_LIVE_SESSIONS: LiveClass[] = [
 
 export default function LiveClassesPage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [filter, setFilter] = useState<"all" | "live" | "scheduled">("all");
   const [sessions, setSessions] = useState<LiveClass[]>([]);
 
@@ -231,10 +233,13 @@ export default function LiveClassesPage() {
                   <div className="flex items-center justify-between border-t border-border/30 pt-4 mt-4">
                     <div className="flex flex-col gap-1 text-left font-bold text-muted-foreground text-[10px]">
                       <span className="flex items-center gap-1"><Clock size={11} /> {session.time}</span>
-                      {session.password && (
-                        <span className="flex items-center gap-1 text-[8px] text-indigo-500 font-extrabold"><Lock size={9} /> Password: {session.password}</span>
+                      {isAuthenticated && session.password && (
+                        <span className="flex items-center gap-1 text-[8px] text-indigo-500 font-extrabold"><Lock size={9} /> Passcode: {session.password}</span>
                       )}
-                      {session.attachments && (
+                      {!isAuthenticated && (
+                        <span className="text-[9px] text-muted-foreground font-semibold">Live access included with enrolled course</span>
+                      )}
+                      {session.attachments && isAuthenticated && (
                         <a
                           href={session.attachments}
                           target="_blank"
@@ -246,18 +251,31 @@ export default function LiveClassesPage() {
                       )}
                     </div>
 
-                    <Button
-                      onClick={() => {
-                        window.open(session.meetingLink, "_blank");
-                      }}
-                      size="sm"
-                      className={`h-8 px-4 text-[10px] font-extrabold gap-1.5 shadow-soft ${
-                        isLive ? "bg-rose-500 hover:bg-rose-600 text-white" : ""
-                      }`}
-                    >
-                      Join Class
-                      <ArrowRight size={11} />
-                    </Button>
+                    {isAuthenticated ? (
+                      <Button
+                        onClick={() => {
+                          window.open(session.meetingLink, "_blank");
+                        }}
+                        size="sm"
+                        className={`h-8 px-4 text-[10px] font-extrabold gap-1.5 shadow-soft ${
+                          isLive ? "bg-rose-500 hover:bg-rose-600 text-white" : ""
+                        }`}
+                      >
+                        Join Class
+                        <ArrowRight size={11} />
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => {
+                          router.push("/courses");
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-3 text-[10px] font-bold"
+                      >
+                        View Course
+                      </Button>
+                    )}
                   </div>
                 </Card>
               );

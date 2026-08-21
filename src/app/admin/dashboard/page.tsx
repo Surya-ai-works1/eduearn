@@ -49,22 +49,35 @@ export default function AdminDashboardPage() {
   }, [searchParams]);
 
   // 1. Audit Security Logs
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([
-    { id: "log-1", timestamp: "2026-07-01 09:30", adminName: "Surya (Admin)", action: "System login authorized." },
-    { id: "log-2", timestamp: "2026-07-01 10:15", adminName: "Surya (Admin)", action: "Released payout of ₹15,000 for Rohan Das." }
-  ]);
-  const [logIdCounter, setLogIdCounter] = useState(2);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("eduearn_admin_audit_logs");
+      if (saved) {
+        try {
+          setAuditLogs(JSON.parse(saved));
+        } catch {
+          setAuditLogs([]);
+        }
+      }
+    }
+  }, []);
 
   const logAuditAction = (actionStr: string) => {
-    const nextId = logIdCounter + 1;
-    setLogIdCounter(nextId);
     const newLog: AuditLog = {
-      id: `log-${nextId}`,
+      id: `log-${Date.now()}`,
       timestamp: new Date().toISOString().replace("T", " ").substring(0, 16),
       adminName: user?.fullName || "Admin",
       action: actionStr
     };
-    setAuditLogs((prev) => [newLog, ...prev]);
+    setAuditLogs((prev) => {
+      const next = [newLog, ...prev];
+      if (typeof window !== "undefined") {
+        localStorage.setItem("eduearn_admin_audit_logs", JSON.stringify(next));
+      }
+      return next;
+    });
   };
 
   // 2. Users (Students & Tutors)
@@ -492,6 +505,7 @@ export default function AdminDashboardPage() {
             onRejectTutor={(id) => triggerTutorVerification(id, false)}
             logAuditAction={logAuditAction}
             isLoading={isLoadingData}
+            activeTab={activeTab}
           />
         )}
 
@@ -517,7 +531,7 @@ export default function AdminDashboardPage() {
         )}
 
         {(activeTab === "payments" || activeTab === "pricing" || activeTab === "finance") && (
-          <FinanceTab logAuditAction={logAuditAction} />
+          <FinanceTab logAuditAction={logAuditAction} activeTab={activeTab} />
         )}
 
         {activeTab === "offers" && (

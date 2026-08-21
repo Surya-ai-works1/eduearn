@@ -27,6 +27,7 @@ interface UsersTabProps {
   onRejectTutor: (id: string) => void;
   logAuditAction: (actionStr: string) => void;
   isLoading?: boolean;
+  activeTab?: string;
 }
 
 // --- EXTENDED TYPES FOR ENTERPRISE DATA ---
@@ -74,11 +75,29 @@ export default function UsersTab({
   onApproveTutor,
   onRejectTutor,
   logAuditAction,
-  isLoading = false
+  isLoading = false,
+  activeTab
 }: UsersTabProps) {
   // --- STATE VARIABLES ---
   const [currentTime] = useState(() => Date.now());
-  const [roleFilter, setRoleFilter] = useState<string>("learner");
+  const [roleFilter, setRoleFilter] = useState<string>(() => {
+    if (activeTab === "tutors") return "tutor-roster";
+    if (activeTab === "admin") return "admin";
+    if (activeTab === "tutor-verification") return "tutor";
+    return "learner";
+  });
+
+  useEffect(() => {
+    if (activeTab === "tutors") {
+      setRoleFilter("tutor-roster");
+    } else if (activeTab === "students" || activeTab === "users" || activeTab === "learners") {
+      setRoleFilter("learner");
+    } else if (activeTab === "admin") {
+      setRoleFilter("admin");
+    } else if (activeTab === "tutor-verification") {
+      setRoleFilter("tutor");
+    }
+  }, [activeTab]);
   const [userSearch, setUserSearch] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   
@@ -930,23 +949,54 @@ export default function UsersTab({
         <div className="space-y-6 animate-fadeIn">
           
           {/* 1. Analytics & KPI stats bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
-            {[
-              { label: "Total Users", value: kpis.total, sub: "All accounts", color: "text-primary" },
-              { label: "Active Users", value: kpis.active, sub: `${activeRatioPercent}% rate`, color: "text-emerald-500" },
-              { label: "Suspended", value: kpis.suspended, sub: "Restricted list", color: "text-rose-500" },
-              { label: "Pending Verify", value: kpis.pendingVer, sub: "Awaiting review", color: "text-amber-500" },
-              { label: "Tutors", value: kpis.tutors, sub: "Platform teachers", color: "text-blue-500" },
-              { label: "Students", value: kpis.students, sub: "Marketplace learners", color: "text-purple-500" },
-              { label: "Administrators", value: kpis.admins, sub: "Security credentials", color: "text-cyan-500" },
-              { label: "Recent registrations", value: kpis.recent, sub: "Last 30 Days", color: "text-slate-500" }
-            ].map((kpi, idx) => (
-              <Card key={idx} className="p-3 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
-                <span className="text-[8px] text-muted-foreground font-black uppercase tracking-wider block">{kpi.label}</span>
-                <strong className={`text-xl font-extrabold tracking-tight mt-1 ${kpi.color}`}>{kpi.value}</strong>
-                <span className="text-[8px] text-muted-foreground/60 block font-semibold mt-1">{kpi.sub}</span>
-              </Card>
-            ))}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {roleFilter === "tutor-roster" ? (
+              // Tutor-specific workspace KPIs
+              [
+                { label: "Total Tutors", value: kpis.tutors, sub: "All registered tutors", color: "text-blue-500" },
+                { label: "Active Tutors", value: users.filter(u => u.role === "tutor" && u.status === "Active").length, sub: "Actively teaching", color: "text-emerald-500" },
+                { label: "Pending Verification", value: kpis.pendingVer, sub: "Awaiting approval", color: "text-amber-500" },
+                { label: "Suspended Tutors", value: users.filter(u => u.role === "tutor" && u.status === "Suspended").length, sub: "Restricted list", color: "text-rose-500" },
+                { label: "Courses Created", value: Object.values(userDetails).reduce((sum, d) => sum + (d.coursesCount || 0), 0), sub: "Total tutor curriculum", color: "text-purple-500" },
+                { label: "Students Taught", value: "Unavailable", sub: "Calculated from enrollments", color: "text-slate-500" }
+              ].map((kpi, idx) => (
+                <Card key={idx} className="p-4 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
+                  <span className="text-[10px] text-muted-foreground font-black uppercase tracking-wider block">{kpi.label}</span>
+                  <strong className={`text-2xl font-extrabold tracking-tight mt-1 ${kpi.color}`}>{kpi.value}</strong>
+                  <span className="text-[9px] text-muted-foreground/60 block font-semibold mt-1">{kpi.sub}</span>
+                </Card>
+              ))
+            ) : roleFilter === "learner" ? (
+              // Student-specific workspace KPIs
+              [
+                { label: "Total Students", value: kpis.students, sub: "All registered learners", color: "text-purple-500" },
+                { label: "Active Students", value: users.filter(u => (u.role === "learner" || u.role === "student") && u.status === "Active").length, sub: "Actively studying", color: "text-emerald-500" },
+                { label: "New Students (30d)", value: users.filter(u => (u.role === "learner" || u.role === "student") && ((currentTime - new Date(u.createdAt).getTime()) / 86400000) <= 30).length, sub: "Recent registrations", color: "text-blue-500" },
+                { label: "Suspended Students", value: users.filter(u => (u.role === "learner" || u.role === "student") && u.status === "Suspended").length, sub: "Restricted list", color: "text-rose-500" },
+                { label: "Enrollments Count", value: "Unavailable", sub: "Active subscriptions", color: "text-amber-500" },
+                { label: "Learning Activity", value: "Active Now", sub: "Operational state", color: "text-cyan-500" }
+              ].map((kpi, idx) => (
+                <Card key={idx} className="p-4 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
+                  <span className="text-[10px] text-muted-foreground font-black uppercase tracking-wider block">{kpi.label}</span>
+                  <strong className={`text-2xl font-extrabold tracking-tight mt-1 ${kpi.color}`}>{kpi.value}</strong>
+                  <span className="text-[9px] text-muted-foreground/60 block font-semibold mt-1">{kpi.sub}</span>
+                </Card>
+              ))
+            ) : (
+              // Default/Admin KPIs
+              [
+                { label: "Total Users", value: kpis.total, sub: "All accounts", color: "text-primary" },
+                { label: "Active Users", value: kpis.active, sub: `${activeRatioPercent}% rate`, color: "text-emerald-500" },
+                { label: "Suspended Users", value: kpis.suspended, sub: "Restricted list", color: "text-rose-500" },
+                { label: "Administrators", value: kpis.admins, sub: "Platform security", color: "text-cyan-500" }
+              ].map((kpi, idx) => (
+                <Card key={idx} className="p-4 bg-card border border-border/40 space-y-1 shadow-soft flex flex-col justify-between">
+                  <span className="text-[10px] text-muted-foreground font-black uppercase tracking-wider block">{kpi.label}</span>
+                  <strong className={`text-2xl font-extrabold tracking-tight mt-1 ${kpi.color}`}>{kpi.value}</strong>
+                  <span className="text-[9px] text-muted-foreground/60 block font-semibold mt-1">{kpi.sub}</span>
+                </Card>
+              ))
+            )}
           </div>
 
           {/* 2. Bulk operations bar */}

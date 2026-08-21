@@ -36,50 +36,55 @@ export type AdminNavigationGroup = {
 
 export const adminNavigation: AdminNavigationGroup[] = [
   {
-    label: "Website",
-    items: [{ href: "/", label: "Back to website", icon: Globe }],
-  },
-  {
-    label: "Overview",
-    items: [{ href: "/admin", label: "Command center", icon: LayoutDashboard }],
-  },
-  {
-    label: "Operations",
+    label: "OPERATIONS",
     items: [
-      { href: "/admin/users", label: "Users", icon: Users },
-      { href: "/admin/tutor-verification", label: "Tutor verification", icon: ShieldCheck },
-      { href: "/admin/courses", label: "Course operations", icon: BookOpenCheck },
-      { href: "/admin/academies", label: "Academy management", icon: School },
-      { href: "/admin/learners", label: "Learner analytics", icon: BarChart3 },
-      { href: "/admin/categories", label: "Catalog taxonomy", icon: FolderTree },
-      { href: "/admin/live-classes", label: "Live classes", icon: Video, pending: true },
+      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admin/dashboard?tab=organizations", label: "Organizations", icon: School },
+      { href: "/admin/dashboard?tab=students", label: "Students", icon: Users },
+      { href: "/admin/dashboard?tab=tutors", label: "Tutors", icon: Users },
     ],
   },
   {
-    label: "Finance",
+    label: "CATALOG",
     items: [
-      { href: "/admin/payments", label: "Payments & payouts", icon: ReceiptText },
-      { href: "/admin/pricing", label: "Pricing", icon: CircleDollarSign, pending: true },
-      { href: "/admin/offers", label: "Offers & coupons", icon: Tags, pending: true },
+      { href: "/admin/dashboard?tab=courses", label: "Courses", icon: BookOpenCheck },
+      { href: "/admin/dashboard?tab=categories", label: "Categories", icon: FolderTree },
     ],
   },
   {
-    label: "Platform",
+    label: "COMMERCE",
     items: [
-      { href: "/admin/communication", label: "Support & broadcast", icon: MessagesSquare },
-      { href: "/admin/cms", label: "Content management", icon: FileText, pending: true },
-      { href: "/admin/analytics", label: "Analytics", icon: ChartNoAxesCombined },
-      { href: "/admin/ai", label: "AI controls", icon: Bot, pending: true },
+      { href: "/admin/dashboard?tab=payments", label: "Payments", icon: ReceiptText },
+      { href: "/admin/dashboard?tab=offers", label: "Coupons & Offers", icon: Tags },
     ],
   },
   {
-    label: "Governance",
+    label: "FINANCE",
     items: [
-      { href: "/admin/roles", label: "Roles & access", icon: ShieldCheck, pending: true },
-      { href: "/admin/audit-logs", label: "Audit trail", icon: ClipboardList, pending: true },
-      { href: "/admin/settings", label: "Platform settings", icon: Settings },
-      { href: "/admin/reports", label: "Moderation reports", icon: BarChart3, pending: true },
-      { href: "/admin/policies", label: "Legal & compliance", icon: Scale },
+      { href: "/admin/dashboard?tab=finance", label: "Finance", icon: CircleDollarSign },
+    ],
+  },
+  {
+    label: "PLATFORM",
+    items: [
+      { href: "/admin/dashboard?tab=certificates", label: "Certificates", icon: ShieldCheck },
+      { href: "/admin/dashboard?tab=cms", label: "CMS", icon: FileText },
+      { href: "/admin/dashboard?tab=analytics", label: "Analytics", icon: ChartNoAxesCombined },
+    ],
+  },
+  {
+    label: "SECURITY",
+    items: [
+      { href: "/admin/dashboard?tab=reports", label: "Reports", icon: BarChart3 },
+      { href: "/admin/dashboard?tab=audit-logs", label: "Audit Logs", icon: ClipboardList },
+      { href: "/admin/dashboard?tab=security", label: "Security", icon: ShieldCheck },
+    ],
+  },
+  {
+    label: "SYSTEM",
+    items: [
+      { href: "/admin/dashboard?tab=settings", label: "Settings", icon: Settings },
+      { href: "/admin/dashboard?tab=system-health", label: "System Health", icon: Bot },
     ],
   },
 ];

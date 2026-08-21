@@ -59,8 +59,8 @@ export default function LoginPage() {
     if (isAuthenticated && user) {
       if (user.role === "tutor") {
         router.replace("/tutor/dashboard");
-      } else if (user.role === "admin") {
-        router.replace("/admin/dashboard");
+      } else if (user.role === "admin" || user.role === "super-admin") {
+        router.replace("/");
       } else {
         router.replace("/student/dashboard");
       }
@@ -110,7 +110,7 @@ export default function LoginPage() {
       const isComplete = result.complete !== false && userObj?.complete !== false;
 
       if (role === "admin" || role === "super-admin") {
-        router.replace("/admin/dashboard");
+        router.replace("/");
       } else if (role === "tutor") {
         if (isComplete) {
           router.replace("/tutor/dashboard");

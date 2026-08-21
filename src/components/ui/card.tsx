@@ -7,6 +7,7 @@ import { Star, Award, Check, ArrowRight, ArrowUpRight, ArrowDownRight, Calendar,
 import { toast } from "sonner";
 import { cn } from "../../utils/cn";
 import { formatCurrency } from "../../utils/formatCurrency";
+import { getDefaultPricingRule } from "../../features/payments/services/marketplaceService";
 
 // ==========================================
 // 1. BASE CARD CONTAINER
@@ -555,6 +556,12 @@ export function CourseCard({
 
   const { fitClass, bgClass, scaleClass } = getImageFitMode(imageSrc);
 
+  const rules = getDefaultPricingRule(category);
+  const discountPercent = rules.defaultDiscount || 0;
+  const offerPrice = discountPercent > 0 
+    ? Math.round(price * (1 - discountPercent / 100))
+    : price;
+
   return (
     <Link href={`/courses/${id}`} className="block h-full">
       <Card
@@ -648,9 +655,27 @@ export function CourseCard({
 
           {/* Pricing & CTA */}
           <div className="flex items-center justify-between border-t border-border/40 pt-3 mt-1">
-            <span className="text-base font-heading font-extrabold text-foreground tracking-tight">
-              {price === 0 ? "Free" : formatCurrency(price)}
-            </span>
+            <div className="flex flex-col text-left">
+              {price === 0 ? (
+                <span className="text-base font-heading font-extrabold text-foreground tracking-tight">Free</span>
+              ) : discountPercent > 0 ? (
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-base font-heading font-extrabold text-foreground tracking-tight">
+                    {formatCurrency(offerPrice)}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground line-through font-medium">
+                    {formatCurrency(price)}
+                  </span>
+                  <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded uppercase">
+                    {discountPercent}% OFF
+                  </span>
+                </div>
+              ) : (
+                <span className="text-base font-heading font-extrabold text-foreground tracking-tight">
+                  {formatCurrency(price)}
+                </span>
+              )}
+            </div>
 
             <span className="w-8 h-8 rounded-button bg-primary/10 hover:bg-primary text-primary hover:text-white flex items-center justify-center transition-colors cursor-pointer select-none">
               <ArrowRight size={14} />

@@ -51,13 +51,27 @@ export default function CreateCoursePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- level check is for initial mount validation only
   }, []);
 
+  // Category Pricing Rule state
+  const [minAllowedPrice, setMinAllowedPrice] = useState(1000);
+  const [maxAllowedPrice, setMaxAllowedPrice] = useState(25000);
+  const [recommendedPrice, setRecommendedPrice] = useState(1499);
+  const [tutorBaseEarning, setTutorBaseEarning] = useState(1200);
+
   useEffect(() => {
-    let calculatedPrice = "999";
-    if (level === "Intermediate") calculatedPrice = "1299";
-    if (level === "Advanced") calculatedPrice = "1499";
-    if (category === "AI/ML" || category === "AI Tools") calculatedPrice = "1999";
-    setPrice(calculatedPrice);
-  }, [category, level]);
+    const cats = MarketplaceService.getCategories();
+    const rule = cats.find(c => 
+      c.name === category || 
+      c.id === category || 
+      c.id === category.toLowerCase().replace(/[&\s]+/g, "-").replace(/[^\w\-]+/g, "")
+    );
+    if (rule) {
+      setMinAllowedPrice(rule.minPrice || 500);
+      setMaxAllowedPrice(rule.maxPrice || 25000);
+      setRecommendedPrice(rule.recommendedPrice || 999);
+      setTutorBaseEarning((rule as any).tutorBaseEarning || Math.round((rule.recommendedPrice || 999) * 0.8));
+      setPrice(String(rule.recommendedPrice || 999));
+    }
+  }, [category]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -147,6 +161,16 @@ export default function CreateCoursePage() {
 
     if (!title.trim() || !category || !level) {
       toast.error("Please fill all required fields");
+      return;
+    }
+
+    const numericPrice = parseFloat(price) || 0;
+    if (numericPrice < minAllowedPrice) {
+      toast.error(`Minimum price for ${category} courses is ₹${minAllowedPrice}.`);
+      return;
+    }
+    if (numericPrice > maxAllowedPrice) {
+      toast.error(`Maximum price for ${category} courses is ₹${maxAllowedPrice}.`);
       return;
     }
 
@@ -269,10 +293,22 @@ export default function CreateCoursePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] text-muted-foreground font-bold uppercase">Course Price (INR)</label>
-              <div className="w-full h-10 bg-muted/20 border border-border rounded-lg text-foreground text-xs px-3 flex items-center font-mono select-none justify-between">
-                <span>₹{price}</span>
-                <span className="text-[8px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-heading uppercase font-bold tracking-wider">Platform Controlled</span>
+              <label className="text-[10px] text-muted-foreground font-bold uppercase">Course Price (INR) *</label>
+              <input
+                type="number"
+                min={minAllowedPrice}
+                max={maxAllowedPrice}
+                className="w-full h-10 bg-background border border-border rounded-lg text-foreground text-xs px-3 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                required
+              />
+              <div className="bg-muted/35 p-3 rounded-lg border border-border/50 text-[10px] text-muted-foreground space-y-1.5 mt-2">
+                <p className="font-bold text-foreground">COURSE PRICING</p>
+                <p>Recommended selling price: <span className="font-bold text-foreground">₹{recommendedPrice.toLocaleString("en-IN")}</span></p>
+                <p>Your expected earning: <span className="font-bold text-emerald-500">₹{tutorBaseEarning.toLocaleString("en-IN")}</span></p>
+                <p>Allowed range: <span className="font-bold text-foreground">₹{minAllowedPrice.toLocaleString("en-IN")} - ₹{maxAllowedPrice.toLocaleString("en-IN")}</span></p>
+                <p>Student offer: <span className="text-primary font-semibold">according to applicable offer rules</span></p>
               </div>
             </div>
           </div>

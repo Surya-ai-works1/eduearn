@@ -6,6 +6,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { PublicHeader } from "./PublicHeader";
 import { TutorHeader } from "./TutorHeader";
 import { StudentHeader } from "./StudentHeader";
+import { AdminOSNavbar } from "./AdminOSNavbar";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -16,31 +17,29 @@ export function Navbar() {
     return null;
   }
 
-  // Exclude tutor onboarding and registration sub-flows
-  if (pathname?.startsWith("/tutor/onboarding")) {
+  // Exclude onboarding sub-flows
+  if (pathname?.startsWith("/tutor/onboarding") || pathname?.startsWith("/complete-profile")) {
     return null;
   }
 
   if (isAuthenticated && user) {
-    // If the authenticated role is admin/super-admin, do not render public navbar (will redirect to /admin/dashboard)
     if (user.role === "admin" || user.role === "super-admin") {
-      return null;
+      return <AdminOSNavbar />;
     }
 
-    if (user.role === "tutor") {
+    if (user.role === "tutor" && pathname?.startsWith("/tutor")) {
       return <TutorHeader />;
     }
 
-    const isDashboard =
-      pathname?.includes("/dashboard") ||
+    const isStudentDashboard =
       pathname?.startsWith("/student") ||
       pathname?.startsWith("/learn");
 
-    if (isDashboard) {
+    if (isStudentDashboard) {
       return <StudentHeader />;
     }
   }
 
-  // Fallback to Public Marketplace Header
+  // Fallback to Public Marketplace Header for public routes (/, /courses, /tutors, etc.)
   return <PublicHeader />;
 }

@@ -16,6 +16,11 @@ export interface MarketplaceCategory {
   name: string;
   status: "Enabled" | "Disabled";
   subcategories: SubCategoryItem[];
+  minPrice?: number;
+  recommendedPrice?: number;
+  maxPrice?: number;
+  platformCommission?: number;
+  defaultDiscount?: number;
 }
 
 const LOCAL_STORAGE_KEY = "eduearn_marketplace_categories";
@@ -529,21 +534,120 @@ export const SEED_CATEGORIES: MarketplaceCategory[] = [
   }
 ];
 
+export interface CategoryPricingRule {
+  minPrice: number;
+  recommendedPrice: number;
+  maxPrice: number;
+  platformCommission: number;
+  defaultDiscount: number;
+}
+
+export function getDefaultPricingRule(categoryNameOrId: string): CategoryPricingRule {
+  if (typeof window !== "undefined") {
+    try {
+      const cached = localStorage.getItem("eduearn_admin_categories") || localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (cached) {
+        const list = JSON.parse(cached);
+        const normId = (categoryNameOrId || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+        const match = list.find((c: any) => 
+          c.id === normId || 
+          c.name.toLowerCase() === categoryNameOrId.toLowerCase() ||
+          c.id === categoryNameOrId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+        );
+        if (match) {
+          return {
+            minPrice: match.minPrice || match.min_price || 500,
+            recommendedPrice: match.recommendedPrice || match.recommended_price || 999,
+            maxPrice: match.maxPrice || match.max_price || 25000,
+            platformCommission: match.platformCommission || match.platform_commission || 15,
+            defaultDiscount: match.defaultDiscount || match.default_discount || 10
+          };
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to read dynamic pricing rules from localStorage cached values:", err);
+    }
+  }
+
+  const norm = (categoryNameOrId || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (norm.includes("programming") || norm.includes("technology") || norm.includes("coding") || norm.includes("webdevelopment")) {
+    return { minPrice: 1500, recommendedPrice: 1800, maxPrice: 25000, platformCommission: 16.67, defaultDiscount: 10 };
+  }
+  if (norm.includes("business") || norm.includes("marketing") || norm.includes("finance")) {
+    return { minPrice: 1000, recommendedPrice: 1400, maxPrice: 20000, platformCommission: 14.28, defaultDiscount: 10 };
+  }
+  if (norm.includes("music") || norm.includes("dance")) {
+    return { minPrice: 1200, recommendedPrice: 1999, maxPrice: 15000, platformCommission: 15, defaultDiscount: 15 };
+  }
+  if (norm.includes("creative") || norm.includes("design") || norm.includes("video") || norm.includes("art")) {
+    return { minPrice: 800, recommendedPrice: 1200, maxPrice: 15000, platformCommission: 16.67, defaultDiscount: 10 };
+  }
+  if (norm.includes("science") || norm.includes("math")) {
+    return { minPrice: 600, recommendedPrice: 900, maxPrice: 10000, platformCommission: 11.11, defaultDiscount: 5 };
+  }
+  return { minPrice: 500, recommendedPrice: 700, maxPrice: 8000, platformCommission: 14.28, defaultDiscount: 10 };
+}
+
 export const MarketplaceService = {
   getCategories(): MarketplaceCategory[] {
-    if (typeof window === "undefined") {
-      return SEED_CATEGORIES;
+    let raw: MarketplaceCategory[] = SEED_CATEGORIES;
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (cached) {
+        try {
+          raw = JSON.parse(cached);
+        } catch {
+          raw = SEED_CATEGORIES;
+        }
+      } else {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(SEED_CATEGORIES));
+      }
+
+      // Authoritative Supabase background sync trigger
+      const win = window as any;
+      if (!win.__eduearn_synced_pricing) {
+        win.__eduearn_synced_pricing = true;
+        try {
+          const { BusinessRulesDb } = require("../../../lib/businessRulesDb");
+          BusinessRulesDb.getCategoryRules().then((rules: any[]) => {
+            const currentCached = localStorage.getItem(LOCAL_STORAGE_KEY);
+            const list = currentCached ? JSON.parse(currentCached) : SEED_CATEGORIES;
+            const updated = list.map((c: any) => {
+              const rule = rules.find(r => r.id === c.id || r.name.toLowerCase() === c.name.toLowerCase());
+              if (rule) {
+                return {
+                  ...c,
+                  status: rule.status === "Active" ? "Enabled" : "Disabled",
+                  minPrice: rule.minPrice,
+                  recommendedPrice: rule.recommendedSellingPrice,
+                  maxPrice: rule.maxPrice,
+                  platformCommission: rule.platformCommission,
+                  defaultDiscount: rule.defaultDiscount
+                };
+              }
+              return c;
+            });
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+            window.dispatchEvent(new Event("storage"));
+          }).catch(console.error);
+        } catch (err) {
+          console.error("Async pull from Supabase failed:", err);
+        }
+      }
     }
-    const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!cached) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(SEED_CATEGORIES));
-      return SEED_CATEGORIES;
-    }
-    try {
-      return JSON.parse(cached);
-    } catch {
-      return SEED_CATEGORIES;
-    }
+    
+    // Inject default pricing rules if missing
+    return raw.map(c => {
+      const defaults = getDefaultPricingRule(c.name || c.id);
+      return {
+        ...c,
+        minPrice: c.minPrice ?? defaults.minPrice,
+        recommendedPrice: c.recommendedPrice ?? defaults.recommendedPrice,
+        maxPrice: c.maxPrice ?? defaults.maxPrice,
+        platformCommission: c.platformCommission ?? defaults.platformCommission,
+        defaultDiscount: c.defaultDiscount ?? defaults.defaultDiscount
+      };
+    });
   },
 
   saveCategories(categories: MarketplaceCategory[]): void {
@@ -552,6 +656,33 @@ export const MarketplaceService = {
     
     // Broadcast change to other windows/tabs
     window.dispatchEvent(new Event("storage"));
+
+    // Push to Supabase asynchronously in the background
+    try {
+      const { BusinessRulesDb } = require("../../../lib/businessRulesDb");
+      BusinessRulesDb.getCategoryRules().then((rules: any[]) => {
+        const updatedRules = categories.map(c => {
+          const existing = rules.find(r => r.id === c.id);
+          const tutorBaseEarning = existing?.tutorBaseEarning ?? (c.recommendedPrice ? Math.round(c.recommendedPrice * 0.8) : 1500);
+          const discountFunding = existing?.discountFunding ?? "Platform-funded";
+          return {
+            id: c.id,
+            name: c.name,
+            status: c.status === "Enabled" ? "Active" : "Inactive",
+            tutorBaseEarning,
+            recommendedSellingPrice: c.recommendedPrice ?? 1800,
+            minPrice: c.minPrice ?? 1500,
+            maxPrice: c.maxPrice ?? 25000,
+            platformCommission: c.platformCommission ?? 16.67,
+            defaultDiscount: c.defaultDiscount ?? 10,
+            discountFunding
+          };
+        });
+        BusinessRulesDb.saveCategoryRules(updatedRules).catch(console.error);
+      }).catch(console.error);
+    } catch (err) {
+      console.error("Async push to Supabase failed:", err);
+    }
   },
 
   // Category Actions

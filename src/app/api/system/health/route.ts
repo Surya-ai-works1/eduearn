@@ -1,51 +1,56 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
-  const uptime = process.uptime();
-  const memoryUsage = process.memoryUsage();
-  
-  // Estimate Database, Storage, and backup logs safely from mock fallback checks
-  const isDev = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEV_MODE === "true";
-  
-  return NextResponse.json({
-    status: "healthy",
-    database: {
-      status: "connected",
-      latencyMs: 12,
-      databaseSizeGb: 1.1
-    },
-    storage: {
-      status: "active",
-      provider: "Supabase S3 Bucket",
-      usedPercentage: 35.8
-    },
-    memory: {
-      rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
-      heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
-      heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
-      external: `${Math.round(memoryUsage.external / 1024 / 1024)} MB`
-    },
-    uptime: `${Math.round(uptime)} seconds`,
-    environment: process.env.NODE_ENV || "production",
-    buildVersion: "v1.4.5",
-    commitHash: "ee89b9d4c0b29ff78e123689c104ab4",
-    apiLatencyMs: 14,
-    connectedServices: {
-      supabase: "online",
-      stripe: "online",
-      razorpay: "online",
-      brevoSMTP: "online",
-      firebaseMessaging: "online"
-    },
-    lastBackup: {
-      timestamp: new Date(Date.now() - 16 * 3600 * 1000).toLocaleString(), // 16 hours ago
-      integrity: "verified",
-      size: "3.2 GB"
-    },
-    deploymentMode: "SaaS Tenant-Isolated Multi-Region"
-  }, {
-    headers: {
-      "Cache-Control": "no-store, max-age=0, must-revalidate"
+  const startTime = Date.now();
+  let dbStatus: "CONNECTED" | "DEGRADED" | "NOT CONNECTED" = "NOT CONNECTED";
+  let latencyMs = 0;
+  let dbError: string | null = null;
+  let totalProfiles = 0;
+  try {
+    const supabase = await createClient();
+    if (!supabase) {
+      throw new Error("Supabase client is not configured");
     }
+    const { count, error } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true });
+
+    latencyMs = Date.now() - startTime;
+
+    if (error) {
+      dbStatus = "DEGRADED";
+      dbError = error.message;
+    } else {
+      dbStatus = latencyMs > 2000 ? "DEGRADED" : "CONNECTED";
+      totalProfiles = count ?? 0;
+    }
+  } catch (err: any) {
+    latencyMs = Date.now() - startTime;
+    dbStatus = "NOT CONNECTED";
+    dbError = err.message || "Failed to reach database";
+  }
+
+  const overallStatus = dbStatus === "CONNECTED" ? "CONNECTED" : dbStatus === "DEGRADED" ? "DEGRADED" : "NOT CONNECTED";
+
+  return NextResponse.json({
+    status: overallStatus,
+    timestamp: new Date().toISOString(),
+    database: {
+      status: dbStatus,
+      latencyMs,
+      error: dbError,
+      profilesCount: dbStatus === "CONNECTED" ? totalProfiles : undefined,
+    },
+    services: {
+      supabase: dbStatus,
+      authentication: dbStatus === "CONNECTED" ? "OPERATIONAL" : "DEGRADED",
+    },
+    environment: process.env.NODE_ENV || "development",
+  }, {
+    status: dbStatus === "CONNECTED" ? 200 : 503,
+    headers: {
+      "Cache-Control": "no-store, max-age=0, must-revalidate",
+    },
   });
 }

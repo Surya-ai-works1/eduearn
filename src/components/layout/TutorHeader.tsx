@@ -12,12 +12,11 @@ import {
   Bell,
   ChevronDown,
   LogOut,
-  Shield,
   User as UserIcon,
   Settings,
   HelpCircle,
   FileText,
-  Coins
+  LayoutDashboard
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -200,7 +199,7 @@ export function TutorHeader() {
   const resolvedMainNav = [
     { title: "Tutor Studio", href: "/tutor/studio" },
     { title: "Dashboard", href: "/tutor/dashboard" },
-    { title: "Courses", href: "/tutor/dashboard?tab=courses" },
+    { title: "Courses", href: "/tutor/courses" },
     { title: "Students", href: "/tutor/dashboard?tab=students" },
     { title: "Live Classes", href: "/tutor/dashboard?tab=live-classes" },
     { title: "Analytics", href: "/tutor/dashboard?tab=analytics" },
@@ -239,15 +238,20 @@ export function TutorHeader() {
           {/* Desktop Left Nav Wrapper */}
           <div className="hidden lg:flex items-center gap-6 relative pointer-events-auto">
             <nav className="flex items-center gap-6">
-              {resolvedMainNav.map((item, idx) => (
-                <Link
-                  key={idx}
-                  href={item.href}
-                  className="text-xs font-bold text-foreground hover:text-primary transition-colors cursor-pointer py-1"
-                >
-                  {item.title}
-                </Link>
-              ))}
+              {resolvedMainNav.map((item: any, idx) => {
+                return (
+                  <Link
+                    key={idx}
+                    href={item.href}
+                    className={cn(
+                      "text-xs font-bold text-foreground hover:text-primary transition-colors cursor-pointer py-1",
+                      pathname === item.href && "text-primary"
+                    )}
+                  >
+                    {item.title}
+                  </Link>
+                );
+              })}
             </nav>
           </div>
 
@@ -362,16 +366,25 @@ export function TutorHeader() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.95 }}
                         transition={{ duration: 0.15, ease: "easeOut" }}
-                        className="absolute right-0 mt-3 w-56 bg-card border border-border/80 shadow-floating rounded-modal p-2.5 text-foreground flex flex-col z-[99999]"
+                        className="absolute right-0 mt-3 w-56 bg-card border border-border/80 shadow-floating rounded-modal p-2 text-foreground flex flex-col z-[99999]"
                       >
                         <div className="px-3 py-2 border-b border-border/60 select-none mb-1.5">
-                          <p className="text-xs font-extrabold truncate text-foreground">{tutorProfile?.fullName || user?.fullName}</p>
-                          <p className="text-[10px] text-muted-foreground font-semibold truncate mt-0.5">{tutorProfile?.email || user?.email}</p>
+                          <p className="text-xs font-extrabold truncate text-foreground">{tutorProfile?.fullName || user?.fullName || "Tutor"}</p>
+                          <p className="text-[10px] text-muted-foreground font-semibold truncate mt-0.5">{tutorProfile?.email || user?.email || "tutor@eduearn.com"}</p>
                         </div>
                         
+                        <Link
+                          href="/tutor/dashboard"
+                          onClick={() => setActiveDropdown(null)}
+                          className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-button transition-colors cursor-pointer"
+                        >
+                          <LayoutDashboard size={14} className="text-primary shrink-0" />
+                          <span>Dashboard</span>
+                        </Link>
+
                         <button
                           onClick={openProfileDrawer}
-                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-button transition-colors w-full text-left cursor-pointer"
+                          className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-button transition-colors w-full text-left cursor-pointer bg-transparent border-none"
                         >
                           <UserIcon size={14} className="text-primary shrink-0" />
                           <span>Profile</span>
@@ -380,18 +393,70 @@ export function TutorHeader() {
                         <Link
                           href="/tutor/settings"
                           onClick={() => setActiveDropdown(null)}
-                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-button transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-button transition-colors"
                         >
                           <Settings size={14} className="text-primary shrink-0" />
                           <span>Settings</span>
                         </Link>
+
+                        <Link
+                          href="/tutor/notifications"
+                          onClick={() => setActiveDropdown(null)}
+                          className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-button transition-colors"
+                        >
+                          <Bell size={14} className="text-primary shrink-0" />
+                          <span>Notifications</span>
+                        </Link>
+
+                        {/* Divider */}
+                        <div className="h-px bg-border/60 my-1.5" />
+
+                        {/* Terms/Policies */}
+                        <Link
+                          href="/privacy"
+                          onClick={() => setActiveDropdown(null)}
+                          className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-button transition-colors"
+                        >
+                          <FileText size={14} className="text-muted-foreground/60 shrink-0" />
+                          <span>Privacy Policy</span>
+                        </Link>
+
+                        <Link
+                          href="/terms"
+                          onClick={() => setActiveDropdown(null)}
+                          className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-button transition-colors"
+                        >
+                          <FileText size={14} className="text-muted-foreground/60 shrink-0" />
+                          <span>Terms & Conditions</span>
+                        </Link>
+
+                        <Link
+                          href="/refunds"
+                          onClick={() => setActiveDropdown(null)}
+                          className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-button transition-colors"
+                        >
+                          <FileText size={14} className="text-muted-foreground/60 shrink-0" />
+                          <span>Refund Policy</span>
+                        </Link>
+
+                        <Link
+                          href="/help"
+                          onClick={() => setActiveDropdown(null)}
+                          className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-button transition-colors"
+                        >
+                          <HelpCircle size={14} className="text-muted-foreground/60 shrink-0" />
+                          <span>Help Center</span>
+                        </Link>
+
+                        {/* Divider */}
+                        <div className="h-px bg-border/60 my-1.5" />
 
                         <button
                           onClick={async () => {
                             await logout();
                             toast.success("Signed out securely.");
                           }}
-                          className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-destructive hover:bg-destructive/5 rounded-button transition-colors cursor-pointer w-full text-left border-t border-border/40 pt-2.5"
+                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-destructive hover:bg-destructive/5 rounded-button transition-colors cursor-pointer w-full text-left bg-transparent border-none"
                         >
                           <LogOut size={14} className="shrink-0" />
                           <span>Logout</span>
@@ -443,15 +508,18 @@ export function TutorHeader() {
                   </div>
 
                   <nav className="flex flex-col gap-4">
-                    {resolvedMainNav.map((item, idx) => (
-                      <Link
-                        key={idx}
-                        href={item.href}
-                        className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors border-b border-border/40 pb-2"
-                      >
-                        {item.title}
-                      </Link>
-                    ))}
+                    {resolvedMainNav.map((item: any, idx) => {
+                      return (
+                        <Link
+                          key={idx}
+                          href={item.href}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors border-b border-border/40 pb-2"
+                        >
+                          {item.title}
+                        </Link>
+                      );
+                    })}
                   </nav>
                 </div>
 
