@@ -1,29 +1,25 @@
 # Onboarding, RC1 Stability, Sparky AI, & Supabase Migration Checklist
 
 ## Authentication & Email Verification Flow
-- `[x]` Read email dynamically from URL query parameter or user state in `verify-email/page.tsx` to remove the `"name@college.edu"` placeholder.
-- `[x]` Replace mock resend verification with a live action calling `supabase.auth.resend`.
-- `[x]` Add verification status checker (`I've Verified My Email`) calling `supabase.auth.getUser()`.
-- `[x]` Implement unverified email check and redirect guard inside middleware `src/proxy.ts`.
-- `[x]` Implement dynamic confirmed email auto-bypass logic inside middleware and page mount hooks.
-- `[x]` Update redirects in `signUp` and `resend` to point to `/complete-profile` instead of invalid `/verify-email/success` path.
-- `[x]` Run `npm run lint` -> 0 errors.
-- `[x]` Run `npx tsc --noEmit` -> 0 errors.
-- `[x]` Run `npm run build` -> build completed successfully.
+- `[/]` Read email dynamically from URL query parameter or user state in `verify-email/page.tsx` to remove the `"name@college.edu"` placeholder.
+- `[/]` Replace mock resend verification with a live action calling `supabase.auth.resend`.
+- `[/]` Add verification status checker (`I've Verified My Email`) calling `supabase.auth.getUser()`.
+- `[/]` Implement unverified email check and redirect guard inside middleware `src/proxy.ts`.
+- `[/]` Implement dynamic confirmed email auto-bypass logic inside middleware and page mount hooks.
+- `[/]` Update redirects in `signUp` and `resend` to point to `/complete-profile` instead of invalid `/verify-email/success` path.
+- `[/]` Run `npm run lint` -> 0 errors.
+- `[/]` Run `npx tsc --noEmit` -> 0 errors.
+- `[/]` Run `npm run build` -> build completed successfully.
 
 ## Hostname, CORS, & CSRF Alias Resolution
-- `[x]` Update CSRF verification inside `src/proxy.ts` to respect client's `x-forwarded-host` header.
-- `[x]` Configure CSRF matcher to bypass mismatches between Vercel deployments and alias domains (`.vercel.app` checks).
-- `[x]` Update Express backend CORS origin setup inside `backend/index.js` to dynamically allow any `.vercel.app` subdomains.
-- `[x]` Run `npm run lint` -> 0 errors.
-- `[x]` Run `npx tsc --noEmit` -> 0 errors.
-- `[x]` Run `npm run build` -> build completed successfully.
+- `[/]` Update CSRF verification inside `src/proxy.ts` to respect client's `x-forwarded-host` header.
+- `[/]` Configure CSRF matcher to bypass mismatches between Vercel deployments and alias domains (`.vercel.app` checks).
+- `[/]` Update Express backend CORS origin setup inside `backend/index.js` to dynamically allow any `.vercel.app` subdomains.
+- `[/]` Run `npm run lint` -> 0 errors.
+- `[/]` Run `npx tsc --noEmit` -> 0 errors.
+- `[/]` Run `npm run build` -> build completed successfully.
 
 ## Git Configuration & Commit Author Fixes
-- `[x]` Inspect current local/global git configuration (user.name and user.email).
-- `[x]` Configure global and local git settings to match GitHub account exactly (`Surya-ai-works1`).
-- `[x]` Set git author email to verified noreply email: `Surya-ai-works1@users.noreply.github.com`.
-- `[x]` Amend the latest commit author details: `git commit --amend --reset-author --no-edit`.
 - `[x]` Force push the amended commit to origin main branch: `git push --force`.
 - `[x]` Verify amended author and committer headers: `git log -1 --pretty=full`.
 

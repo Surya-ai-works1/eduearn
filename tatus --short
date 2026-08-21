@@ -1,0 +1,50 @@
+warning: in the working copy of 'task.md', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/task.md b/task.md[m
+[1mindex 34a2c84..7a8d658 100644[m
+[1m--- a/task.md[m
+[1m+++ b/task.md[m
+[36m@@ -1,29 +1,25 @@[m
+ # Onboarding, RC1 Stability, Sparky AI, & Supabase Migration Checklist[m
+ [m
+ ## Authentication & Email Verification Flow[m
+[31m-- `[x]` Read email dynamically from URL query parameter or user state in `verify-email/page.tsx` to remove the `"name@college.edu"` placeholder.[m
+[31m-- `[x]` Replace mock resend verification with a live action calling `supabase.auth.resend`.[m
+[31m-- `[x]` Add verification status checker (`I've Verified My Email`) calling `supabase.auth.getUser()`.[m
+[31m-- `[x]` Implement unverified email check and redirect guard inside middleware `src/proxy.ts`.[m
+[31m-- `[x]` Implement dynamic confirmed email auto-bypass logic inside middleware and page mount hooks.[m
+[31m-- `[x]` Update redirects in `signUp` and `resend` to point to `/complete-profile` instead of invalid `/verify-email/success` path.[m
+[31m-- `[x]` Run `npm run lint` -> 0 errors.[m
+[31m-- `[x]` Run `npx tsc --noEmit` -> 0 errors.[m
+[31m-- `[x]` Run `npm run build` -> build completed successfully.[m
+[32m+[m[32m- `[/]` Read email dynamically from URL query parameter or user state in `verify-email/page.tsx` to remove the `"name@college.edu"` placeholder.[m
+[32m+[m[32m- `[/]` Replace mock resend verification with a live action calling `supabase.auth.resend`.[m
+[32m+[m[32m- `[/]` Add verification status checker (`I've Verified My Email`) calling `supabase.auth.getUser()`.[m
+[32m+[m[32m- `[/]` Implement unverified email check and redirect guard inside middleware `src/proxy.ts`.[m
+[32m+[m[32m- `[/]` Implement dynamic confirmed email auto-bypass logic inside middleware and page mount hooks.[m
+[32m+[m[32m- `[/]` Update redirects in `signUp` and `resend` to point to `/complete-profile` instead of invalid `/verify-email/success` path.[m
+[32m+[m[32m- `[/]` Run `npm run lint` -> 0 errors.[m
+[32m+[m[32m- `[/]` Run `npx tsc --noEmit` -> 0 errors.[m
+[32m+[m[32m- `[/]` Run `npm run build` -> build completed successfully.[m
+ [m
+ ## Hostname, CORS, & CSRF Alias Resolution[m
+[31m-- `[x]` Update CSRF verification inside `src/proxy.ts` to respect client's `x-forwarded-host` header.[m
+[31m-- `[x]` Configure CSRF matcher to bypass mismatches between Vercel deployments and alias domains (`.vercel.app` checks).[m
+[31m-- `[x]` Update Express backend CORS origin setup inside `backend/index.js` to dynamically allow any `.vercel.app` subdomains.[m
+[31m-- `[x]` Run `npm run lint` -> 0 errors.[m
+[31m-- `[x]` Run `npx tsc --noEmit` -> 0 errors.[m
+[31m-- `[x]` Run `npm run build` -> build completed successfully.[m
+[32m+[m[32m- `[/]` Update CSRF verification inside `src/proxy.ts` to respect client's `x-forwarded-host` header.[m
+[32m+[m[32m- `[/]` Configure CSRF matcher to bypass mismatches between Vercel deployments and alias domains (`.vercel.app` checks).[m
+[32m+[m[32m- `[/]` Update Express backend CORS origin setup inside `backend/index.js` to dynamically allow any `.vercel.app` subdomains.[m
+[32m+[m[32m- `[/]` Run `npm run lint` -> 0 errors.[m
+[32m+[m[32m- `[/]` Run `npx tsc --noEmit` -> 0 errors.[m
+[32m+[m[32m- `[/]` Run `npm run build` -> build completed successfully.[m
+ [m
+ ## Git Configuration & Commit Author Fixes[m
+[31m-- `[x]` Inspect current local/global git configuration (user.name and user.email).[m
+[31m-- `[x]` Configure global and local git settings to match GitHub account exactly (`Surya-ai-works1`).[m
+[31m-- `[x]` Set git author email to verified noreply email: `Surya-ai-works1@users.noreply.github.com`.[m
+[31m-- `[x]` Amend the latest commit author details: `git commit --amend --reset-author --no-edit`.[m
+ - `[x]` Force push the amended commit to origin main branch: `git push --force`.[m
+ - `[x]` Verify amended author and committer headers: `git log -1 --pretty=full`.[m
+ [m
