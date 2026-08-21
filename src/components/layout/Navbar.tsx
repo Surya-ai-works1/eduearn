@@ -6,6 +6,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { PublicHeader } from "./PublicHeader";
 import { TutorHeader } from "./TutorHeader";
 import { StudentHeader } from "./StudentHeader";
+import { AdminOSNavbar } from "./AdminOSNavbar";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -22,6 +23,10 @@ export function Navbar() {
   }
 
   if (isAuthenticated && user) {
+    if (user.role === "admin" || user.role === "super-admin") {
+      return <AdminOSNavbar />;
+    }
+
     if (user.role === "tutor" && pathname?.startsWith("/tutor")) {
       return <TutorHeader />;
     }

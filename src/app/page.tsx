@@ -28,6 +28,7 @@ import { MobileAppPreview } from "../components/layout/MobileAppPreview";
 import { FaqSection } from "../components/layout/FaqSection";
 import { Newsletter } from "../components/layout/Newsletter";
 import { useAuth } from "../hooks/useAuth";
+import { AdminOperatingSystem } from "../components/admin/AdminOperatingSystem";
 import { cn } from "../utils/cn";
 import { TutorProvider, useTutor } from "../context/TutorContext";
 import { useMemo } from "react";
@@ -716,75 +717,82 @@ export default function RootLandingPage() {
         ]}
       />
 
-      {/* 2. Trusted By logo wall */}
-      <RevealOnScroll direction="fade" delay={0.1}>
-        <TrustedBy />
-      </RevealOnScroll>
+      {/* 2. Conditionally render Admin OS or Student Homepage sections */}
+      {user?.role === "admin" || user?.role === "super-admin" ? (
+        <AdminOperatingSystem />
+      ) : (
+        <>
+          {/* 2. Trusted By logo wall */}
+          <RevealOnScroll direction="fade" delay={0.1}>
+            <TrustedBy />
+          </RevealOnScroll>
 
-      {/* 3. Explore Categories Grid */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <ExploreCategories />
-      </RevealOnScroll>
+          {/* 3. Explore Categories Grid */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <ExploreCategories />
+          </RevealOnScroll>
 
-      {/* 4. Featured Courses catalog */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <FeaturedCourses />
-      </RevealOnScroll>
+          {/* 4. Featured Courses catalog */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <FeaturedCourses />
+          </RevealOnScroll>
 
-      {/* 5. Learning Paths roadmaps */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <LearningPaths />
-      </RevealOnScroll>
+          {/* 5. Learning Paths roadmaps */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <LearningPaths />
+          </RevealOnScroll>
 
-      {/* 6. Top-Rated Tutors Grid */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <TopTutors />
-      </RevealOnScroll>
+          {/* 6. Top-Rated Tutors Grid */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <TopTutors />
+          </RevealOnScroll>
 
-      {/* 7. Live Classes Doubt Sessions */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <LiveClasses />
-      </RevealOnScroll>
+          {/* 7. Live Classes Doubt Sessions */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <LiveClasses />
+          </RevealOnScroll>
 
-      {/* 8. AI Innovation Capabilities */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <AiFeatures />
-      </RevealOnScroll>
+          {/* 8. AI Innovation Capabilities */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <AiFeatures />
+          </RevealOnScroll>
 
-      {/* 9. Become a Tutor CTA */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <BecomeTutor />
-      </RevealOnScroll>
+          {/* 9. Become a Tutor CTA */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <BecomeTutor />
+          </RevealOnScroll>
 
-      {/* 10. Success Stories Testimonials */}
-      <RevealOnScroll direction="fade" delay={0.1}>
-        <SuccessStories />
-      </RevealOnScroll>
+          {/* 10. Success Stories Testimonials */}
+          <RevealOnScroll direction="fade" delay={0.1}>
+            <SuccessStories />
+          </RevealOnScroll>
 
-      {/* 11. Stats Achievements counters */}
-      <RevealOnScroll direction="fade" delay={0.1}>
-        <StatsGrid />
-      </RevealOnScroll>
+          {/* 11. Stats Achievements counters */}
+          <RevealOnScroll direction="fade" delay={0.1}>
+            <StatsGrid />
+          </RevealOnScroll>
 
-      {/* 12. Why Choose EduEarn Feature Grid */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <WhyEduEarn />
-      </RevealOnScroll>
+          {/* 12. Why Choose EduEarn Feature Grid */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <WhyEduEarn />
+          </RevealOnScroll>
 
-      {/* 13. Mobile App Preview mockup */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <MobileAppPreview />
-      </RevealOnScroll>
+          {/* 13. Mobile App Preview mockup */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <MobileAppPreview />
+          </RevealOnScroll>
 
-      {/* 14. Interactive FAQ Accordion */}
-      <RevealOnScroll direction="up" delay={0.15}>
-        <FaqSection />
-      </RevealOnScroll>
+          {/* 14. Interactive FAQ Accordion */}
+          <RevealOnScroll direction="up" delay={0.15}>
+            <FaqSection />
+          </RevealOnScroll>
 
-      {/* 15. Newsletter Subscribe Card */}
-      <RevealOnScroll direction="fade" delay={0.1}>
-        <Newsletter />
-      </RevealOnScroll>
+          {/* 15. Newsletter Subscribe Card */}
+          <RevealOnScroll direction="fade" delay={0.1}>
+            <Newsletter />
+          </RevealOnScroll>
+        </>
+      )}
 
       {/* Watch Demo Mock Dialog Popup */}
       <Dialog

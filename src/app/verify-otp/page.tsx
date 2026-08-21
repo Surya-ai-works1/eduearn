@@ -56,7 +56,7 @@ function VerifyOtpContent() {
         router.push("/complete-profile");
       } else {
         if (sessionUser.role === "admin" || sessionUser.role === "super-admin") {
-          router.push("/admin/dashboard");
+          router.push("/");
         } else if (sessionUser.role === "tutor") {
           router.push("/tutor/dashboard");
         } else {

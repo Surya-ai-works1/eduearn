@@ -83,8 +83,8 @@ export default function RegisterPage() {
       if (result.sessionCreated) {
         console.log("[DIAGNOSTIC] Session created immediately. Redirecting based on role:", result.role);
         const role = result.role;
-        if (role === "admin") {
-          router.replace("/admin/dashboard");
+        if (role === "admin" || role === "super-admin") {
+          router.replace("/");
         } else if (role === "tutor") {
           router.replace("/tutor/dashboard");
         } else {
