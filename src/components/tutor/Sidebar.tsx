@@ -219,7 +219,7 @@ export const TutorSidebar = React.memo(function TutorSidebar({
         </button>
 
         {/* Logo area */}
-        <Link href="/tutor/dashboard" className={`flex items-center gap-2.5 p-4 border-b border-border/40 shrink-0 hover:opacity-90 transition-opacity ${
+        <Link href="/" className={`flex items-center gap-2.5 p-4 border-b border-border/40 shrink-0 hover:opacity-90 transition-opacity ${
           isSidebarCollapsed ? "justify-center" : ""
         }`}>
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
@@ -263,7 +263,7 @@ export const TutorSidebar = React.memo(function TutorSidebar({
               className="fixed inset-y-0 left-0 w-64 bg-card border-r border-border z-50 flex flex-col md:hidden"
             >
               <div className="flex items-center justify-between p-4 border-b border-border/40">
-                <Link href="/tutor/dashboard" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity">
+                <Link href="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity">
                   <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
                     <GraduationCap size={14} className="text-white" />
                   </div>

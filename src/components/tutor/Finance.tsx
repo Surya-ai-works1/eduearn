@@ -8,6 +8,11 @@ import {
   TrendingUp,
   ArrowDownCircle,
   CheckCircle,
+  BookOpen,
+  Plus,
+  Users,
+  Video,
+  BarChart3,
   XCircle,
   Loader2,
   Download,
@@ -30,6 +35,7 @@ import { Button } from "../../components/ui/button";
 import { toast } from "sonner";
 import type { EarningsBalance } from "./types";
 import type { WithdrawalRequest } from "../../features/payments/services/paymentService";
+import { useTutor } from "../../context/TutorContext";
 
 interface FinanceProps {
   earningsBalance: EarningsBalance;
@@ -48,6 +54,7 @@ export const Finance = React.memo(function Finance({
   setWithdrawForm,
   handleWithdrawalRequest,
 }: FinanceProps) {
+  const { handleTabChange } = useTutor();
   // Navigation tabs: "dashboard" | "transactions" | "bank" | "taxes"
   const [activeTab, setActiveTab] = useState<"dashboard" | "transactions" | "bank" | "taxes">("dashboard");
 
@@ -173,20 +180,31 @@ export const Finance = React.memo(function Finance({
       </div>
 
       {/* Top 6 KPI summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 select-none">
         {[
-          { label: "Total Earnings", value: `₹${earningsBalance.total.toLocaleString()}`, color: "text-foreground" },
-          { label: "Available Balance", value: `₹${earningsBalance.available.toLocaleString()}`, color: "text-emerald-500" },
-          { label: "Pending Payouts", value: `₹${earningsBalance.pending.toLocaleString()}`, color: "text-amber-500" },
-          { label: "Lifetime Revenue", value: `₹${(earningsBalance.total + earningsBalance.commission).toLocaleString()}`, color: "text-muted-foreground" },
-          { label: "This Month Earnings", value: `₹${Math.round(earningsBalance.total * 0.35).toLocaleString()}`, color: "text-primary" },
-          { label: "Next Payout Date", value: "Aug 15, 2026", color: "text-violet-600" }
-        ].map((item, idx) => (
-          <Card key={idx} className="p-3 border border-border bg-card shadow-sm flex flex-col justify-between min-h-[85px]">
-            <span className="text-[9px] font-extrabold text-muted-foreground uppercase">{item.label}</span>
-            <h4 className={`text-lg font-extrabold tracking-tight mt-1 ${item.color}`}>{item.value}</h4>
-          </Card>
-        ))}
+          { label: "Total Earnings", value: `₹${earningsBalance.total.toLocaleString()}`, badge: "Lifetime", color: "text-primary", border: "border-primary/20 bg-primary/5", icon: DollarSign },
+          { label: "Available Balance", value: `₹${earningsBalance.available.toLocaleString()}`, badge: "Withdrawable", color: "text-emerald-500", border: "border-emerald-500/20 bg-emerald-500/[0.03]", icon: TrendingUp },
+          { label: "Pending Payouts", value: `₹${earningsBalance.pending.toLocaleString()}`, badge: "In Escrow", color: "text-amber-500", border: "border-amber-500/20 bg-amber-500/[0.03]", icon: Clock },
+          { label: "Lifetime Gross", value: `₹${(earningsBalance.total + earningsBalance.commission).toLocaleString()}`, badge: "Pre-tax", color: "text-muted-foreground", border: "border-border/60 bg-muted/5", icon: Building },
+          { label: "This Month Gross", value: `₹${Math.round(earningsBalance.total * 0.35).toLocaleString()}`, badge: "August", color: "text-indigo-500", border: "border-indigo-500/20 bg-indigo-500/5", icon: Calendar },
+          { label: "Next Payout Cycle", value: "Aug 25, 2026", badge: "Automatic", color: "text-violet-600", border: "border-violet-500/20 bg-violet-500/5", icon: Lock }
+        ].map((item, idx) => {
+          const Icon = item.icon;
+          return (
+            <Card key={idx} className={`p-4 border ${item.border} shadow-soft hover:shadow-md transition-all flex flex-col justify-between min-h-[105px] text-left`}>
+              <div className="flex justify-between items-start">
+                <span className="text-[9px] font-black text-muted-foreground/80 uppercase tracking-wider">{item.label}</span>
+                <span className="text-[8px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-background text-muted-foreground border border-border/40 select-none">
+                  {item.badge}
+                </span>
+              </div>
+              <div className="flex justify-between items-end mt-2.5">
+                <h4 className={`text-base font-black tracking-tight leading-none ${item.color}`}>{item.value}</h4>
+                <Icon size={14} className="text-muted-foreground/60 shrink-0" />
+              </div>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Tabs navigation */}
@@ -391,6 +409,30 @@ export const Finance = React.memo(function Finance({
                   <span>Last Withdrawal</span>
                   <span className="text-foreground font-bold">Yesterday, 11:30 AM</span>
                 </div>
+              </div>
+            </Card>
+
+            {/* Creator Actions Shortcuts */}
+            <Card variant="glass" className="p-5 space-y-3 text-xs font-semibold select-none">
+              <h4 className="text-xs font-bold uppercase text-foreground border-b border-border/60 pb-2 flex items-center gap-1.5">
+                <Plus size={12} className="text-primary" /> Creator Actions
+              </h4>
+              <div className="grid grid-cols-2 gap-2 text-center">
+                {[
+                  { label: "Create Course", action: () => handleTabChange("courses"), bg: "bg-primary/5 border border-primary/20 text-primary hover:bg-primary/10", icon: BookOpen },
+                  { label: "Schedule Live", action: () => handleTabChange("live-classes"), bg: "bg-rose-500/5 border border-rose-500/20 text-rose-500 hover:bg-rose-500/10", icon: Video },
+                  { label: "View Students", action: () => handleTabChange("students"), bg: "bg-sky-500/5 border border-sky-500/20 text-sky-500 hover:bg-sky-500/10", icon: Users },
+                  { label: "View Performance", action: () => handleTabChange("analytics"), bg: "bg-emerald-500/5 border border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/10", icon: BarChart3 }
+                ].map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={item.action}
+                    className={`p-2.5 rounded-xl text-[10px] font-bold cursor-pointer transition flex flex-col items-center gap-1.5 justify-center ${item.bg}`}
+                  >
+                    <item.icon size={12} />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
               </div>
             </Card>
           </div>

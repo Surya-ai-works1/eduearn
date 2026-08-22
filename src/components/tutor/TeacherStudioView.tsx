@@ -23,7 +23,8 @@ import {
   ChevronRight,
   TrendingDown,
   AlertCircle,
-  Award
+  Award,
+  DollarSign
 } from "lucide-react";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
@@ -418,20 +419,26 @@ export function TeacherStudioView({ user, academy }: TeacherStudioViewProps) {
       </div>
 
       {/* Creator Status Area (Mini KPIs) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 select-none">
         {[
-          { label: "My Courses", value: contextCourses.length || 3 },
-          { label: "Active Students", value: contextStudents.length || 124 },
-          { label: "Live Classes", value: contextLiveSessions.length || 3 },
-          { label: "Published Content", value: 14 },
-          { label: "Resource Sales", value: "1,284" },
-          { label: "Average Rating", value: "4.8 ★" },
-        ].map((item, idx) => (
-          <Card key={idx} variant="glass" className="p-3.5 border-border/60 hover:border-primary/20 transition-all select-none">
-            <span className="text-[10px] font-black uppercase text-muted-foreground tracking-wider block">{item.label}</span>
-            <h4 className="text-lg font-black text-foreground mt-0.5">{item.value}</h4>
-          </Card>
-        ))}
+          { label: "My Courses", value: contextCourses.length || 3, icon: BookOpen, color: "text-primary bg-primary/10" },
+          { label: "Active Students", value: contextStudents.length || 124, icon: Users, color: "text-indigo-500 bg-indigo-500/10" },
+          { label: "Live Classes", value: contextLiveSessions.length || 3, icon: Video, color: "text-rose-500 bg-rose-500/10" },
+          { label: "Published Content", value: 14, icon: ClipboardList, color: "text-sky-500 bg-sky-500/10" },
+          { label: "Resource Sales", value: "1,284", icon: TrendingUp, color: "text-emerald-500 bg-emerald-500/10" },
+          { label: "Average Rating", value: "4.8 ★", icon: Award, color: "text-amber-500 bg-amber-500/10" },
+        ].map((item, idx) => {
+          const Icon = item.icon;
+          return (
+            <Card key={idx} variant="glass" className="p-4 border-border/60 hover:border-primary/20 hover:shadow-sm transition-all flex items-center justify-between min-w-0">
+              <div className="min-w-0 space-y-1">
+                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider block">{item.label}</span>
+                <h4 className="text-base font-black text-foreground mt-0.5 leading-none">{item.value}</h4>
+              </div>
+              <span className={`p-2 rounded-lg shrink-0 ml-3 ${item.color}`}><Icon size={14} /></span>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Configuration-driven Tabs for other School Tuition features */}
@@ -519,6 +526,36 @@ export function TeacherStudioView({ user, academy }: TeacherStudioViewProps) {
                   </div>
                 </Card>
               </div>
+
+              {/* Pending Tasks & Urgent Action Items widget */}
+              <Card variant="glass" className="p-4 border-border/80 space-y-3">
+                <h4 className="text-xs font-black uppercase text-foreground flex items-center gap-1.5 select-none font-heading">
+                  <ClipboardList size={14} className="text-primary" /> Urgent Tasks &amp; Actions
+                </h4>
+                <div className="divide-y divide-border/20 text-xs font-semibold text-muted-foreground">
+                  <div className="py-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      <span>Review &amp; grade: <strong>Python Functions Assignment</strong> (Aarav Kumar)</span>
+                    </div>
+                    <button onClick={() => handleTabChange("assignments")} className="text-[10px] text-primary font-bold hover:underline bg-transparent border-none cursor-pointer">Grade</button>
+                  </div>
+                  <div className="py-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      <span>Unresolved doubts: <strong>"decorators returning arguments"</strong> (Aarav Kumar)</span>
+                    </div>
+                    <button onClick={() => handleTabChange("students")} className="text-[10px] text-primary font-bold hover:underline bg-transparent border-none cursor-pointer">Resolve</button>
+                  </div>
+                  <div className="py-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                      <span>Course Approval Pending: <strong>Advanced React Architecture</strong></span>
+                    </div>
+                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-500">Draft</span>
+                  </div>
+                </div>
+              </Card>
             </div>
 
             {/* Right: Quick Actions */}
@@ -527,21 +564,26 @@ export function TeacherStudioView({ user, academy }: TeacherStudioViewProps) {
                 <Sparkles size={15} className="text-primary" />
                 Quick Actions
               </h3>
-              <Card variant="glass" className="p-4 border-border/80 grid grid-cols-2 gap-2 select-none">
+              <Card variant="glass" className="p-4 border-border/80 flex flex-col gap-2.5 select-none">
                 {[
-                  { label: "Create Course", tab: "courses" },
-                  { label: "Upload Video", tab: "resources" },
-                  { label: "Create Resource", tab: "resources" },
-                  { label: "Create Short", tab: "resources" },
-                  { label: "Schedule Live", tab: "live-classes" },
-                  { label: "Doubt Session", tab: "live-classes" },
+                  { label: "Create Course", tab: "courses", icon: BookOpen, primary: true },
+                  { label: "Schedule Live Class", tab: "live-classes", icon: Video, primary: true },
+                  { label: "Upload Video / Lesson", tab: "resources", icon: Plus, primary: false },
+                  { label: "View Students Center", tab: "students", icon: Users, primary: false },
+                  { label: "View Performance Analytics", tab: "analytics", icon: TrendingUp, primary: false },
+                  { label: "Open Payout Wallet", tab: "finance", icon: DollarSign, primary: false },
                 ].map((act, idx) => (
                   <button
                     key={idx}
                     onClick={() => handleTabChange(act.tab)}
-                    className="p-2.5 bg-muted/30 border border-border/40 hover:border-primary/20 hover:bg-muted/60 transition text-foreground text-[10.5px] font-bold rounded-xl cursor-pointer select-none text-center"
+                    className={`w-full flex items-center gap-3 p-3 border transition text-xs font-bold rounded-xl cursor-pointer select-none text-left ${
+                      act.primary
+                        ? "bg-primary text-white border-primary hover:bg-primary/90 shadow-soft"
+                        : "bg-muted/30 border-border/40 hover:border-primary/20 hover:bg-muted/60 text-foreground"
+                    }`}
                   >
-                    {act.label}
+                    <act.icon size={14} className={act.primary ? "text-white" : "text-primary"} />
+                    <span>{act.label}</span>
                   </button>
                 ))}
               </Card>

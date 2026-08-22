@@ -1526,37 +1526,41 @@ export const CourseManager = React.memo(function CourseManager({
               </div>
 
               {/* Actions panel */}
-              <div className="p-5 border-t border-border/15 flex gap-2 select-none bg-muted/[0.03] items-center">
+              <div className="p-4 border-t border-border/10 flex gap-2 bg-muted/5 items-center select-none">
                 <Button
                   onClick={() => setActiveBuilderCourseId(course.id)}
                   size="sm"
                   className="h-8 text-[10.5px] font-bold flex-1 bg-primary text-white border-none"
                 >
-                  Manage
+                  Manage Syllabus
                 </Button>
                 <Button
                   onClick={() => handleStartEdit(course)}
                   size="sm"
                   variant="outline"
-                  className="h-8 text-[10.5px] px-2.5 font-bold border-border/60"
+                  className="h-8 text-[10.5px] font-bold border-border/60 flex-1"
                 >
-                  Edit
+                  Edit Details
                 </Button>
+                
                 <Button
                   onClick={() => setSelectedCourseForAnalytics(course)}
                   size="sm"
                   variant="outline"
-                  className="h-8 text-[10.5px] px-2.5 font-bold border-border/60"
+                  title="View Analytics"
+                  className="h-8 w-8 p-0 border-border/60 shrink-0"
                 >
-                  Analytics
+                  <BarChart3 size={13} className="text-muted-foreground" />
                 </Button>
+                
                 <Button
                   onClick={() => setSelectedCourseForPreview(course)}
                   size="sm"
                   variant="outline"
-                  className="h-8 text-[10.5px] px-2.5 font-bold border-border/60 text-indigo-500 hover:bg-indigo-500/5"
+                  title="Student Preview"
+                  className="h-8 w-8 p-0 border-border/60 shrink-0 text-indigo-500 hover:bg-indigo-500/5"
                 >
-                  Preview
+                  <Eye size={13} />
                 </Button>
 
                 {/* Card actions more dropdown */}
@@ -1567,12 +1571,12 @@ export const CourseManager = React.memo(function CourseManager({
                       setOpenMenuId(isMenuOpen ? null : course.id);
                     }}
                     variant="outline"
-                    className="h-8 px-1.5 border-border/60"
+                    className="h-8 w-8 p-0 border-border/60 shrink-0"
                   >
                     <MoreVertical size={13} />
                   </Button>
                   {isMenuOpen && (
-                    <div className="absolute right-0 bottom-full mb-1 bg-card border border-border rounded-xl shadow-floating py-1.5 w-32 z-30 font-semibold text-[10px]">
+                    <div className="absolute right-0 bottom-full mb-1.5 bg-card border border-border rounded-xl shadow-floating py-1.5 w-32 z-30 font-semibold text-[10px]">
                       <button
                         onClick={() => {
                           setOpenMenuId(null);

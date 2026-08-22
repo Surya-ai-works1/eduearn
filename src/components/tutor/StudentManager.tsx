@@ -34,13 +34,15 @@ import {
   Inbox,
   UserX,
   Sparkles,
-  Check
+  Check,
+  FileText
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { NoStudents } from "./EmptyState";
 import type { StudentProgress, TutorCourse } from "./types";
+import { useTutor } from "../../context/TutorContext";
 
 interface StudentManagerProps {
   students: StudentProgress[];
@@ -259,8 +261,26 @@ export const StudentManager = React.memo(function StudentManager({
   setStudentSortBy,
   onIssueCertificate,
 }: StudentManagerProps) {
+  const { handleTabChange } = useTutor();
   const [selectedStudent, setSelectedStudent] = useState<LocalStudentProgress | null>(null);
   const [isIssuing, setIsIssuing] = useState(false);
+
+  // Notes state (local session persistent)
+  const [notesMap, setNotesMap] = useState<Record<string, string[]>>({
+    "stud-1": ["Requires guidance on advanced recursion concept", "Highly active during python closures live session"],
+    "stud-2": ["Completed all assignments ahead of schedule", "Strong candidate for mentor/TA roles"]
+  });
+  const [newNoteText, setNewNoteText] = useState("");
+
+  const handleAddNote = () => {
+    if (!selectedStudent || !newNoteText.trim()) return;
+    setNotesMap(prev => ({
+      ...prev,
+      [selectedStudent.id]: [newNoteText.trim(), ...(prev[selectedStudent.id] || [])]
+    }));
+    setNewNoteText("");
+    toast.success("Note added locally for this session.");
+  };
 
   // Filters state
   const [statusFilter, setStatusFilter] = useState("All");
@@ -524,44 +544,59 @@ export const StudentManager = React.memo(function StudentManager({
 
       {/* At-Risk Warning Callout Section */}
       {atRiskStudents.length > 0 && (
-        <Card className="border-rose-500/20 bg-rose-500/[0.02] p-4 space-y-3">
-          <div className="flex items-center gap-2 text-rose-500 font-extrabold text-xs select-none">
-            <AlertTriangle size={15} />
-            <span>Students Who May Need Attention</span>
+        <div className="bg-rose-500/5 dark:bg-rose-950/15 border border-rose-500/20 p-5 rounded-2xl space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5 text-rose-600 dark:text-rose-400 font-extrabold text-xs select-none">
+              <AlertTriangle size={16} />
+              <span>Students Requiring Academic Attention</span>
+            </div>
+            <span className="text-[9px] font-extrabold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full select-none">
+              {atRiskStudents.length} Alert{atRiskStudents.length > 1 ? "s" : ""} Active
+            </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {atRiskStudents.map((risk) => (
-              <div key={risk.id} className="p-3 bg-card border border-border/40 rounded-xl flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                <div className="text-left space-y-1">
-                  <h5 className="font-extrabold text-foreground">{risk.name}</h5>
-                  <p className="text-[10px] text-muted-foreground/80">
-                    {risk.status === "At Risk" ? "No activity for 8 days" : `Missed classes, Progress stuck at ${risk.progress}%`}
+              <div key={risk.id} className="p-4 bg-card hover:shadow-sm border border-border/50 rounded-xl flex flex-col justify-between gap-3 transition-shadow">
+                <div className="space-y-1.5 text-left">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center font-bold text-[10px]">
+                      {risk.name.charAt(0)}
+                    </div>
+                    <h5 className="font-extrabold text-foreground text-xs">{risk.name}</h5>
+                  </div>
+                  <p className="text-[10.5px] font-medium text-muted-foreground leading-normal">
+                    {risk.status === "At Risk" 
+                      ? "No activity recorded for over 8 days." 
+                      : `Attendance below minimum: ${risk.attendance}%. Course progress is stuck at ${risk.progress}%.`}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground/60 font-semibold uppercase tracking-wider">
+                    Last Active: {risk.lastActive || "8 days ago"}
                   </p>
                 </div>
-                <div className="flex gap-1.5 select-none">
+                <div className="flex gap-2 select-none border-t border-border/30 pt-2.5">
                   <Button
                     onClick={() => setSelectedStudent(risk)}
                     size="sm"
                     variant="outline"
-                    className="h-7 text-[10px] px-2.5 font-bold"
+                    className="h-7.5 text-[9.5px] px-2.5 font-bold flex-1"
                   >
-                    View
+                    Review Progress
                   </Button>
                   <Button
                     onClick={() => {
                       setSelectedStudent(risk);
-                      toast.info(`Channel open for ${risk.name}`);
+                      toast.info(`Direct chat with ${risk.name} initialized.`);
                     }}
                     size="sm"
-                    className="h-7 text-[10px] px-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold border-none"
+                    className="h-7.5 text-[9.5px] px-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold border-none flex-1"
                   >
-                    Message
+                    Send Alert
                   </Button>
                 </div>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Search & Filters Row */}
@@ -1206,6 +1241,46 @@ export const StudentManager = React.memo(function StudentManager({
                   </div>
                 </div>
 
+                {/* 7. TUTOR NOTES (LOCAL SESSION PERSISTENT) */}
+                <div className="border-t border-border/40 pt-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[10.5px] font-black uppercase text-foreground flex items-center gap-1 select-none">
+                      <FileText size={13} className="text-primary" /> Tutor Session Notes
+                    </h4>
+                    <span className="text-[8px] font-bold text-muted-foreground/60 bg-muted px-1.5 py-0.2 rounded select-none">
+                      Local Session Notes
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2 max-h-32 overflow-y-auto bg-muted/20 p-3 rounded-2xl border border-border/40">
+                    {(notesMap[selectedStudent.id] || []).map((note, idx) => (
+                      <div key={idx} className="p-2 bg-card rounded-xl text-[10px] font-medium leading-relaxed text-foreground border border-border/40">
+                        <p>{note}</p>
+                      </div>
+                    ))}
+                    {(notesMap[selectedStudent.id] || []).length === 0 && (
+                      <p className="text-[10px] text-muted-foreground italic text-center py-4 select-none">No custom tutor notes recorded yet.</p>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Add a private note for this student..."
+                      value={newNoteText}
+                      onChange={(e) => setNewNoteText(e.target.value)}
+                      className="h-8.5 flex-1 rounded-xl border border-border bg-card px-3 text-[10px] font-semibold text-foreground focus:outline-none"
+                    />
+                    <Button
+                      onClick={handleAddNote}
+                      size="sm"
+                      className="h-8.5 bg-primary text-white text-[10.5px] font-bold border-none"
+                    >
+                      Add Note
+                    </Button>
+                  </div>
+                </div>
+
                 {/* Conversation messaging logs within drawer */}
                 <div className="border-t border-border/40 pt-4 space-y-3">
                   <h4 className="text-[10.5px] font-black uppercase text-foreground flex items-center gap-1 select-none">
@@ -1267,6 +1342,17 @@ export const StudentManager = React.memo(function StudentManager({
                     🏅 {isIssuing ? "Issuing..." : "Issue Graduation Certificate"}
                   </Button>
                 )}
+                <Button
+                  onClick={() => {
+                    setSelectedStudent(null);
+                    handleTabChange("assignments");
+                    toast.info(`Navigating to Assignments center to assign tasks.`);
+                  }}
+                  variant="outline"
+                  className="w-full h-9 text-xs font-bold text-primary border-primary/20 hover:bg-primary/5"
+                >
+                  Assign Work
+                </Button>
                 <Button
                   onClick={() => setSelectedStudent(null)}
                   variant="outline"
