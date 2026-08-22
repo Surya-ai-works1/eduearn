@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Container } from "../../../components/layout/Container";
@@ -24,7 +24,8 @@ function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [transactionId] = useState(() => "TX-EE-" + (Math.random() * 1000000).toFixed(0));
+  const [mounted, setMounted] = useState(false);
+  const [transactionId, setTransactionId] = useState("");
 
   const tutorId = searchParams.get("tutorId");
   const courseId = searchParams.get("courseId");
@@ -36,11 +37,24 @@ function CheckoutSuccessContent() {
   const tutor = MOCK_TUTORS.find(t => t.id === tutorId) || MOCK_TUTORS[0];
   const course = MOCK_COURSES.find(c => c.id === courseId) || MOCK_COURSES[0];
 
+  useEffect(() => {
+    setMounted(true);
+    setTransactionId("TX-EE-" + (Math.random() * 1000000).toFixed(0));
+  }, []);
+
   const handlePrint = () => {
     if (typeof window !== "undefined") {
       window.print();
     }
   };
+
+  if (!mounted) {
+    return (
+      <Container className="py-24 flex flex-col items-center justify-center gap-2 select-none">
+        <span className="text-xs text-muted-foreground font-bold animate-pulse">Loading transaction results...</span>
+      </Container>
+    );
+  }
 
   return (
     <Container className="py-16 select-none max-w-2xl text-center">

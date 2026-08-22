@@ -26,6 +26,8 @@ function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const [mounted, setMounted] = useState(false);
+
   // Parse URL Search Parameters
   const tutorId = searchParams.get("tutorId");
   const courseId = searchParams.get("courseId");
@@ -42,11 +44,11 @@ function CheckoutContent() {
   const basePrice = rawAmount ? Number(rawAmount) : (course ? course.price : 1499);
   
   // Checkout calculations states
-  const [couponCode, setCouponCode] = useState(couponParam);
-  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(couponParam ? couponParam : null);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [discount, setDiscount] = useState(0);
   const [useWalletCredits, setUseWalletCredits] = useState(false);
-  const [walletBalance, setWalletBalance] = useState(() => PaymentService.getWalletBalance().total);
+  const [walletBalance, setWalletBalance] = useState(550);
 
   // Payment UI states
   const [paymentMethod, setPaymentMethod] = useState<"upi" | "card" | "netbanking" | "wallet">("upi");
@@ -71,10 +73,28 @@ function CheckoutContent() {
   }, [couponCode, basePrice]);
 
   useEffect(() => {
+    setMounted(true);
+    setWalletBalance(PaymentService.getWalletBalance().total);
     if (couponParam) {
+      setCouponCode(couponParam);
+      setAppliedCoupon(couponParam);
+    }
+  }, [couponParam]);
+
+  useEffect(() => {
+    if (mounted && couponParam) {
       handleApplyCoupon(couponParam);
     }
-  }, [couponParam, handleApplyCoupon]);
+  }, [mounted, couponParam, handleApplyCoupon]);
+
+  if (!mounted) {
+    return (
+      <Container className="py-24 flex flex-col items-center justify-center gap-2 select-none">
+        <Loader2 className="animate-spin text-primary" size={32} />
+        <span className="text-xs text-muted-foreground font-bold">Loading secure session...</span>
+      </Container>
+    );
+  }
 
   const handleRemoveCoupon = () => {
     setDiscount(0);
