@@ -154,7 +154,7 @@ export function AiAssistantWidget({
             <Button
               onClick={handleAction}
               size="sm"
-              className="w-full text-[10px] h-8.5 font-bold shadow-soft rounded-xl bg-gradient-to-r from-blue-600 to-indigo-650 text-white border-0 mt-3"
+              className="w-full text-[10px] h-8.5 font-bold shadow-soft rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 mt-3"
             >
               Ask AI: {currentRec.actionLabel}
             </Button>

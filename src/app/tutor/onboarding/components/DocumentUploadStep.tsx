@@ -30,6 +30,7 @@ export default function DocumentUploadStep() {
   useEffect(() => {
     const fetchSession = async () => {
       const supabase = createClient();
+      if (!supabase) return;
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUserId(session.user.id);
@@ -85,6 +86,40 @@ export default function DocumentUploadStep() {
 
     try {
       const supabase = createClient();
+      if (!supabase) {
+        if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
+          toast.success("Document mocked successfully in local preview!");
+          const mockUrl = `/mock-files/${docType}.${fileExt}`;
+          setUrls(prev => {
+            const next = { ...prev, [docType]: mockUrl };
+            setState((prevOnb) => {
+              const currentDocs = [...(prevOnb.verification?.documents || [])];
+              const docIndices: Record<string, number> = {
+                gov_id_url: 0,
+                degree_url: 1,
+                certificates_url: 2,
+                resume_url: 3,
+                video_demo_url: 4
+              };
+              const idx = docIndices[docType];
+              if (idx !== undefined) {
+                currentDocs[idx] = mockUrl;
+              }
+              return {
+                ...prevOnb,
+                verification: {
+                  ...prevOnb.verification,
+                  documents: currentDocs
+                }
+              };
+            });
+            return next;
+          });
+          setIsUploading(prev => ({ ...prev, [docType]: false }));
+          return;
+        }
+        throw new Error("Supabase is not configured. Cannot upload documents.");
+      }
       const filePath = generateUniqueFilePath(userId, docType, fileExt);
 
       const { data, error } = await supabase.storage

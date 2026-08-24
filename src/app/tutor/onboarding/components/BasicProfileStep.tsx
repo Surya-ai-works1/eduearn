@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useOnboarding, OnboardingState } from '@/context/OnboardingContext';
-import { User, Phone, MapPin, Globe, Sparkles, Upload, CheckCircle2 } from 'lucide-react';
+import { User, Phone, MapPin, Globe, Sparkles, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase';
 
@@ -114,15 +114,123 @@ function SearchableDropdown({
   );
 }
 
+
+const PREDEFINED_AVATARS = [
+  {
+    id: "avatar-0",
+    label: "Indigo Female Tutor",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#6366f1"/><path d="M25 80 C25 65 35 60 50 60 C65 60 75 65 75 80 Z" fill="#e0e7ff"/><path d="M30 42 C26 48 26 68 30 74 C34 52 66 52 70 74 C74 68 74 48 70 42 C66 32 34 32 30 42 Z" fill="#78350f"/><rect x="46" y="50" width="8" height="12" rx="3" fill="#fed7aa"/><circle cx="50" cy="40" r="15" fill="#fed7aa"/><path d="M37 28 C37 28 50 32 63 28" fill="none" stroke="#18181b" stroke-width="4" stroke-linecap="round"/><polygon points="50,15 80,24 50,33 20,24" fill="#18181b"/><circle cx="50" cy="24" r="2.5" fill="#f59e0b"/><path d="M50 24 C58 24 68 34 68 38" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><polygon points="68,38 70,42 66,42" fill="#f59e0b"/><circle cx="44" cy="38" r="1.7" fill="#18181b"/><circle cx="56" cy="38" r="1.7" fill="#18181b"/><path d="M46 44 Q50 48 54 44" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round"/></svg>`,
+    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICAgIDxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjQ2IiBmaWxsPSIjNjM2NmYxIi8+CiAgICA8cGF0aCBkPSJNMjUgODAgQzI1IDY1IDM1IDYwIDUwIDYwIEM2NSA2MCA3NSA2NSA3NSA4MCBaIiBmaWxsPSIjZTBlN2ZmIi8+CiAgICA8cGF0aCBkPSJNMzAgNDIgQzI2IDQ4IDI2IDY4IDMwIDc0IEMzNCA1MiA2NiA1MiA3MCA3NCBDNzQgNjggNzQgNDggNzAgNDIgQzY2IDMyIDM0IDMyIDMwIDQyIFoiIGZpbGw9IiM3ODM1MGYiLz4KICAgIDxyZWN0IHg9IjQ2IiB5PSI1MCIgd2lkdGg9IjgiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjZmVkN2FhIi8+CiAgICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjQwIiByPSIxNSIgZmlsbD0iI2ZlZDdhYSIvPgog   fPHBhdGggZD0iTTM3IDI4IEMzNyAyOCA1MCAzMiA2MyAyOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTgxODFiIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBvbHlnb24gcG9pbnRzPSI1MCwxNSA4MCwyNCA1MCwzMyAyMCwyNCIgZmlsbD0iIzE4MTgxYiIvPgogICAgPGNpcmNsZSBjeD0iNTAiIGN5PSIyNCIgcj0iMi41IiBmaWxsPSIjZjU5ZTBiIi8+CiAgICA8cGF0aCBkPSJNNTAgMjQgQzU4IDI0IDY4IDM0IDY4IDM4IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iNjgsMzggNzAsNDIgNjYsNDIiIGZpbGw9IiNmNTllMGIiLz4KICAgIDxjaXJjbGUgY3g9IjQ0IiBjeT0iMzgiIHI9IjEuNyIgZmlsbD0iIzE4MTgxYiIvPgogICAgPGNpcmNsZSBjeD0iNTYiIGN5PSIzOCIgcj0iMS43IiBmaWxsPSIjMTgxODFiIi8+CiAgICA8cGF0aCBkPSJNNzYgNDQgUTUwIDQ4IDU0IDQ0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+"
+  },
+  {
+    id: "avatar-1",
+    label: "Teal Male Tutor (Glasses)",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#0d9488"/><path d="M25 80 C25 65 35 60 50 60 C65 60 75 65 75 80 Z" fill="#ccfbf1"/><path d="M32 36 C32 26 68 26 68 36 C70 36 70 31 68 27 C60 23 40 23 32 27 Z" fill="#18181b"/><rect x="46" y="50" width="8" height="12" rx="3" fill="#fdba74"/><circle cx="50" cy="40" r="15" fill="#fdba74"/><path d="M37 28 C37 28 50 32 63 28" fill="none" stroke="#18181b" stroke-width="4" stroke-linecap="round"/><polygon points="50,15 80,24 50,33 20,24" fill="#18181b"/><circle cx="50" cy="24" r="2.5" fill="#f59e0b"/><path d="M50 24 C58 24 68 34 68 38" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><polygon points="68,38 70,42 66,42" fill="#f59e0b"/><circle cx="43" cy="38" r="5" fill="none" stroke="#18181b" stroke-width="1.5"/><circle cx="57" cy="38" r="5" fill="none" stroke="#18181b" stroke-width="1.5"/><line x1="48" y1="38" x2="52" y2="38" stroke="#18181b" stroke-width="1.5"/><circle cx="43" cy="38" r="1.5" fill="#18181b"/><circle cx="57" cy="38" r="1.5" fill="#18181b"/><path d="M46 45 Q50 49 54 45" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round"/></svg>`,
+    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzBkOTQ4OCIvPjxwYXRoIGQ9Ik0yNSA4MCBDMjUgNjUgMzUgNjAgNTAgNjAgQzY1IDYwIDc1IDY1IDc1IDgwIFoiIGZpbGw9IiNDQ0ZCRjEiLz48cGF0aCBkPSJNMzIgMzYgQzMyIDI2IDY4IDI2IDY4IDM2IEM3MCAzNiA3MCAzMSA2OCAyNyBDNjAgMjMgNDAgMjMgMzIgMjcgWiIgZmlsbD0iIzE4MTgxYiIvPjxyZWN0IHg9IjQ2IiB5PSI1MCIgd2lkdGg9IjgiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjZmRiYTc0Ii8+PGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMTUiIGZpbGw9IiNmZGJhNzQiLz48cGF0aCBkPSJNMzcgMjggQzM3IDI4IDUwIDMyIDYzIDI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBvbHlnb24gcG9pbnRzPSI1MCwxNSA4MCwyNCA1MCwzMyAyMCwyNCIgZmlsbD0iIzE4MTgxYiIvPjxjaXJjbGUgY3g9IjU5IiBjeT0iMjQiIHI9IjIuNSIgZmlsbD0iI2Y1OWUwYiIvPjxwYXRoIGQ9Ik01MCAyNCBDNTggMjQgNjggMzQgNjggMzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxLjUgIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cG9seWdvbiBwb2ludHM9IjY4LDM4IDcwLDQyIDY2LDQyIiBmaWxsPSIjZjU5ZTBiIi8+PGNpcmNsZSBjeD0iNDMiIGN5PSIzOCIgcj0iNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTgxODFiIiBzdHJva2Utd2lkdGg9IjEuNSIvPjxjaXJjbGUgY3g9IjU3IiBjeT0iMzgiIHI9IjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzE4MTgxYiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iNDgiIHkxPSIzOCIgeDI9IjUyIiB5Mj0iMzgiIHN0cm9rZT0iIzE4MTgxYiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48Y2lyY2xlIGN4PSI0MyIgY3k9IjM4IiByPSIxLjUiIGZpbGw9IiMxODE4MWIiLz48Y2lyY2xlIGN4PSI1NyIgY3k9IjM4IiByPSIxLjUiIGZpbGw9IiMxODE4MWIiLz48cGF0aCBkPSJNNDYgNDUgUTUwIDQ5IDU0IDQ1IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+"
+  },
+  {
+    id: "avatar-2",
+    label: "Pink Afro Female Tutor",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#db2777"/><path d="M25 80 C25 65 35 60 50 60 C65 60 75 65 75 80 Z" fill="#fce7f3"/><circle cx="34" cy="36" r="8" fill="#18181b"/><circle cx="66" cy="36" r="8" fill="#18181b"/><circle cx="31" cy="46" r="7" fill="#18181b"/><circle cx="69" cy="46" r="7" fill="#18181b"/><rect x="46" y="50" width="8" height="12" rx="3" fill="#7c2d12"/><circle cx="50" cy="40" r="15" fill="#7c2d12"/><path d="M37 28 C37 28 50 32 63 28" fill="none" stroke="#18181b" stroke-width="4" stroke-linecap="round"/><polygon points="50,15 80,24 50,33 20,24" fill="#18181b"/><circle cx="50" cy="24" r="2.5" fill="#f59e0b"/><path d="M50 24 C58 24 68 34 68 38" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><polygon points="68,38 70,42 66,42" fill="#f59e0b"/><circle cx="44" cy="38" r="1.7" fill="#ffffff"/><circle cx="56" cy="38" r="1.7" fill="#ffffff"/><path d="M46 44 Q50 48 54 44" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/></svg>`,
+    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iI2RiMjc3NyIvPjxwYXRoIGQ9Ik0yNSA4MCBDMjUgNjUgMzUgNjAgNTAgNjAgQzY1IDYwIDc1IDY1IDc1IDgwIFoiIGZpbGw9IiNmY2U3ZjMiLz48Y2lyY2xlIGN4PSIzNCIgY3k9IjM2IiByPSI4IiBmaWxsPSIjMTgxODFiIi8+PGNpcmNsZSBjeD0iNjYiIGN5PSIzNiIgcj0iOCIgZmlsbD0iIzE4MTgxYiIvPjxjaXJjbGUgY3g9IjMxIiBjeT0iNDYiIHI9IjciIGZpbGw9IiMxODE4MWIiLz48Y2lyY2xlIGN4PSI2OSIgY3k9IjQ2IiByPSI3IiBmaWxsPSIjMTgxODFiIi8+PHJlY3QgeD0iNDYiIHk9IjUwIiB3aWR0aD0iOCIgaGVpZ2h0PSIxMiIgcngPSIzIiBmaWxsPSIjN2MyZDEyIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMTUiIGZpbGw9IiM3YzJkMTIiLz48cGF0aCBkPSJNMzcgMjggQzM3IDI4IDUwIDMyIDYzIDI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBvbHlnb24gcG9pbnRzPSI1MCwxNSA4MCwyNCA1MCwzMyAyMCwyNCIgZmlsbD0iIzE4MTgxYiIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMjQiIHI9IjIuNSIgZmlsbD0iI2Y1OWUwYiIvPjxwYXRoIGQ9Ik05MCAyNCBDNTggMjQgNjggMzQgNjggMzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwb2x5Z29uIHBvaW50cz0iNjgsMzggNzAsNDIgNjYsNDIiIGZpbGw9IiNmNTllMGIiLz48Y2lyY2xlIGN4PSI0NCIgY3k9IjM4IiByPSIxLjciIGZpbGw9IiNmZmZmZmYiLz48Y2lyY2xlIGN4PSI1NiIgY3k9IjM4IiByPSIxLjciIGZpbGw9IiNmZmZmZmYiLz48cGF0aCBkPSJNNDYgNDQgUSUwIDQ4IDU0IDQ5IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+"
+  },
+  {
+    id: "avatar-3",
+    label: "Orange Spiky Male Tutor",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#ea580c"/><path d="M25 80 C25 65 35 60 50 60 C65 60 75 65 75 80 Z" fill="#ffedd5"/><path d="M32 32 L36 24 L40 30 L45 22 L50 30 L55 22 L60 30 L64 24 L68 32 Z" fill="#eab308"/><rect x="46" y="50" width="8" height="12" rx="3" fill="#ffedd5"/><circle cx="50" cy="40" r="15" fill="#ffedd5"/><path d="M37 28 C37 28 50 32 63 28" fill="none" stroke="#18181b" stroke-width="4" stroke-linecap="round"/><polygon points="50,15 80,24 50,33 20,24" fill="#18181b"/><circle cx="50" cy="24" r="2.5" fill="#f59e0b"/><path d="M50 24 C58 24 68 34 68 38" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><polygon points="68,38 70,42 66,42" fill="#f59e0b"/><circle cx="44" cy="38" r="1.7" fill="#18181b"/><circle cx="56" cy="38" r="1.7" fill="#18181b"/><path d="M46 44 Q50 48 54 44" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round"/></svg>`,
+    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iI2VhNTgwYyIvPjxwYXRoIGQ9Ik0yNSA4MCBDMjUgNjUgMzUgNjAgNTAgNjAgQzY1IDYwIDc1IDY1IDc1IDgwIFoiIGZpbGw9IiNmZmVkZDUiLz48cGF0aCBkPSJNMzIgMzIgTDM2IDI0IEw0MCAzMCBMNDUgMjIgTDUwIDMwIEw1NSAyMiBMNjAgMzAgTDY0IDI0IEw2OCAzMiBaIiBmaWxsPSIjZWFiMzA4Ii8+PHJlY3QgeD0iNDYiIHk9IjUwIiB3aWR0aD0iOCIgaGVpZ2h0PSIxMiIgcngPSIzIiBmaWxsPSIjZmZlZGQ1Ii8+PGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMTUiIGZpbGw9IiNmZmVkZDUiLz48cGF0aCBkPSJNMzcgMjggQzM3IDI4IDUwIDMyIDYzIDI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBvbHlnb24gcG9pbnRzPSI1MCwxNSA4MCwyNCA1MCwzMyAyMCwyNCIgZmlsbD0iIzE4MTgxYiIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMjQiIHI9IjIuNSIgZmlsbD0iI2Y1OWUwYiIvPjxwYXRoIGQ9Ik01MCAyNCBDNTggMjQgNjggMzQgNjggMzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwb2x5Z29uIHBvaW50cz0iNjgsMzggNzAsNDIgNjYsNDIiIGZpbGw9IiNmNTllMGIiLz48Y2lyY2xlIGN4PSI0NCIgY3k9Ij3OCIgcj0iMS43IiBmaWxsPSIjMTgxODFiIi8+PGNpcmNsZSBjeD0iNTYiIGN5PSIzOCIgcj0iMS43IiBmaWxsPSIjMTgxODFiIi8+PHBhdGggZD0iTTQ2IDQ0IFFTimesNDggNTQgNDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzE4MTgxYiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4="
+  },
+  {
+    id: "avatar-4",
+    label: "Blue Male Tutor (Glasses)",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#2563eb"/><path d="M25 80 C25 65 35 60 50 60 C65 60 75 65 75 80 Z" fill="#dbeafe"/><path d="M34 33 C38 25 62 25 66 33 Z" fill="#451a03"/><rect x="46" y="50" width="8" height="12" rx="3" fill="#f59e0b"/><circle cx="50" cy="40" r="15" fill="#f59e0b"/><path d="M37 28 C37 28 50 32 63 28" fill="none" stroke="#18181b" stroke-width="4" stroke-linecap="round"/><polygon points="50,15 80,24 50,33 20,24" fill="#18181b"/><circle cx="50" cy="24" r="2.5" fill="#f59e0b"/><path d="M50 24 C58 24 68 34 68 38" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><polygon points="68,38 70,42 66,42" fill="#f59e0b"/><rect x="37" y="34" width="8" height="8" rx="1.5" fill="none" stroke="#18181b" stroke-width="1.5"/><rect x="55" y="34" width="8" height="8" rx="1.5" fill="none" stroke="#18181b" stroke-width="1.5"/><line x1="45" y1="38" x2="55" y2="38" stroke="#18181b" stroke-width="1.5"/><circle cx="41" cy="38" r="1.5" fill="#18181b"/><circle cx="59" cy="38" r="1.5" fill="#18181b"/><path d="M46 45 Q50 49 54 45" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round"/></svg>`,
+    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzI1NjNlYiIvPjxwYXRoIGQ9Ik0yNSA4MCBDMjUgNjUgMzUgNjAgNTAgNjAgQzY1IDYwIDc1IDY1IDc1IDgwIFoiIGZpbGw9IiNkYmVhZmUiLz48cGF0aCBkPSJNMzQgMzMgQzM4IDI1IDYyIDI1IDY2IDMzIFoiIGZpbGw9IiM0NTFhMDMiLz48cmVjdCB4PSI0NiIgeT0iNTAiIHdpZG0gZD0iOCIgaGVpZ2h0PSIxMiIgcngPSIzIiBmaWxsPSIjZjU5ZTBiIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMTUiIGZpbGw9IiNmNTllMGIiLz48cGF0aCBkPSJNMzcgMjggQzM3IDI4IDUwIDMyIDYzIDI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBvbHlnb24gcG9pbnRzPSI1MCwxNSA4MCwyNCA1MCwzMyAyMCwyNCIgZmlsbD0iIzE4MTgxYiIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMjQiIHI9IjIuNSIgZmlsbD0iI2Y1OWUwYiIvPjxwYXRoIGQ9Ik01MCAyNCBDNTggMjQgNjggMzQgNjggMzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwb2x5Z29uIHBvaW50cz0iNjgsMzggNzAsNDIgNjYsNDIiIGZpbGw9IiNmNTllMGIiLz48cmVjdCB4PSIzNyIgeT0iMzQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIHJ4PSIxLjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzE4MTgxYiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48cmVjdCB4PSI1NSIgeT0iMzQiIHdpZHRoPSI4IiBoZWlnaHQ9IjgiIHJ4PSIxLjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzE4MTgxYiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iNDUiIHkxPSIzOCIgeDI9IjU1IiB5Mj0iMzgiIHN0cm9rZT0iIzE4MTgxYiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48Y2lyY2xlIGN4PSI0MSIgY3k9IjM4IiByPSIxLjUiIGZpbGw9IiMxODE4MWIiLz48Y2lyY2xlIGN4PSI1OSIgY3k9IjM4IiByPSIxLjUiIGZpbGw9IiMxODE4MWIiLz48cGF0aCBkPSJNNDYgNDUgUTUwIDQ5IDU0IDQ1IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+"
+  },
+  {
+    id: "avatar-5",
+    label: "Green Bob Female Tutor",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#16a34a"/><path d="M25 80 C25 65 35 60 50 60 C65 60 75 65 75 80 Z" fill="#dcfce7"/><path d="M30 36 V58 C30 63 36 65 36 65 C36 65 64 65 64 65 C64 65 70 63 70 58 V36" fill="#ea580c"/><rect x="46" y="50" width="8" height="12" rx="3" fill="#fee2e2"/><circle cx="50" cy="40" r="15" fill="#fee2e2"/><path d="M37 28 C37 28 50 32 63 28" fill="none" stroke="#18181b" stroke-width="4" stroke-linecap="round"/><polygon points="50,15 80,24 50,33 20,24" fill="#18181b"/><circle cx="50" cy="24" r="2.5" fill="#f59e0b"/><path d="M50 24 C58 24 68 34 68 38" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><polygon points="68,38 70,42 66,42" fill="#f59e0b"/><circle cx="44" cy="38" r="1.7" fill="#18181b"/><circle cx="56" cy="38" r="1.7" fill="#18181b"/><path d="M46 44 Q50 48 54 44" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round"/></svg>`,
+    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzE2YTM0YSIvPjxwYXRoIGQ9Ik0yNSA4MCBDMjUgNjUgMzUgNjAgNTAgNjAgQzY1IDYwIDc1IDY1IDc1IDgwIFoiIGZpbGw9IiNkY2ZjZTciLz48cGF0aCBkPSJNMzAgMzYgVjU4IEMzMCA2MyAzNiA2NSAzNiA2NSBDMzYgNjUgNjQgNjUgNjQgNjUgQzY0IDY1IDcwIDYzIDcwIDU4IFYzNiIgZmlsbD0iI2VhNTgwYyIvPjxyZWN0IHg9IjQ2IiB5PSI1MCIgd2lkdGg9IjgiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjZmVlMmUyIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMTUiIGZpbGw9IiNmZWUyZTIiLz48cGF0aCBkPSJNMzcgMjggQzM3IDI4IDUwIDMyIDYzIDI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBvbHlnb24gcG9pbnRzPSI1MCwxNSA4MCwyNCA1MCwzMyAyMCwyNCIgZmlsbD0iIzE4MTgxYiIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMjQiIHI9IjIuNSIgZmlsbD0iI2Y1OWUwYiIvPjxwYXRoIGQ9Ik01MCAyNCBDNTggMjQgNjggMzQgNjggMzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwb2x5Z29uIHBvaW50cz0iNjgsMzggNzAsNDIgNjYsNDIiIGZpbGw9IiNmNTllMGIiLz48Y2lyY2xlIGN4PSI0NCIgY3k9IjM4IiByPSIxLjciIGZpbGw9IiMxODE4MWIiLz48Y2lyY2xlIGN4PSI1NiIgY3k9IjM4IiByPSIxLjciIGZpbGw9IiMxODE4MWIiLz48cGF0aCBkPSJNNDYgNDQgUTUwIDggNTQgNDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzE4MTgxYiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4="
+  },
+  {
+    id: "avatar-6",
+    label: "Purple Male Tutor (Mustache)",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#7c3aed"/><path d="M25 80 C25 65 35 60 50 60 C65 60 75 65 75 80 Z" fill="#f3e8ff"/><path d="M32 35 C32 25 68 25 68 35 C70 35 70 30 68 26 C60 22 40 22 32 26 Z" fill="#18181b"/><rect x="46" y="50" width="8" height="12" rx="3" fill="#4c1d95"/><circle cx="50" cy="40" r="15" fill="#4c1d95"/><path d="M37 28 C37 28 50 32 63 28" fill="none" stroke="#18181b" stroke-width="4" stroke-linecap="round"/><polygon points="50,15 80,24 50,33 20,24" fill="#18181b"/><circle cx="50" cy="24" r="2.5" fill="#f59e0b"/><path d="M50 24 C58 24 68 34 68 38" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><polygon points="68,38 70,42 66,42" fill="#f59e0b"/><circle cx="44" cy="38" r="1.7" fill="#ffffff"/><circle cx="56" cy="38" r="1.7" fill="#ffffff"/><path d="M43 47 Q50 43 57 47" fill="none" stroke="#18181b" stroke-width="2.5" stroke-linecap="round"/><path d="M46 49 Q50 52 54 49" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/></svg>`,
+    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzdjM2FlZCIvPjxwYXRoIGQ9Ik0yNSA4MCBDMjUgNjUgMzUgNjAgNTAgNjAgQzY1IDYwIDc1IDY1IDc1IDgwIFoiIGZpbGw9IiNmM2U4ZmYiLz48cGF0aCBkPSJNMzIgMzUgQzMyIDI1IDY4IDI1IDY4IDM1IEM3MCAzNiA3MCAzMSA2OCAyNyBDNjAgMjMgNDAgMjMgMzIgMjcgWiIgZmlsbD0iIzE4MTgxYiIvPjxyZWN0IHg9IjQ2IiB5PSI1MCIgd2lkdGg9IjgiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjNGMxZDk1Ii8+PGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMTUiIGZpbGw9IiM0YzFkOTUiLz48cGF0aCBkPSJNMzcgMjggQzM3IDI4IDUwIDMyIDYzIDI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBvbHlnb24gcG9pbnRzPSI1MCwxNSA4MCwyNCA1MCwzMyAyMCwyNCIgZmlsbD0iIzE4MTgxYiIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMjQiIHI9IjIuNSIgZmlsbD0iI2Y1OWUwYiIvPjxwYXRoIGQ9Ik01MCAyNCBDNTggMjQgNjggMzQgNjggMzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwb2x5Z29uIHBvaW50cz0iNjgsMzggNzAsNDIgNjYsNDIiIGZpbGw9IiNmNTllMGIiLz48Y2lyY2xlIGN4PSI0NCIgY3k9IjM4IiByPSIxLjciIGZpbGw9IiNmZmZmZmYiLz48Y2lyY2xlIGN4PSI1NiIgY3k9IjM4IiByPSIxLjciIGZpbGw9IiNmZmZmZmYiLz48cGF0aCBkPSJNNDMgNDcgUTUwIDQzIDU3IDQ3IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iMi41IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNNDYgNDkgUTUwIDUyIDU0IDQ5IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+"
+  },
+  {
+    id: "avatar-7",
+    label: "Rose Ponytail Female Tutor",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#e11d48"/><path d="M25 80 C25 65 35 60 50 60 C65 60 75 65 75 80 Z" fill="#ffe4e6"/><path d="M30 40 C30 30 70 30 70 40 V50 Z" fill="#18181b"/><circle cx="70" cy="48" r="8" fill="#18181b"/><rect x="46" y="50" width="8" height="12" rx="3" fill="#fdba74"/><circle cx="50" cy="40" r="15" fill="#fdba74"/><path d="M37 28 C37 28 50 32 63 28" fill="none" stroke="#18181b" stroke-width="4" stroke-linecap="round"/><polygon points="50,15 80,24 50,33 20,24" fill="#18181b"/><circle cx="50" cy="24" r="2.5" fill="#f59e0b"/><path d="M50 24 C58 24 68 34 68 38" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><polygon points="68,38 70,42 66,42" fill="#f59e0b"/><circle cx="44" cy="38" r="1.7" fill="#18181b"/><circle cx="56" cy="38" r="1.7" fill="#18181b"/><path d="M46 44 Q50 48 54 44" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round"/></svg>`,
+    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iI2UxMWQ0OCIvPjxwYXRoIGQ9Ik0yNSA4MCBDMjUgNjUgMzUgNjAgNTAgNjAgQzY1IDYwIDc1IDY1IDc1IDgwIFoiIGZpbGw9IiNmZmU0ZTYiLz48cGF0aCBkPSJNMzAgNDAgQzMwIDMwIDcwIDMwIDcwIDQwIFY1MCBaIiBmaWxsPSIjMTgxODFiIi8+PGNpcmNsZSBjeD0iNzAiIGN5PSI0OCIgcj0iOCIgZmlsbD0iIzE4MTgxYiIvPjxyZWN0IHg9IjQ2IiB5PSI1MCIgd2lkdGg9IjgiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjZmRiYTc0Ii8+PGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMTUiIGZpbGw9IiNmZGJhNzQiLz48cGF0aCBkPSJNMzcgMjggQzM3IDI4IDUwIDMyIDYzIDI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBvbHlnb24gcG9pbnRzPSI1MCwxNSA4MCwyNCA1MCwzMyAyMCwyNCIgZmlsbD0iIzE4MTgxYiIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMjQiIHI9IjIuNSIgZmlsbD0iI2Y1OWUwYiIvPjxwYXRoIGQ9Ik01MCAyNCBDNTggMjQgNjggMzQgNjggMzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwb2x5Z29uIHBvaW50cz0iNjgsMzggNzAsNDIgNjYsNDIiIGZpbGw9IiNmNTllMGIiLz48Y2lyY2xlIGN4PSI0NCIgY3k9IjM4IiByPSIxLjciIGZpbGw9IiMxODE4MWIiLz48Y2lyY2xlIGN4PSI1YiIgY3k9IjM4IiByPSIxLjciIGZpbGw9IiMxODE4MWIiLz48cGF0aCBkPSJNNDYgNDQgUTUwIDQ4IDU0IDQ0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+"
+  },
+  {
+    id: "avatar-8",
+    label: "Sky Blue Male Tutor (Beard)",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#0284c7"/><path d="M25 80 C25 65 35 60 50 60 C65 60 75 65 75 80 Z" fill="#e0f2fe"/><path d="M32 35 C32 25 68 25 68 35 C70 35 70 30 68 26 C60 22 40 22 32 26 Z" fill="#18181b"/><rect x="46" y="50" width="8" height="12" rx="3" fill="#fed7aa"/><circle cx="50" cy="40" r="15" fill="#fed7aa"/><path d="M37 28 C37 28 50 32 63 28" fill="none" stroke="#18181b" stroke-width="4" stroke-linecap="round"/><polygon points="50,15 80,24 50,33 20,24" fill="#18181b"/><circle cx="50" cy="24" r="2.5" fill="#f59e0b"/><path d="M50 24 C58 24 68 34 68 38" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><polygon points="68,38 70,42 66,42" fill="#f59e0b"/><path d="M35 39 C35 55 40 62 50 62 C60 62 65 55 65 39" fill="none" stroke="#27272a" stroke-width="3" stroke-dasharray="2 2" stroke-linecap="round"/><circle cx="44" cy="38" r="1.7" fill="#18181b"/><circle cx="56" cy="38" r="1.7" fill="#18181b"/><path d="M46 44 Q50 48 54 44" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round"/></svg>`,
+    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzAyODRjNyIvPjxwYXRoIGQ9Ik0yNSA4MCBDMjUgNjUgMzUgNjAgNTAgNjAgQzY1IDYwIDc1IDY1IDc1IDgwIFoiIGZpbGw9IiNlMGYyZmUiLz48cGF0aCBkPSJNMzIgMzUgQzMyIDI1IDY4IDI1IDY4IDM1IEM3MCAzNiA3MCAzMSA2OCAyNyBDNjAgMjMgNDAgMjMgMzIgMjcgWiIgZmlsbD0iIzE4MTgxYiIvPjxyZWN0IHg9IjQ2IiB5PSI1MCIgd2lkdGg9IjgiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjZmVkN2FhIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMTUiIGZpbGw9IiNmZWQ3YWEiLz48cGF0aCBkPSJNMzcgMjggQzM3IDI4IDUwIDMyIDYzIDI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBvbHlnb24gcG9pbnRzPSI1MCwxNSA4MCwyNCA1MCwzMyAyMCwyNCIgZmlsbD0iIzE4MTgxYiIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMjQiIHI9IjIuNSIgZmlsbD0iI2Y1OWUwYiIvPjxwYXRoIGQ9Ik01MCAyNCBDNTggMjQgNjggMzQgNjggMzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwb2x5Z29uIHBvaW50cz0iNjgsMzggNzAsNDIgNjYsNDIiIGZpbGw9IiNmNTllMGIiLz48cGF0aCBkPSJNMzUgMzkgQzM1IDU1IDQwIDYyIDUwIDYyIEM2MCA2MiA2NSA1NSA2NSAzOSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjcyNzJhIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjIgMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iNDQiIGN5PSIzOCIgcj0iMS43IiBmaWxsPSIjMTgxODFiIi8+PGNpcmNsZSBjeD0iNTYiIGN5PSIzOCIgcj0iMS43IiBmaWxsPSIjMTgxODFiIi8+PHBhdGggZD0iTTQ2IDQ0IFFTimesNDggNTQgNDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzE4MTgxYiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4="
+  },
+  {
+    id: "avatar-9",
+    label: "Violet Wavy Female Tutor (Glasses)",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#4f46e5"/><path d="M25 80 C25 65 35 60 50 60 C65 60 75 65 75 80 Z" fill="#e0e7ff"/><path d="M28 42 C24 47 24 62 26 74 C30 70 32 52 34 42 Z M72 42 C76 47 76 62 74 74 C70 70 68 52 66 42 Z" fill="#f59e0b"/><rect x="46" y="50" width="8" height="12" rx="3" fill="#ffe4e6"/><circle cx="50" cy="40" r="15" fill="#ffe4e6"/><path d="M37 28 C37 28 50 32 63 28" fill="none" stroke="#18181b" stroke-width="4" stroke-linecap="round"/><polygon points="50,15 80,24 50,33 20,24" fill="#18181b"/><circle cx="50" cy="24" r="2.5" fill="#f59e0b"/><path d="M50 24 C58 24 68 34 68 38" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><polygon points="68,38 70,42 66,42" fill="#f59e0b"/><circle cx="43" cy="38" r="5" fill="none" stroke="#18181b" stroke-width="1.5"/><circle cx="57" cy="38" r="5" fill="none" stroke="#18181b" stroke-width="1.5"/><line x1="48" y1="38" x2="52" y2="38" stroke="#18181b" stroke-width="1.5"/><circle cx="43" cy="38" r="1.5" fill="#18181b"/><circle cx="57" cy="38" r="1.5" fill="#18181b"/><path d="M46 44 Q50 48 54 44" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round"/></svg>`,
+    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzRmNDZlNSIvPjxwYXRoIGQ9Ik0yNSA4MCBDMjUgNjUgMzUgNjAgNTAgNjAgQzY1IDYwIDc1IDY1IDc1IDgwIFoiIGZpbGw9IiNlMGU3ZmYiLz48cGF0aCBkPSJNMjggNDIgQzI0IDQ3IDI0IDYyIDI2IDc0IEMzMCA3MCAzMiA1MiAzNCA0MiBaIE03MiA0MiBDNzYgNDcgNzYgNjIgNzQgNzQgQzcwIDcwIDY4IDUyIDY2IDQyIFoiIGZpbGw9IiNmNTllMGIiLz48cmVjdCB4PSI0NiIgeT0iNTAiIHdpZHRoPSI4IiBoZWlnaHQ9IjIiIHJ4PSIzIiBmaWxsPSIjZmZlNGU2Ii8+PGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMTUiIGZpbGw9IiNmZmU0ZTYiLz48cGF0aCBkPSJNMzcgMjggQzM3IDI4IDUwIDMyIDYzIDI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBvbHlnb24gcG9pbnRzPSI1MCwxNSA4MCwyNCA1MCwzMyAyMCwyNCIgZmlsbD0iIzE4MTgxYiIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMjQiIHI9IjIuNSIgZmlsbD0iI2Y1OWUwYiIvPjxwYXRoIGQ9Ik01MCAyNCBDNTggMjQgNjggMzQgNjggMzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwb2x5Z29uIHBvaW50cz0iNjgsMzggNzAsNDIgNjYsNDIiIGZpbGw9IiNmNTllMGIiLz48Y2lyY2xlIGN4PSI0MyIgY3k9IjM4IiByPSI1IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iMS41Ii8+PGNpcmNsZSBjeD0iNTciIGN5PSIzOCIgcj0iNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTgxODFiIiBzdHJva2Utd2lkdGg9IjEuNSIvPjxsaW5lIHgxPSI0OCIgeTE9IjM4IiB4Mj0iNTIiIHkyPSIzOCIgc3Ryb2tlPSIjMTgxODFiIiBzdHJva2Utd2lkdGg9IjEuNSIvPjxjaXJjbGUgY3g9IjQzIiBjeT0iMzgiIHI9IjEuNSIgZmlsbD0iIzE4MTgxYiIvPjxjaXJjbGUgY3g9IjU3IiBjeT0iMzgiIHI9IjEuNSIgZmlsbD0iIzE4MTgxYiIvPjxGFdGggZD0iTTQ2IDQ0IFFTimesNDggNTQgNDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzE4MTgxYiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4="
+  },
+  {
+    id: "avatar-10",
+    label: "Emerald Hijab Female Tutor",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#059669"/><path d="M25 80 C25 65 35 60 50 60 C65 60 75 65 75 80 Z" fill="#d1fae5"/><path d="M30 38 C30 30 70 30 70 38 C70 50 66 66 50 69 C34 66 30 50 30 38 Z" fill="#f8fafc"/><rect x="46" y="50" width="8" height="12" rx="3" fill="#fdba74"/><circle cx="50" cy="44" r="11" fill="#fdba74"/><path d="M37 28 C37 28 50 32 63 28" fill="none" stroke="#18181b" stroke-width="4" stroke-linecap="round"/><polygon points="50,15 80,24 50,33 20,24" fill="#18181b"/><circle cx="50" cy="24" r="2.5" fill="#f59e0b"/><path d="M50 24 C58 24 68 34 68 38" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><polygon points="68,38 70,42 66,42" fill="#f59e0b"/><circle cx="45" cy="42" r="1.5" fill="#18181b"/><circle cx="55" cy="42" r="1.5" fill="#18181b"/><path d="M47 48 Q50 51 53 48" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round"/></svg>`,
+    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iIzA1OTY2OSIvPjxwYXRoIGQ9Ik0yNSA4MCBDMjUgNjUgMzUgNjAgNTAgNjAgQzY1IDYwIDc1IDY1IDc1IDgwIFoiIGZpbGw9IiNkMWZhZTUiLz48cGF0aCBkPSJNMzAgMzggQzMwIDMwIDcwIDMwIDcwIDM4IEM3MCA1MCA2NiA2NiA1MCA2OSBDMzQgNjYgMzAgNTAgMzAgMzggWiIgZmlsbD0iI2Y4ZmFmYyIvPjxyZWN0IHg9IjQ2IiB5PSI1MCIgd2lkdGg9IjgiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjZmRiYTc0Ii8+PGNpcmNsZSBjeD0iNTAiIGN5PSI0NCIgcj0iMTEiIGZpbGw9IiNmZGJhNzQiLz48cGF0aCBkPSJNMzcgMjggQzM3IDI4IDUwIDMyIDYzIDI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBvbHlnb24gcG9pbnRzPSI1MCwxNSA4MCwyNCA1MCwzMyAyMCwyNCIgZmlsbD0iIzE4MTgxYiIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMjQiIHI9IjIuNSIgZmlsbD0iI2Y1OWUwYiIvPjxwYXRoIGQ9Ik01MCAyNCBDNTggMjQgNjggMzQgNjggMzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwb2x5Z29uIHBvaW50cz0iNjgsMzggNzAsNDIgNjYsNDIiIGZpbGw9IiNmNTllMGIiLz48Y2lyY2xlIGN4PSI0NSIgY3k9IjQyIiByPSIxLjUiIGZpbGw9IiMxODE4MWIiLz48Y2lyY2xlIGN4PSI1NSIgY3k9IjQyIiByPSIxLjUiIGZpbGw9IiMxODE4MWIiLz48cGF0aCBkPSJNNDcgNDggUTUwIDUxIDUzIDQ4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+"
+  },
+  {
+    id: "avatar-11",
+    label: "Fuchsia Straight Hair Female Tutor",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#c026d3"/><path d="M25 80 C25 65 35 60 50 60 C65 60 75 65 75 80 Z" fill="#fae8ff"/><path d="M30 35 V75 C30 75 28 75 26 66 V35 Z M70 35 V75 C70 75 72 75 74 66 V35 Z" fill="#7c2d12"/><rect x="46" y="50" width="8" height="12" rx="3" fill="#ffedd5"/><circle cx="50" cy="40" r="15" fill="#ffedd5"/><path d="M37 28 C37 28 50 32 63 28" fill="none" stroke="#18181b" stroke-width="4" stroke-linecap="round"/><polygon points="50,15 80,24 50,33 20,24" fill="#18181b"/><circle cx="50" cy="24" r="2.5" fill="#f59e0b"/><path d="M50 24 C58 24 68 34 68 38" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><polygon points="68,38 70,42 66,42" fill="#f59e0b"/><circle cx="44" cy="38" r="1.7" fill="#2563eb"/><circle cx="56" cy="38" r="1.7" fill="#2563eb"/><path d="M46 44 Q50 48 54 44" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round"/></svg>`,
+    dataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NiIgZmlsbD0iI2MwMjZkMyIvPjxwYXRoIGQ9Ik0yNSA4MCBDMjUgNjUgMzUgNjAgNTAgNjAgQzY1IDYwIDc1IDY1IDc1IDgwIFoiIGZpbGw9IiNmYWU4ZmYiLz48cGF0aCBkPSJNMzAgMzUgVjc1IEMzMCA3NSAyOCA3NSAyNiA2NiBWMzUgWiBNNzAgMzUgVjc1IEM3MCA3NSA3MiA3NSA3NCA2NiBWMzUgWiIgZmlsbD0iIzdjMmQxMiIvPjxyZWN0IHg9IjQ2IiB5PSI1MCIgd2lkdGg9IjgiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjZmZlZGQ1Ii8+PGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMTUiIGZpbGw9IiNmZmVkZDUiLz48cGF5aCBkPSJNMzcgMjggQzM3IDI4IDUwIDMyIDYzIDI4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBvbHlnb24gcG9pbnRzPSI1MCwxNSA4MCwyNCA1MCwzMyAyMCwyNCIgZmlsbD0iIzE4MTgxYiIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMjQiIHI9IjIuNSIgZmlsbD0iI2Y1OWUwYiIvPjxwYXRoIGQ9Ik01MCAyNCBDNTggMjQgNjggMzQgNjggMzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwb2x5Z29uIHBvaW50cz0iNjgsMzggNzAsNDIgNjYsNDIiIGZpbGw9IiNmNTllMGIiLz48Y2lyY2xlIGN4PSI0NCIgY3k9IjM4IiByPSIxLjciIGZpbGw9IiMyNTYzZWIiLz48Y2lyY2xlIGN4PSI1NiIgY3k9IjM4IiByPSIxLjciIGZpbGw9IiMyNTYzZWIiLz48cGF0aCBkPSJNNDYgNDQgUTUwIDQ4IDU0IDQ0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxODE4MWIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+"
+  }
+];
+
 export default function BasicProfileStep() {
   const { state, setState } = useOnboarding();
   const { personalInfo } = state;
-  const [photoUploading, setPhotoUploading] = useState(false);
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsSelectorOpen(false);
+      }
+    };
+    if (isSelectorOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isSelectorOpen]);
+
+  const selectAvatar = (avatar: { id: string; svg: string }) => {
+    // Use URL-encoded SVG — always renders correctly without base64 corruption
+    const dataUrl = `data:image/svg+xml,${encodeURIComponent(avatar.svg.trim())}`;
+    setState((prev: OnboardingState) => ({
+      ...prev,
+      personalInfo: {
+        ...prev.personalInfo,
+        avatarUrl: dataUrl,
+        selectedAvatarId: avatar.id,
+      },
+    }));
+    toast.success("Profile avatar selected ✓");
+  };
+
+  const activeAvatarId = personalInfo.selectedAvatarId || null;
+
 
   useEffect(() => {
     const fetchSession = async () => {
       try {
         const supabase = createClient();
+        if (!supabase) return;
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setState((prev: OnboardingState) => ({
@@ -152,8 +260,8 @@ export default function BasicProfileStep() {
   const handleStateChange = (selectedState: string) => {
     setState((prev: OnboardingState) => ({
       ...prev,
-      personalInfo: { 
-        ...prev.personalInfo, 
+      personalInfo: {
+        ...prev.personalInfo,
         state: selectedState,
         city: '' // Clear city when state changes
       },
@@ -163,62 +271,11 @@ export default function BasicProfileStep() {
   const handleCityChange = (selectedCity: string) => {
     setState((prev: OnboardingState) => ({
       ...prev,
-      personalInfo: { 
-        ...prev.personalInfo, 
-        city: selectedCity 
+      personalInfo: {
+        ...prev.personalInfo,
+        city: selectedCity
       },
     }));
-  };
-
-  // Real Avatar Upload
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
-    const allowed = ['png', 'jpg', 'jpeg', 'webp'];
-    if (!allowed.includes(fileExt)) {
-      toast.error('Invalid image type. Supported: PNG, JPG, WEBP');
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Image size must be less than 2MB');
-      return;
-    }
-
-    setPhotoUploading(true);
-
-    try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id || 'anonymous';
-      const filePath = `${userId}-${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      setState((prev: OnboardingState) => ({
-        ...prev,
-        personalInfo: {
-          ...prev.personalInfo,
-          avatarUrl: publicUrl,
-        },
-      }));
-
-      toast.success('Profile photo uploaded successfully!');
-    } catch (err: any) {
-      console.error('Avatar upload failed:', err);
-      toast.error(`Upload failed: ${err.message || 'Unknown error'}`);
-    } finally {
-      setPhotoUploading(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -468,46 +525,108 @@ export default function BasicProfileStep() {
             </p>
           </div>
 
-          {/* Profile Photo drag and drop area */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-              Profile Photo
+          {/* Profile Avatar Selection Section */}
+          <div className="flex flex-col items-center sm:items-start gap-4">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Profile Avatar
             </label>
-            <label
-              className="border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-blue-500/50 dark:hover:border-blue-500/50 rounded-2xl p-6 text-center cursor-pointer transition-all duration-200 bg-slate-50/30 dark:bg-slate-950/10 block"
-            >
-              <input
-                type="file"
-                className="hidden"
-                onChange={handlePhotoUpload}
-                disabled={photoUploading}
-                accept="image/*"
-              />
-              {personalInfo.avatarUrl ? (
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-16 h-16 rounded-full overflow-hidden border border-slate-200">
-                    <img src={personalInfo.avatarUrl} alt="Avatar preview" className="w-full h-full object-cover" />
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsSelectorOpen(true)}
+                className="w-24 h-24 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 flex items-center justify-center relative group"
+                aria-label="Choose profile avatar"
+              >
+                {personalInfo.avatarUrl ? (
+                  <img src={personalInfo.avatarUrl} alt="Selected Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-slate-400 group-hover:text-blue-500 flex flex-col items-center">
+                    <User className="w-8 h-8" />
                   </div>
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 mt-1">
-                    <CheckCircle2 className="w-4 h-4" /> Ready to save
-                  </span>
-                  <span className="text-[10px] text-slate-400">Click to change picture</span>
+                )}
+                {/* Visual hover hint overlay */}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                  <span className="text-[10px] text-white font-extrabold uppercase tracking-wider">Change</span>
                 </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-600">
-                    <Upload className="w-5 h-5" />
-                  </div>
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-350">
-                    {photoUploading ? 'Uploading file...' : 'Upload your photo'}
-                  </span>
-                  <span className="text-xs text-slate-400">Click to choose headshot</span>
-                </div>
-              )}
-            </label>
+              </button>
+
+              <span className="text-[10px] text-slate-400 block mt-2 text-center sm:text-left select-none">
+                Click photo to choose avatar
+              </span>
+            </div>
           </div>
 
-          {/* Action buttons */}
+          {/* Modal popup for Avatar Selection */}
+          {isSelectorOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              {/* Overlay */}
+              <div
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200"
+                onClick={() => setIsSelectorOpen(false)}
+              />
+
+              {/* Modal Container */}
+              <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg p-6 md:p-8 shadow-2xl transition-all duration-300 z-10 space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                    Select Profile Avatar
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsSelectorOpen(false)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                    aria-label="Close modal"
+                  >
+                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                  {PREDEFINED_AVATARS.map((avatar) => {
+                    const isSelected = activeAvatarId === avatar.id;
+                    return (
+                      <button
+                        key={avatar.id}
+                        type="button"
+                        onClick={() => {
+                          selectAvatar(avatar);
+                          setIsSelectorOpen(false);
+                        }}
+                        aria-label={`Select ${avatar.label}`}
+                        aria-pressed={isSelected}
+                        className={`aspect-square rounded-full overflow-hidden border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                          isSelected
+                            ? "border-blue-500 scale-105 shadow-[0_0_12px_rgba(59,130,246,0.3)]"
+                            : "border-slate-200 dark:border-slate-800 hover:border-blue-500/50 hover:scale-[1.03]"
+                        }`}
+                      >
+                        <div
+                          dangerouslySetInnerHTML={{ __html: avatar.svg }}
+                          className="w-full h-full"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsSelectorOpen(false)}
+                    className="px-5 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-650 dark:text-slate-350 font-bold rounded-xl text-xs transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+                    {/* Action buttons */}
           <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
             <button
               type="submit"

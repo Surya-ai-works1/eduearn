@@ -16,7 +16,9 @@ export default function CompletionStep() {
       // Ensure the session reflects complete=true before navigating.
       // This prevents RequireTutor from bouncing the user back to onboarding.
       const supabase = createClient();
-      await supabase.auth.refreshSession();
+      if (supabase) {
+        await supabase.auth.refreshSession();
+      }
     } catch {
       // Non-fatal — proceed anyway
     }

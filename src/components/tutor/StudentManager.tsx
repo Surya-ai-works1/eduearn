@@ -542,9 +542,10 @@ export const StudentManager = React.memo(function StudentManager({
         })}
       </div>
 
-      {/* At-Risk Warning Callout Section */}
-      {atRiskStudents.length > 0 && (
-        <div className="bg-rose-500/5 dark:bg-rose-950/15 border border-rose-500/20 p-5 rounded-2xl space-y-4">
+      {/* Attention & Action Center Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: At-Risk Warnings */}
+        <div className="lg:col-span-7 bg-rose-500/5 dark:bg-rose-950/15 border border-rose-500/20 p-5 rounded-2xl space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 text-rose-600 dark:text-rose-400 font-extrabold text-xs select-none">
               <AlertTriangle size={16} />
@@ -554,50 +555,124 @@ export const StudentManager = React.memo(function StudentManager({
               {atRiskStudents.length} Alert{atRiskStudents.length > 1 ? "s" : ""} Active
             </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {atRiskStudents.map((risk) => (
-              <div key={risk.id} className="p-4 bg-card hover:shadow-sm border border-border/50 rounded-xl flex flex-col justify-between gap-3 transition-shadow">
-                <div className="space-y-1.5 text-left">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center font-bold text-[10px]">
-                      {risk.name.charAt(0)}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {atRiskStudents.length > 0 ? (
+              atRiskStudents.map((risk) => (
+                <div key={risk.id} className="p-4 bg-card hover:shadow-sm border border-border/50 rounded-xl flex flex-col justify-between gap-3 transition-shadow">
+                  <div className="space-y-1.5 text-left">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center font-bold text-[10px]">
+                        {risk.name.charAt(0)}
+                      </div>
+                      <h5 className="font-extrabold text-foreground text-xs">{risk.name}</h5>
                     </div>
-                    <h5 className="font-extrabold text-foreground text-xs">{risk.name}</h5>
+                    <p className="text-[10.5px] font-medium text-muted-foreground leading-normal">
+                      {risk.status === "At Risk"
+                        ? "No activity recorded for over 8 days."
+                        : `Attendance below minimum: ${risk.attendance}%. Course progress is stuck at ${risk.progress}%.`}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground/60 font-semibold uppercase tracking-wider">
+                      Last Active: {risk.lastActive || "8 days ago"}
+                    </p>
                   </div>
-                  <p className="text-[10.5px] font-medium text-muted-foreground leading-normal">
-                    {risk.status === "At Risk" 
-                      ? "No activity recorded for over 8 days." 
-                      : `Attendance below minimum: ${risk.attendance}%. Course progress is stuck at ${risk.progress}%.`}
-                  </p>
-                  <p className="text-[9px] text-muted-foreground/60 font-semibold uppercase tracking-wider">
-                    Last Active: {risk.lastActive || "8 days ago"}
-                  </p>
+                  <div className="flex gap-2 select-none border-t border-border/30 pt-2.5">
+                    <Button
+                      onClick={() => setSelectedStudent(risk)}
+                      size="sm"
+                      variant="outline"
+                      className="h-7.5 text-[9.5px] px-2.5 font-bold flex-1"
+                    >
+                      Review Progress
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        toast.success(`Urgent performance warning nudge sent to ${risk.name}.`);
+                      }}
+                      size="sm"
+                      className="h-7.5 text-[9.5px] px-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold border-none flex-1"
+                    >
+                      Nudge Alert
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2 select-none border-t border-border/30 pt-2.5">
-                  <Button
-                    onClick={() => setSelectedStudent(risk)}
-                    size="sm"
-                    variant="outline"
-                    className="h-7.5 text-[9.5px] px-2.5 font-bold flex-1"
-                  >
-                    Review Progress
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setSelectedStudent(risk);
-                      toast.info(`Direct chat with ${risk.name} initialized.`);
-                    }}
-                    size="sm"
-                    className="h-7.5 text-[9.5px] px-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold border-none flex-1"
-                  >
-                    Send Alert
-                  </Button>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground/60 italic py-6 text-center col-span-2">No students currently flagged as At Risk.</p>
+            )}
           </div>
         </div>
-      )}
+
+        {/* Right Column: Pending Action Items */}
+        <div className="lg:col-span-5 bg-indigo-500/5 border border-indigo-500/20 p-5 rounded-2xl space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-extrabold text-xs select-none">
+              <FileText size={16} />
+              <span>Pending Action Items</span>
+            </div>
+            <span className="text-[9px] font-extrabold text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-full select-none">
+              3 Tasks Pending
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {/* Action 1 */}
+            <div className="p-3.5 bg-card border border-border/50 rounded-xl flex items-center justify-between text-xs font-semibold gap-3">
+              <div>
+                <h5 className="font-extrabold text-foreground">Aarav Kumar — OOP Assignment</h5>
+                <p className="text-[9.5px] text-muted-foreground mt-0.5">Submitted 4 hours ago</p>
+              </div>
+              <Button
+                onClick={() => {
+                  toast.success("Opening assignment review panel");
+                }}
+                size="sm"
+                className="h-7 text-[9px] px-2.5 bg-primary hover:bg-primary/95 text-white font-bold border-none"
+              >
+                Grade Now
+              </Button>
+            </div>
+
+            {/* Action 2 */}
+            <div className="p-3.5 bg-card border border-border/50 rounded-xl flex items-center justify-between text-xs font-semibold gap-3">
+              <div>
+                <h5 className="font-extrabold text-foreground">Priya Patel — Graduation Certificate</h5>
+                <p className="text-[9.5px] text-muted-foreground mt-0.5">100% course curriculum progress</p>
+              </div>
+              <Button
+                onClick={async () => {
+                  if (onIssueCertificate) {
+                    await onIssueCertificate("stud-4");
+                  } else {
+                    toast.success("Certificate issued successfully!");
+                  }
+                }}
+                size="sm"
+                className="h-7 text-[9px] px-2.5 bg-emerald-600 hover:bg-emerald-750 text-white font-bold border-none"
+              >
+                Issue Certificate
+              </Button>
+            </div>
+
+            {/* Action 3 */}
+            <div className="p-3.5 bg-card border border-border/50 rounded-xl flex items-center justify-between text-xs font-semibold gap-3">
+              <div>
+                <h5 className="font-extrabold text-foreground">Rahul Dev — Class Scheduling</h5>
+                <p className="text-[9.5px] text-muted-foreground mt-0.5">Doubt session request pending</p>
+              </div>
+              <Button
+                onClick={() => {
+                  toast.success("Doubt session scheduled. Invitation sent!");
+                }}
+                size="sm"
+                variant="outline"
+                className="h-7 text-[9px] px-2.5 font-bold border-border/80"
+              >
+                Schedule
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Search & Filters Row */}
       <Card variant="glass" className="p-4 flex flex-wrap items-center gap-3 select-none">
@@ -824,6 +899,17 @@ export const StudentManager = React.memo(function StudentManager({
                     </td>
                     <td className="p-3 text-right pr-5" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1.5 select-none">
+                        {student.status === "At Risk" && (
+                          <Button
+                            onClick={() => {
+                              toast.success(`Urgent performance warning nudge sent to ${student.name}.`);
+                            }}
+                            size="sm"
+                            className="h-7 text-[10px] px-2 font-bold bg-rose-600 hover:bg-rose-705 text-white border-none animate-pulse"
+                          >
+                            Nudge
+                          </Button>
+                        )}
                         <Button
                           onClick={() => setSelectedStudent(student)}
                           size="sm"

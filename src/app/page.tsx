@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Play } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { PageWrapper } from "../components/layout/PageWrapper";
 import { HeroLayout } from "../components/layout/HeroLayout";
@@ -237,9 +238,9 @@ function TutorHomepageWorkspace() {
             ) : (
               myCourses.slice(0, 3).map((course) => (
                 <div key={course.id} className="bg-card border border-border hover:border-primary/20 p-4 rounded-xl transition flex flex-col justify-between gap-4 shadow-sm">
-                  <div className="flex justify-between items-start gap-4">
+                  <div className="flex justify-between items-start gap-4 text-left">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className={`text-[8.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${
                           course.status === "published" 
                             ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
@@ -249,13 +250,20 @@ function TutorHomepageWorkspace() {
                         }`}>
                           {course.status}
                         </span>
-                        <span className="text-[10px] text-muted-foreground font-semibold">{course.studentsCount} Students</span>
+                        <span className="text-[10px] text-muted-foreground font-semibold bg-muted/40 px-2 py-0.5 rounded">
+                          {course.studentsCount} Enrolled
+                        </span>
+                        <span className="text-[9px] text-primary font-bold bg-primary/5 px-2 py-0.5 rounded border border-primary/10">
+                          {course.status === "draft" ? "Draft Stage" : "Active Cohort"}
+                        </span>
                       </div>
                       <h4 className="font-extrabold text-sm text-foreground leading-snug">{course.title}</h4>
-                      <p className="text-[10.5px] text-muted-foreground font-semibold">Category: {course.category} • Level: {course.level}</p>
+                      <p className="text-[10.5px] text-muted-foreground font-semibold">
+                        Category: {course.category} • Level: {course.level} • <span className="text-foreground">12 Lessons (10h 30m)</span>
+                      </p>
                     </div>
                     {course.rating > 0 && (
-                      <span className="text-[10px] font-black text-amber-500 bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/15 shrink-0">
+                      <span className="text-[10px] font-black text-amber-500 bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/15 shrink-0 select-none">
                         {course.rating} ★
                       </span>
                     )}
@@ -267,13 +275,13 @@ function TutorHomepageWorkspace() {
                       className="px-3 py-1.5 bg-primary text-white text-[10.5px] font-bold rounded hover:opacity-95 transition flex items-center gap-1 cursor-pointer border-none"
                     >
                       <Edit size={11} />
-                      <span>Edit Course</span>
+                      <span>Edit Curriculum</span>
                     </button>
                     <button
-                      onClick={() => router.push(`/tutor/studio/manage/${course.id}`)}
+                      onClick={() => router.push(`/tutor/studio/manage/${course.id}?tab=settings`)}
                       className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-[10.5px] font-bold rounded transition cursor-pointer border-none"
                     >
-                      Manage Lessons
+                      Configure
                     </button>
                     <button
                       onClick={() => router.push("/tutor/analytics")}
@@ -299,7 +307,7 @@ function TutorHomepageWorkspace() {
               onClick={() => router.push("/tutor/live-classes")}
               className="text-[11px] font-bold text-primary hover:underline flex items-center gap-0.5 cursor-pointer bg-transparent border-none"
             >
-              <span>All Sessions</span>
+              <span>Cohort Calendar</span>
               <ArrowUpRight size={11} />
             </button>
           </div>
@@ -312,7 +320,7 @@ function TutorHomepageWorkspace() {
             ) : (
               upcomingClasses.slice(0, 3).map((session) => (
                 <div key={session.id} className="bg-card border border-border hover:border-rose-500/20 p-4 rounded-xl transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
-                  <div className="space-y-1">
+                  <div className="space-y-1 text-left">
                     <div className="flex items-center gap-2">
                       <span className="text-[8.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border bg-rose-500/10 text-rose-500 border-rose-500/20">
                         {session.status}
@@ -328,17 +336,20 @@ function TutorHomepageWorkspace() {
 
                   <div className="flex items-center gap-2 shrink-0 select-none w-full sm:w-auto justify-end sm:justify-start">
                     <button
-                      onClick={() => router.push("/tutor/live-classes")}
+                      onClick={() => {
+                        toast.success("Connecting securely to Google Meet portal...");
+                        router.push("/tutor/live-classes");
+                      }}
                       className="px-3 py-1.5 bg-rose-500 text-white text-[10.5px] font-bold rounded hover:opacity-95 transition flex items-center gap-1 cursor-pointer border-none"
                     >
                       <Play size={11} className="fill-white" />
-                      <span>Start Class</span>
+                      <span>Launch Room</span>
                     </button>
                     <button
                       onClick={() => router.push("/tutor/live-classes")}
                       className="px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-[10.5px] font-bold rounded transition cursor-pointer border-none"
                     >
-                      Manage
+                      Timetable
                     </button>
                   </div>
                 </div>
@@ -357,7 +368,7 @@ function TutorHomepageWorkspace() {
             Concise Student Activity
           </h3>
 
-          <div className="bg-card border border-border rounded-xl divide-y divide-border/40 overflow-hidden shadow-sm">
+          <div className="bg-card border border-border rounded-xl divide-y divide-border/40 overflow-hidden shadow-sm text-left">
             {recentActivitiesList.slice(0, 5).map((act, i) => (
               <div key={i} className="p-4 flex items-center justify-between gap-4 hover:bg-muted/10 transition">
                 <div className="flex items-center gap-3">
@@ -396,7 +407,7 @@ function TutorHomepageWorkspace() {
             Course Performance
           </h3>
 
-          <div className="bg-card border border-border p-5 rounded-xl space-y-4 shadow-sm">
+          <div className="bg-card border border-border p-5 rounded-xl space-y-4 shadow-sm text-left">
             <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider block">Student Engagement Metrics</span>
             <div className="space-y-3.5">
               {[
@@ -405,7 +416,7 @@ function TutorHomepageWorkspace() {
                 { label: "Completion Rate", value: "84% Complete", pct: 84, color: "bg-indigo-500" },
                 { label: "Avg Star Rating", value: "4.8 / 5.0 Rating", pct: 96, color: "bg-amber-500" },
               ].map((metric, i) => (
-                <div key={i} className="space-y-1 text-xs">
+                <div key={i} className="space-y-1 text-xs font-semibold">
                   <div className="flex justify-between font-bold">
                     <span className="text-muted-foreground">{metric.label}</span>
                     <span className="text-foreground">{metric.value}</span>
@@ -416,6 +427,21 @@ function TutorHomepageWorkspace() {
                 </div>
               ))}
             </div>
+
+            {/* Student Feedback Review Highlight */}
+            <div className="border-t border-border/40 pt-4 mt-2 space-y-2">
+              <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider block">Feedback Spotlight</span>
+              <div className="p-3 bg-muted/10 border border-border/50 rounded-xl space-y-1">
+                <div className="flex justify-between font-bold text-[9.5px]">
+                  <span className="text-foreground">Aarav M. (Python OOP)</span>
+                  <span className="text-amber-500">★★★★★</span>
+                </div>
+                <p className="text-[9.5px] text-muted-foreground italic leading-relaxed">
+                  "The hands-on coding exercises are great! Nudge alerts keep me right on track."
+                </p>
+              </div>
+            </div>
+
             <button
               onClick={() => router.push("/tutor/analytics")}
               className="w-full py-2 bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-button transition flex items-center justify-center gap-1 cursor-pointer border-none"
@@ -433,6 +459,14 @@ function TutorHomepageWorkspace() {
 export default function RootLandingPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const [isPublicView, setIsPublicView] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      setIsPublicView(params.get("public") === "true");
+    }
+  }, []);
   
   // Redirect incomplete users to onboarding steps, allow completed users/admins to view public landing page at "/"
   useEffect(() => {
@@ -571,80 +605,10 @@ export default function RootLandingPage() {
     </div>
   );
 
-  if (user?.role === "tutor") {
+  if (user?.role === "tutor" && !isPublicView) {
     return (
       <TutorProvider>
-        <div className="w-full relative min-h-screen bg-background text-foreground transition-colors duration-300 overflow-x-hidden">
-          <HeroLayout
-            title={animatedTitle}
-            subtitle={heroSubtitle}
-            illustration={<HeroIllustration />}
-            floatingWidgets={floatingWidgets}
-            ctas={
-              <div className="flex flex-wrap items-center gap-3.5 select-none pointer-events-auto">
-                <Button
-                  onClick={() => {
-                    router.push("/tutor/dashboard?tab=courses");
-                  }}
-                  size="md"
-                >
-                  + Create Course
-                </Button>
-                <Button
-                  onClick={() => {
-                    router.push("/tutor/dashboard?tab=resources");
-                  }}
-                  variant="outline"
-                  size="md"
-                  className="border-border/60 hover:bg-muted text-foreground"
-                >
-                  Upload Lesson
-                </Button>
-                <button
-                  onClick={() => {
-                    router.push("/tutor/dashboard?tab=live-classes");
-                  }}
-                  className="text-xs font-bold text-primary hover:underline ml-2 cursor-pointer bg-transparent border-none"
-                >
-                  Go Live
-                </button>
-              </div>
-            }
-            statistics={[
-              {
-                value: (
-                  <span className="flex items-baseline">
-                    <AnimatedCounter value={5000} />+
-                  </span>
-                ),
-                label: "Learners",
-              },
-              {
-                value: (
-                  <span className="flex items-baseline">
-                    <AnimatedCounter value={200} />+
-                  </span>
-                ),
-                label: "Tutors",
-              },
-              {
-                value: (
-                  <span className="flex items-baseline">
-                    <AnimatedCounter value={250} />+
-                  </span>
-                ),
-                label: "Skill Categories",
-              },
-              {
-                value: (
-                  <span className="flex items-baseline">
-                    <AnimatedCounter value={150} />+
-                  </span>
-                ),
-                label: "Live Classes",
-              },
-            ]}
-          />
+        <div className="w-full relative min-h-screen bg-background text-foreground transition-colors duration-300 overflow-x-hidden pt-6">
           <TutorHomepageWorkspace />
         </div>
       </TutorProvider>

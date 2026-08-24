@@ -38,6 +38,13 @@ function OnboardingContent() {
       setAuthError(null);
       try {
         const supabase = createClient();
+        if (!supabase) {
+          if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
+            setIsLoading(false);
+            return;
+          }
+          throw new Error("Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+        }
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
         if (!session) {

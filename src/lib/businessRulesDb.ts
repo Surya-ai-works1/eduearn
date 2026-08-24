@@ -93,10 +93,17 @@ const DEFAULT_RULES: CategoryPricingRule[] = [
 
 const TUTOR_UUID = "b194445d-3fbe-47ce-9bd2-07379c180142"; // Valid UUID from database
 
+function getSupabase() {
+  return createClient();
+}
+
 export const BusinessRulesDb = {
   async getCategoryRules(): Promise<CategoryPricingRule[]> {
     try {
-      const supabase = createClient();
+      const supabase = getSupabase();
+      if (!supabase) {
+        return DEFAULT_RULES;
+      }
       const { data, error } = await supabase
         .from("courses")
         .select("description")
@@ -126,7 +133,10 @@ export const BusinessRulesDb = {
 
   async saveCategoryRules(rules: CategoryPricingRule[]): Promise<boolean> {
     try {
-      const supabase = createClient();
+      const supabase = getSupabase();
+      if (!supabase) {
+        return false;
+      }
       
       // Check if it already exists
       const { data } = await supabase
@@ -165,7 +175,10 @@ export const BusinessRulesDb = {
 
   async getCoupons(): Promise<Coupon[]> {
     try {
-      const supabase = createClient();
+      const supabase = getSupabase();
+      if (!supabase) {
+        return [];
+      }
       const { data, error } = await supabase
         .from("courses")
         .select("description")
@@ -193,7 +206,10 @@ export const BusinessRulesDb = {
 
   async saveCoupons(coupons: Coupon[]): Promise<boolean> {
     try {
-      const supabase = createClient();
+      const supabase = getSupabase();
+      if (!supabase) {
+        return false;
+      }
       const { data } = await supabase
         .from("courses")
         .select("id")

@@ -23,6 +23,15 @@ export default function ReviewSubmitStep() {
     setIsSubmitting(true);
     try {
       const supabase = createClient();
+      if (!supabase) {
+        if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
+          toast.success('Onboarding Application Submitted ✓ (Mock Mode)');
+          localStorage.removeItem('tutor_onboarding_state');
+          window.location.href = '/tutor/application-status';
+          return;
+        }
+        throw new Error("Supabase is not configured. Cannot submit onboarding application.");
+      }
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {

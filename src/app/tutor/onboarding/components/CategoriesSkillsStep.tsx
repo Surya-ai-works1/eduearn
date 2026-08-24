@@ -291,7 +291,10 @@ export default function CategoriesSkillsStep() {
 
           {/* Custom Skill Badge Form */}
           <div className="p-5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/30 dark:bg-slate-950/20 space-y-4">
-            <h4 className="font-extrabold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Add Custom Skill Badge</h4>
+            <div>
+              <h4 className="font-extrabold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">Add Custom Skill Badge <span className="text-slate-400 dark:text-slate-500 font-semibold normal-case">(Optional)</span></h4>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Custom badges are self-declared and will appear as "Unverified" to students.</p>
+            </div>
             
             <div className="flex flex-col sm:flex-row gap-3">
               <input
@@ -333,6 +336,7 @@ export default function CategoriesSkillsStep() {
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-bold rounded-xl text-xs"
                   >
                     {s.skill} • {s.level}
+                    <span className="text-[9px] font-semibold text-blue-400 dark:text-blue-500 border border-blue-200 dark:border-blue-700 rounded-full px-1.5 py-0.5 ml-1">Unverified</span>
                     <button
                       type="button"
                       onClick={() => removeSkill(idx)}

@@ -380,7 +380,7 @@ export default function ExperienceStep() {
             </button>
             <button
               type="submit"
-              className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-700 hover:to-indigo-750 text-white font-bold rounded-xl shadow-lg transition"
+              className="px-8 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg transition"
             >
               Save & Proceed
             </button>

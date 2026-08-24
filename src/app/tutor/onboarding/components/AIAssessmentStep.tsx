@@ -176,9 +176,9 @@ function ScoreBar({ label, score, delay }: { label: string; score: number; delay
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-xs">
-        <span className="text-slate-400 font-medium">{label}</span>
+        <span className="text-slate-600 dark:text-slate-400 font-medium">{label}</span>
         <motion.span
-          className="text-white font-bold tabular-nums"
+          className="text-slate-800 dark:text-white font-bold tabular-nums"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: delay + 0.5, duration: 0.4 }}
@@ -186,7 +186,7 @@ function ScoreBar({ label, score, delay }: { label: string; score: number; delay
           {score}%
         </motion.span>
       </div>
-      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
         <motion.div
           className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"
           initial={{ width: 0 }}
@@ -350,8 +350,8 @@ export default function AIAssessmentStep() {
           </div>
         </div>
 
-        {/* Body — wrapped in dark class so code-editor / terminal-style dark UI renders correctly in all system themes */}
-        <div className="dark px-8 py-8 min-h-[400px] flex flex-col bg-slate-900 rounded-b-3xl">
+        {/* Body */}
+        <div className="px-8 py-8 min-h-[400px] flex flex-col bg-slate-50 dark:bg-slate-950/40 rounded-b-3xl">
           <AnimatePresence mode="wait">
 
             {/* ── WELCOME ── */}
@@ -378,8 +378,8 @@ export default function AIAssessmentStep() {
                   </div>
 
                   {/* What to expect */}
-                  <div className="bg-slate-950/30 border border-slate-800 rounded-2xl p-5 space-y-3">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">What to expect</p>
+                  <div className="bg-slate-100/80 dark:bg-slate-950/30 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3">
+                    <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">What to expect</p>
                     <ul className="space-y-2">
                       {[
                         `${totalQ} multiple-choice questions on teaching methodology`,
@@ -388,7 +388,7 @@ export default function AIAssessmentStep() {
                         'AI evaluates understanding, not memorisation',
                         'One attempt per application submission',
                       ].filter(Boolean).map((item, i) => (
-                        <li key={i} className="flex items-center gap-2.5 text-xs text-slate-400">
+                        <li key={i} className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400">
                           <ChevronRight className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
                           {item}
                         </li>
@@ -397,9 +397,9 @@ export default function AIAssessmentStep() {
                   </div>
                 </div>
 
-                <div className="flex justify-between pt-5 border-t border-slate-800">
+                <div className="flex justify-between pt-5 border-t border-slate-200 dark:border-slate-800">
                   <button type="button" onClick={goBack}
-                    className="px-6 py-3 border border-slate-700 text-slate-400 hover:bg-slate-800/50 font-bold rounded-xl text-sm transition">
+                    className="px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 font-bold rounded-xl text-sm transition">
                     Back
                   </button>
                   <button type="button" onClick={() => setPhase('mcq')}
@@ -418,10 +418,10 @@ export default function AIAssessmentStep() {
                   {/* Progress */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-400">Question {qIndex + 1} of {totalQ}</span>
-                      <span className="text-slate-500">{progressPct}% complete</span>
+                      <span className="font-bold text-slate-500 dark:text-slate-400">Question {qIndex + 1} of {totalQ}</span>
+                      <span className="text-slate-500 dark:text-slate-500">{progressPct}% complete</span>
                     </div>
-                    <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                       <motion.div
                         className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
                         animate={{ width: `${progressPct}%` }}
@@ -431,11 +431,11 @@ export default function AIAssessmentStep() {
                   </div>
 
                   {/* Question card */}
-                  <div className="bg-slate-950/30 border border-slate-800 rounded-2xl p-5">
-                    <p className="text-[10px] uppercase font-bold text-blue-400 tracking-wider mb-3">
+                  <div className="bg-white dark:bg-slate-950/30 border border-slate-200 dark:border-slate-800 rounded-2xl p-5">
+                    <p className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 tracking-wider mb-3">
                       Section 1 · Multiple Choice
                     </p>
-                    <p className="text-sm font-bold text-slate-100 leading-relaxed">{currentQ.text}</p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-relaxed">{currentQ.text}</p>
                   </div>
 
                   {/* Options */}
@@ -451,13 +451,13 @@ export default function AIAssessmentStep() {
                           whileTap={{ scale: 0.99 }}
                           className={`w-full p-4 rounded-xl text-left border text-xs font-medium transition-all duration-200 flex items-center gap-3 ${
                             selected
-                              ? 'bg-blue-600/8 border-blue-500 shadow-[0_0_16px_rgba(37,99,235,0.12)] text-white'
-                              : 'bg-slate-950/30 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                              ? 'bg-blue-50 dark:bg-blue-600/8 border-blue-500 shadow-[0_0_16px_rgba(37,99,235,0.12)] text-blue-700 dark:text-white'
+                              : 'bg-white dark:bg-slate-950/30 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-blue-500/50 hover:text-slate-700 dark:hover:border-slate-700 dark:hover:text-slate-300'
                           }`}
                         >
                           {/* Radio dot */}
                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition ${
-                            selected ? 'border-blue-500 bg-blue-600' : 'border-slate-700'
+                            selected ? 'border-blue-500 bg-blue-600' : 'border-slate-300 dark:border-slate-700'
                           }`}>
                             {selected && (
                               <motion.div
@@ -474,10 +474,10 @@ export default function AIAssessmentStep() {
                   </div>
                 </div>
 
-                <div className="flex justify-between pt-5 border-t border-slate-800">
+                <div className="flex justify-between pt-5 border-t border-slate-200 dark:border-slate-800">
                   <button type="button"
                     onClick={() => qIndex === 0 ? setPhase('welcome') : setQIndex(i => i - 1)}
-                    className="px-6 py-3 border border-slate-700 text-slate-400 hover:bg-slate-800/50 font-bold rounded-xl text-sm transition">
+                    className="px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 font-bold rounded-xl text-sm transition">
                     Back
                   </button>
                   <button type="button" onClick={nextQuestion}
@@ -494,17 +494,17 @@ export default function AIAssessmentStep() {
               <motion.div key="scenario" variants={fadeSlide} initial="initial" animate="animate" exit="exit" className="flex-1 flex flex-col justify-between gap-6">
                 <div className="space-y-5">
                   <div className="flex items-center gap-2">
-                    <div className="h-px flex-1 bg-slate-800" />
+                    <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
                     <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider px-3">Section 3 · Teaching Scenario</span>
-                    <div className="h-px flex-1 bg-slate-800" />
+                    <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
                   </div>
 
-                  <div className="bg-slate-950/30 border border-slate-800 rounded-2xl p-5 space-y-3">
-                    <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-amber-400 tracking-wider">
+                  <div className="bg-white dark:bg-slate-950/30 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3">
+                    <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 tracking-wider">
                       <AlertCircle className="w-3.5 h-3.5" />
                       AI Teaching Evaluation
                     </div>
-                    <p className="text-sm font-semibold text-slate-100 leading-relaxed">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
                       {TEACHING_SCENARIO.text}
                     </p>
                     <p className="text-[11px] text-slate-500 italic">{TEACHING_SCENARIO.hint}</p>
@@ -519,17 +519,17 @@ export default function AIAssessmentStep() {
                       value={scenarioText}
                       onChange={e => setScenarioText(e.target.value)}
                       placeholder="Describe your teaching approach step by step. Use analogies, examples, or a visual explanation. Be as clear and detailed as you would be with a real student..."
-                      className="w-full bg-slate-950/50 border border-slate-800 text-slate-100 text-xs rounded-2xl px-4 py-3.5 focus:outline-none focus:border-blue-600/40 focus:ring-1 focus:ring-blue-600/20 placeholder-slate-600 resize-none leading-relaxed transition"
+                      className="w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 text-xs rounded-2xl px-4 py-3.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 placeholder-slate-400 dark:placeholder-slate-600 resize-none leading-relaxed transition"
                     />
-                    <p className={`text-[10px] text-right ${scenarioText.length < 40 ? 'text-slate-600' : 'text-emerald-500'}`}>
+                    <p className={`text-[10px] text-right ${scenarioText.length < 40 ? 'text-slate-400 dark:text-slate-600' : 'text-emerald-500'}`}>
                       {scenarioText.length} characters {scenarioText.length < 40 ? `(minimum 40)` : '✓'}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex justify-between pt-5 border-t border-slate-800">
+                <div className="flex justify-between pt-5 border-t border-slate-200 dark:border-slate-800">
                   <button type="button" onClick={() => setPhase('mcq')}
-                    className="px-6 py-3 border border-slate-700 text-slate-400 hover:bg-slate-800/50 font-bold rounded-xl text-sm transition">
+                    className="px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 font-bold rounded-xl text-sm transition">
                     Back
                   </button>
                   <button type="button" onClick={handleScenarioNext}
@@ -546,27 +546,27 @@ export default function AIAssessmentStep() {
               <motion.div key="code" variants={fadeSlide} initial="initial" animate="animate" exit="exit" className="flex-1 flex flex-col justify-between gap-6">
                 <div className="space-y-5">
                   <div className="flex items-center gap-2">
-                    <div className="h-px flex-1 bg-slate-800" />
+                    <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
                     <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider px-3">Section 2 · Coding Challenge</span>
-                    <div className="h-px flex-1 bg-slate-800" />
+                    <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
                   </div>
 
-                  <div className="bg-slate-950/30 border border-slate-800 rounded-2xl p-5 space-y-2">
+                  <div className="bg-white dark:bg-slate-950/30 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-blue-400 tracking-wider">
+                      <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 tracking-wider">
                         <Code2 className="w-3.5 h-3.5" />
                         Practical Challenge
                       </div>
-                      <span className="text-[10px] bg-slate-800 text-slate-400 px-2.5 py-1 rounded-full font-medium">
+                      <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-1 rounded-full font-medium">
                         Est. {CODE_CHALLENGE.estimatedMinutes} min
                       </span>
                     </div>
-                    <p className="text-sm font-bold text-slate-100">{CODE_CHALLENGE.title}</p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{CODE_CHALLENGE.title}</p>
                     <p className="text-[11px] text-slate-500 leading-relaxed">{CODE_CHALLENGE.description}</p>
                   </div>
 
-                  {/* Code editor */}
-                  <div className="border border-slate-800 rounded-2xl overflow-hidden bg-slate-950 shadow-xl">
+                  {/* Code editor — intentionally dark */}
+                  <div className="border border-slate-300 dark:border-slate-800 rounded-2xl overflow-hidden bg-slate-950 shadow-xl">
                     {/* Editor toolbar */}
                     <div className="bg-slate-900 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -604,9 +604,9 @@ export default function AIAssessmentStep() {
                   </div>
                 </div>
 
-                <div className="flex justify-between pt-5 border-t border-slate-800">
+                <div className="flex justify-between pt-5 border-t border-slate-200 dark:border-slate-800">
                   <button type="button" onClick={() => setPhase('scenario')}
-                    className="px-6 py-3 border border-slate-700 text-slate-400 hover:bg-slate-800/50 font-bold rounded-xl text-sm transition">
+                    className="px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 font-bold rounded-xl text-sm transition">
                     Back
                   </button>
                   <button type="button" onClick={runEvaluation}
@@ -633,11 +633,11 @@ export default function AIAssessmentStep() {
                     animate={{ rotate: -360 }}
                     transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
                   />
-                  <Brain className="w-9 h-9 text-blue-400" />
+                  <Brain className="w-9 h-9 text-blue-500" />
                 </div>
 
                 <div className="text-center space-y-2">
-                  <h3 className="text-lg font-extrabold text-white">AI Analysis Running</h3>
+                  <h3 className="text-lg font-extrabold text-slate-800 dark:text-white">AI Analysis Running</h3>
                   <p className="text-xs text-slate-500">Processing your assessment — this takes about 5 seconds</p>
                 </div>
 
@@ -654,10 +654,10 @@ export default function AIAssessmentStep() {
                         transition={{ delay: i * 0.12 }}
                         className={`flex items-center gap-3 text-xs px-4 py-2.5 rounded-xl border transition-all ${
                           done
-                            ? 'border-emerald-900/40 bg-emerald-950/15 text-emerald-400'
+                            ? 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-950/15 text-emerald-700 dark:text-emerald-400'
                             : active
-                            ? 'border-blue-900/40 bg-blue-950/15 text-blue-400'
-                            : 'border-slate-800 bg-slate-950/20 text-slate-600'
+                            ? 'border-blue-200 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-950/15 text-blue-700 dark:text-blue-400'
+                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/20 text-slate-500 dark:text-slate-600'
                         }`}
                       >
                         <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
@@ -666,7 +666,7 @@ export default function AIAssessmentStep() {
                           ) : active ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <div className="w-3.5 h-3.5 rounded-full border border-slate-700" />
+                            <div className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-700" />
                           )}
                         </div>
                         {stage.label}
@@ -677,14 +677,14 @@ export default function AIAssessmentStep() {
 
                 {/* Progress bar */}
                 <div className="w-full max-w-sm space-y-1.5">
-                  <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                     <motion.div
                       className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
                       animate={{ width: `${evalProgress}%` }}
                       transition={{ duration: 0.3 }}
                     />
                   </div>
-                  <p className="text-[10px] text-right text-slate-600">{evalProgress}%</p>
+                  <p className="text-[10px] text-right text-slate-500 dark:text-slate-600">{evalProgress}%</p>
                 </div>
               </motion.div>
             )}
@@ -697,8 +697,8 @@ export default function AIAssessmentStep() {
                   {/* Success / Fail hero */}
                   <div className={`p-6 rounded-2xl border flex flex-col sm:flex-row items-center gap-5 ${
                     passed
-                      ? 'bg-emerald-950/15 border-emerald-900/40'
-                      : 'bg-amber-950/15 border-amber-900/40'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/15 border-emerald-200 dark:border-emerald-900/40'
+                      : 'bg-amber-50 dark:bg-amber-950/15 border-amber-200 dark:border-amber-900/40'
                   }`}>
                     {/* Animated icon */}
                     <motion.div
@@ -710,20 +710,20 @@ export default function AIAssessmentStep() {
                       }`}
                     >
                       {passed
-                        ? <Trophy className="w-8 h-8 text-emerald-400" />
-                        : <AlertCircle className="w-8 h-8 text-amber-400" />}
+                        ? <Trophy className="w-8 h-8 text-emerald-500 dark:text-emerald-400" />
+                        : <AlertCircle className="w-8 h-8 text-amber-500 dark:text-amber-400" />}
                     </motion.div>
 
                     <div className="text-center sm:text-left space-y-1">
                       <div className={`text-[10px] uppercase font-bold tracking-wider ${
-                        passed ? 'text-emerald-400' : 'text-amber-400'
+                        passed ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
                       }`}>
                         {passed ? 'AI Verification Passed ✓' : 'Assessment Complete'}
                       </div>
-                      <h3 className="text-xl font-extrabold text-white">
+                      <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
                         {passed ? 'Verified Competency' : 'Profile Ready for Review'}
                       </h3>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
                         {passed
                           ? 'Your profile is now ready for manual review by the EduEarn team.'
                           : 'Our team will review your application and assessment holistically.'}
@@ -733,7 +733,7 @@ export default function AIAssessmentStep() {
                     {/* Overall score */}
                     <div className="sm:ml-auto flex-shrink-0 flex flex-col items-center">
                       <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-                        <circle cx="40" cy="40" r="32" strokeWidth="5" stroke="#1e293b" fill="transparent" />
+                        <circle cx="40" cy="40" r="32" strokeWidth="5" stroke="#e2e8f0" fill="transparent" />
                         <motion.circle
                           cx="40" cy="40" r="32" strokeWidth="5"
                           stroke={passed ? '#10b981' : '#f59e0b'}
@@ -747,7 +747,7 @@ export default function AIAssessmentStep() {
                       </svg>
                       <div className="-mt-[72px] flex flex-col items-center">
                         <motion.span
-                          className="text-2xl font-extrabold text-white tabular-nums"
+                          className="text-2xl font-extrabold text-slate-800 dark:text-white tabular-nums"
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ delay: 0.8 }}
@@ -760,7 +760,7 @@ export default function AIAssessmentStep() {
                   </div>
 
                   {/* Score breakdown */}
-                  <div className="bg-slate-950/30 border border-slate-800 rounded-2xl p-5 space-y-4">
+                  <div className="bg-white dark:bg-slate-950/30 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
                     <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Score Breakdown</p>
                     <div className="space-y-3">
                       <ScoreBar label="Subject Expertise" score={subjectScore} delay={0.3} />
@@ -771,11 +771,11 @@ export default function AIAssessmentStep() {
 
                   {/* Strengths + Recommendations */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 border border-emerald-950/50 bg-emerald-950/10 rounded-2xl space-y-2">
-                      <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Identified Strengths</span>
+                    <div className="p-4 border border-emerald-200 dark:border-emerald-950/50 bg-emerald-50 dark:bg-emerald-950/10 rounded-2xl space-y-2">
+                      <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400 tracking-wider">Identified Strengths</span>
                       <ul className="space-y-1.5">
                         {evaluation.strengths.map((s, i) => (
-                          <li key={i} className="flex items-start gap-2 text-[11px] text-slate-400">
+                          <li key={i} className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
                             {s}
                           </li>
@@ -783,12 +783,12 @@ export default function AIAssessmentStep() {
                       </ul>
                     </div>
 
-                    <div className="p-4 border border-blue-950/50 bg-blue-950/10 rounded-2xl space-y-2">
-                      <span className="text-[10px] uppercase font-bold text-blue-400 tracking-wider">Recommendations</span>
+                    <div className="p-4 border border-blue-200 dark:border-blue-950/50 bg-blue-50 dark:bg-blue-950/10 rounded-2xl space-y-2">
+                      <span className="text-[10px] uppercase font-bold text-blue-700 dark:text-blue-400 tracking-wider">Recommendations</span>
                       <ul className="space-y-1.5">
                         {evaluation.improvements.map((imp, i) => (
-                          <li key={i} className="flex items-start gap-2 text-[11px] text-slate-400">
-                            <ChevronRight className="w-3.5 h-3.5 text-blue-400 mt-0.5 flex-shrink-0" />
+                          <li key={i} className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+                            <ChevronRight className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
                             {imp}
                           </li>
                         ))}
@@ -797,16 +797,16 @@ export default function AIAssessmentStep() {
                   </div>
 
                   {/* Manual review notice */}
-                  <div className="flex items-center gap-3 px-4 py-3 bg-slate-950/30 border border-slate-800 rounded-xl text-xs text-slate-500">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-950/30 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-600 dark:text-slate-500">
                     <ShieldCheck className="w-4 h-4 text-blue-500 flex-shrink-0" />
                     Profile ready for manual review by the EduEarn onboarding team. Decisions are made within 24–48 hours.
                   </div>
                 </div>
 
                 {/* CTA */}
-                <div className="flex justify-between pt-5 border-t border-slate-800">
+                <div className="flex justify-between pt-5 border-t border-slate-200 dark:border-slate-800">
                   <button type="button" onClick={() => { setPhase('welcome'); setQIndex(0); setMcqAnswers({}); setScenarioText(''); setEvaluation(null); }}
-                    className="px-5 py-3 border border-slate-700 text-slate-400 hover:bg-slate-800/50 font-bold rounded-xl text-sm transition text-xs">
+                    className="px-5 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 font-bold rounded-xl text-sm transition text-xs">
                     Retake
                   </button>
                   <motion.button

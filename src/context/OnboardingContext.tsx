@@ -17,6 +17,7 @@ export interface PersonalInfo {
   language: string;
   bio: string;
   avatarUrl?: string;
+  selectedAvatarId?: string;
 }
 
 export interface ProfessionalDetails {
