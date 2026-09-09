@@ -53,4 +53,15 @@ export class SupabaseStudentProfileRepository implements IStudentProfileReposito
     if (error) throw error;
     return this.mapDbToProfile(data);
   }
+
+  async deleteProfile(studentId: string): Promise<boolean> {
+    const supabase = createClient();
+    if (!supabase) return true;
+    const { error } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", studentId);
+    if (error) throw error;
+    return true;
+  }
 }

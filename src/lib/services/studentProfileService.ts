@@ -14,6 +14,10 @@ export class StudentProfileService {
     return StudentProfileRepository.updateProfile(studentId, profile);
   }
 
+  async deleteProfile(studentId: string): Promise<boolean> {
+    return StudentProfileRepository.deleteProfile(studentId);
+  }
+
   async getStudentStats(studentId: string): Promise<StudentStats> {
     let enrollments: any[] = [];
 

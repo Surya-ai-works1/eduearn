@@ -144,6 +144,7 @@ export function getCourseThumbnail(input?: CourseThumbnailInput | string | null)
     explicitThumbnail &&
     !explicitThumbnail.endsWith("fallback.jpg") &&
     !explicitThumbnail.endsWith("fallback.png") &&
+    !explicitThumbnail.includes("coding-v2") &&
     explicitThumbnail.startsWith("/images/")
   ) {
     return explicitThumbnail;

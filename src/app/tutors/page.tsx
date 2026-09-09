@@ -102,6 +102,7 @@ function TutorsContent() {
     async function loadFollowedTutors() {
       if (!user) return;
       const supabase = createClient();
+      if (!supabase) return;
       const { data, error } = await supabase
         .from("follows")
         .select("following_id")
@@ -177,6 +178,10 @@ function TutorsContent() {
     }
 
     const supabase = createClient();
+    if (!supabase) {
+      toast.warning("Database unavailable in offline mode.");
+      return;
+    }
     const isCurrentlyFollowing = followedTutors.includes(tutorId);
     const dbUuid = getUuidFromTutorId(tutorId);
 

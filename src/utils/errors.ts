@@ -8,63 +8,78 @@ export function normalizeError(error: unknown): string {
     return "An unknown error occurred.";
   }
 
+  let rawMessage = "";
+
   // 1. If it's already a string
   if (typeof error === "string") {
-    return error;
-  }
-
-  // 2. If it's an instance of Error
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  // 3. If it is an object
-  if (typeof error === "object") {
+    rawMessage = error;
+  } else if (error instanceof Error) {
+    // 2. If it's an instance of Error
+    rawMessage = error.message;
+  } else if (typeof error === "object") {
+    // 3. If it is an object
     const errObj = error as Record<string, unknown>;
 
-    // Supabase Auth / general error message check
     if (typeof errObj.message === "string" && errObj.message.trim() !== "") {
-      return errObj.message;
-    }
-
-    // OAuth / Auth description check
-    if (typeof errObj.error_description === "string" && errObj.error_description.trim() !== "") {
-      return errObj.error_description;
-    }
-
-    // Standard nested error string property check
-    if (typeof errObj.error === "string" && errObj.error.trim() !== "") {
-      return errObj.error;
-    }
-
-    // Nested error object check (e.g. error: { message: "..." })
-    if (errObj.error && typeof errObj.error === "object") {
+      rawMessage = errObj.message;
+    } else if (typeof errObj.error_description === "string" && errObj.error_description.trim() !== "") {
+      rawMessage = errObj.error_description;
+    } else if (typeof errObj.error === "string" && errObj.error.trim() !== "") {
+      rawMessage = errObj.error;
+    } else if (errObj.error && typeof errObj.error === "object") {
       const nestedErr = errObj.error as Record<string, unknown>;
       if (typeof nestedErr.message === "string" && nestedErr.message.trim() !== "") {
-        return nestedErr.message;
+        rawMessage = nestedErr.message;
       }
-    }
-
-    // PostgrestError checks
-    if (typeof errObj.details === "string" && errObj.details.trim() !== "") {
-      return `${errObj.message || "Database error"}: ${errObj.details}`;
-    }
-
-    // Avoid returning "{}"
-    try {
-      const str = JSON.stringify(errObj);
-      if (str && str !== "{}" && str.trim() !== "") {
-        return str;
+    } else if (typeof errObj.details === "string" && errObj.details.trim() !== "") {
+      rawMessage = `${errObj.message || "Database error"}: ${errObj.details}`;
+    } else {
+      try {
+        const str = JSON.stringify(errObj);
+        if (str && str !== "{}" && str.trim() !== "") {
+          rawMessage = str;
+        }
+      } catch {
+        // Ignore stringify error
       }
-    } catch {
-      // Ignore stringify error
     }
   }
 
-  // Fallback string conversion
-  const fallbackStr = String(error);
-  if (fallbackStr === "[object Object]" || fallbackStr === "{}") {
-    return "An unexpected error occurred.";
+  if (!rawMessage) {
+    const fallbackStr = String(error);
+    if (fallbackStr === "[object Object]" || fallbackStr === "{}" || !fallbackStr) {
+      return "We encountered a temporary issue processing your request. Please try again in a moment.";
+    }
+    rawMessage = fallbackStr;
   }
-  return fallbackStr || "An unknown error occurred.";
+
+  const lowerMsg = rawMessage.toLowerCase();
+
+  // Sanitize raw network / fetch errors
+  if (
+    lowerMsg.includes("fetch failed") ||
+    lowerMsg.includes("failed to fetch") ||
+    lowerMsg.includes("networkerror") ||
+    lowerMsg.includes("network error") ||
+    lowerMsg.includes("econnrefused") ||
+    lowerMsg.includes("load failed") ||
+    lowerMsg.includes("failed to execute 'fetch'")
+  ) {
+    return "We couldn't connect to the server right now. Please check your connection and try again.";
+  }
+
+  // Sanitize raw JS runtime / TypeError / internal server errors
+  if (
+    lowerMsg.includes("cannot read properties") ||
+    lowerMsg.includes("typeerror") ||
+    lowerMsg.includes("referenceerror") ||
+    lowerMsg.includes("500 internal server error") ||
+    lowerMsg.includes("internal server error") ||
+    lowerMsg.includes("unexpected token") ||
+    lowerMsg.includes("syntaxerror")
+  ) {
+    return "We encountered a temporary issue processing your request. Please try again in a moment.";
+  }
+
+  return rawMessage;
 }

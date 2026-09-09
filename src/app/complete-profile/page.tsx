@@ -32,6 +32,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { createClient } from "../../lib/supabase";
 import { normalizeError } from "../../utils/errors";
 import { MarketplaceService } from "../../features/payments/services/marketplaceService";
+import { PREDEFINED_AVATARS } from "../../constants/predefinedAvatars";
 
 // ─── ZOD SCHEMA ─────────────────────────────────────────────────────────────
 
@@ -127,12 +128,9 @@ export default function CompleteProfilePage() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
   const [availableInterests, setAvailableInterests] = useState<string[]>([]);
   const [interestSearch, setInterestSearch] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ─── RUNTIME DIAGNOSTIC AUDIT ──────────────────────────────────────────
   useEffect(() => {
@@ -252,131 +250,6 @@ export default function CompleteProfilePage() {
       setAvailableInterests(LEARNER_INTERESTS);
     }
   }, []);
-
-  // Handle file picker selection with immediate storage upload
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // 1. Validation (JPG, JPEG, PNG, WEBP)
-    const allowedExtensions = ["jpg", "jpeg", "png", "webp"];
-    const fileExt = file.name.split(".").pop()?.toLowerCase() || "png";
-    if (!allowedExtensions.includes(fileExt)) {
-      toast.error("Invalid file format. Only JPG, JPEG, PNG, and WEBP are supported.");
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Profile photo must be less than 2 MB.");
-      return;
-    }
-    // 2. Start Upload Loader
-    setIsUploadingImage(true);
-    const supabase = createClient();
-    if (!supabase) {
-      toast.error("Supabase client is missing.");
-      setIsUploadingImage(false);
-      return;
-    }
-
-    // Authoritative session verification and refresh if needed
-    let sessionResult;
-    try {
-      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
-      if (sessionErr || !session) {
-        // Attempt session refresh
-        const { data: refreshData, error: refreshErr } = await supabase.auth.refreshSession();
-        if (refreshErr || !refreshData.session) {
-          toast.error("Your session has expired. Please log in again.");
-          router.push("/login");
-          setIsUploadingImage(false);
-          return;
-        }
-        sessionResult = refreshData.session;
-      } else {
-        sessionResult = session;
-      }
-    } catch {
-      toast.error("Authentication session check failed.");
-      setIsUploadingImage(false);
-      return;
-    }
-
-    const currentUserId = sessionResult.user.id;
-
-    try {
-      // 3. Verify Storage avatars bucket
-      const { error: bucketError } = await supabase.storage.getBucket("avatars");
-      if (bucketError) {
-        if (process.env.NODE_ENV === "development") {
-          console.error("[completeProfile Storage Bucket Verification Error]", {
-            message: bucketError.message,
-            bucket: "avatars",
-            authenticatedUserId: currentUserId,
-          });
-        }
-        toast.error(`Storage bucket 'avatars' check failed: ${normalizeError(bucketError)}`);
-        setIsUploadingImage(false);
-        return;
-      }
-
-      const fileName = `${currentUserId}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      // 4. Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) {
-        if (process.env.NODE_ENV === "development") {
-          console.error("[completeProfile Storage Upload Error]", {
-            message: uploadError.message,
-            bucket: "avatars",
-            filePath,
-            authenticatedUserId: currentUserId,
-          });
-        }
-        toast.error(`Avatar upload failed: ${normalizeError(uploadError)}`);
-        setIsUploadingImage(false);
-        return;
-      }
-
-      // 5. Retrieve Public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
-
-      if (!publicUrl) {
-        toast.error("Failed to generate public URL for avatar.");
-        setIsUploadingImage(false);
-        return;
-      }
-
-      const finalUrl = `${publicUrl}?t=${Date.now()}`;
-      setUploadedAvatarUrl(finalUrl);
-      setAvatarPreview(finalUrl);
-      toast.success("Profile photo uploaded successfully!");
-    } catch (err: any) {
-      toast.error(`Upload error: ${normalizeError(err)}`);
-    } finally {
-      setIsUploadingImage(false);
-    }
-  };
-
-  // Trigger file dialog
-  const triggerFileSelect = () => {
-    fileInputRef.current?.click();
-  };
-
-  // Remove uploaded image
-  const removeAvatar = () => {
-    setAvatarFile(null);
-    setUploadedAvatarUrl(null);
-    setAvatarPreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
 
   // Navigating steps with step-specific checks
   const handleNext = async () => {
@@ -508,7 +381,6 @@ export default function CompleteProfilePage() {
 
   const isNextDisabled =
     isAuthStoreLoading ||
-    isUploadingImage ||
     (currentStep === 2 && bioLength < 10) ||
     (currentStep === 4 && selectedRole === "learner" && interests.length < 3);
 
@@ -1051,7 +923,7 @@ export default function CompleteProfilePage() {
                 </motion.div>
               )}
 
-              {/* STEP 5: PROFILE PICTURE PICTURE */}
+              {/* STEP 5: PREDEFINED AVATAR SELECTION */}
               {currentStep === 5 && (
                 <motion.div
                   key="step-5"
@@ -1061,101 +933,45 @@ export default function CompleteProfilePage() {
                   transition={{ duration: 0.25 }}
                   className="space-y-5 text-center flex flex-col items-center"
                 >
-                  <div className="mb-4">
+                  <div className="mb-2">
                     <h2 className="text-xl font-heading font-extrabold text-foreground tracking-tight">
-                      Profile Photo (Optional)
+                      Choose Your Avatar
                     </h2>
                     <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                      You can upload a profile photo now or skip and add one later.
+                      Pick an avatar that represents your learning journey. You can change it anytime in settings.
                     </p>
                   </div>
 
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
-
-                  {/* Photo crop/preview wrapper */}
-                  <div
-                    onClick={isUploadingImage || avatarPreview ? undefined : triggerFileSelect}
-                    className={`w-40 h-40 rounded-full border-2 border-dashed flex flex-col items-center justify-center transition-all cursor-pointer relative overflow-hidden group select-none ${
-                      avatarPreview
-                        ? "border-primary bg-card"
-                        : "border-border hover:border-primary bg-muted/30"
-                    }`}
-                  >
-                    {isUploadingImage ? (
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <Loader2 className="animate-spin text-primary" size={26} />
-                        <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">
-                          Uploading...
-                        </span>
-                      </div>
-                    ) : avatarPreview ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={avatarPreview}
-                          alt="Avatar Preview"
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                          <button
-                            type="button"
-                            onClick={triggerFileSelect}
-                            className="p-2 bg-white/20 rounded-full text-white backdrop-blur hover:bg-white/30"
-                          >
-                            <Camera size={18} />
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center p-4">
-                        <Camera size={26} className="text-muted-foreground mx-auto mb-2" />
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-                          Upload Photo
-                        </span>
-                        <span className="text-[8px] text-muted-foreground/60 block mt-1">
-                          Max 2MB (PNG/JPG/WEBP)
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {avatarPreview && (
-                    <div className="flex items-center gap-3">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={triggerFileSelect}
-                        disabled={isUploadingImage}
-                        className="flex items-center gap-1.5"
-                      >
-                        Replace
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={removeAvatar}
-                        disabled={isUploadingImage}
-                        className="flex items-center gap-1.5 text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 size={13} />
-                        Remove
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Dynamic crop placeholder badge */}
-                  <div className="rounded-[10px] border border-border bg-muted/40 px-4 py-3 max-w-sm mt-2">
-                    <p className="text-[10px] leading-relaxed text-muted-foreground text-left">
-                      💡 <strong>Crop Recommendation:</strong> Close-up face photos with uniform background outline contrast look best.
-                    </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-w-lg w-full max-h-[350px] overflow-y-auto p-1 text-left">
+                    {PREDEFINED_AVATARS.map((avatar) => {
+                      const isSelected = avatarPreview === avatar.dataUrl || uploadedAvatarUrl === avatar.dataUrl;
+                      return (
+                        <button
+                          key={avatar.id}
+                          type="button"
+                          onClick={() => {
+                            setAvatarPreview(avatar.dataUrl);
+                            setUploadedAvatarUrl(avatar.dataUrl);
+                          }}
+                          className={`relative p-2.5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center ${
+                            isSelected
+                              ? "border-purple-600 bg-purple-500/10 ring-2 ring-purple-600/30 shadow-md"
+                              : "border-border/60 hover:border-purple-500/50 hover:bg-muted/30"
+                          }`}
+                        >
+                          <div className="w-14 h-14 rounded-full overflow-hidden bg-primary/5 flex items-center justify-center">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={avatar.dataUrl} alt={avatar.label} className="w-full h-full object-cover" />
+                          </div>
+                          <span className="text-[9px] font-bold text-foreground text-center line-clamp-1 mt-1">{avatar.label}</span>
+                          {isSelected && (
+                            <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center">
+                              <Check size={10} strokeWidth={3} />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </motion.div>
               )}

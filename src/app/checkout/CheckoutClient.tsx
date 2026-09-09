@@ -20,13 +20,14 @@ import {
 } from "lucide-react";
 import { MOCK_COURSES, MOCK_TUTORS } from "../../constants/mockData";
 import { PaymentService } from "../../features/payments/services/paymentService";
+import { resolveCheckoutAmount } from "../../utils/checkoutAmountResolver";
 
 interface CheckoutClientProps {
   tutorId: string;
   courseId: string;
   planId: string;
   batchId: string;
-  amount: number | null;
+  amount: number;
   platform: string;
   coupon: string;
 }
@@ -48,7 +49,7 @@ export function CheckoutClient({
   const [planIdState, setPlanIdState] = useState(planId);
   const [batchIdState, setBatchIdState] = useState(batchId);
   const [meetingPlatform, setMeetingPlatform] = useState(platform);
-  const [basePrice, setBasePrice] = useState<number>(() => amount !== null ? amount : (MOCK_COURSES.find(c => c.id === courseId)?.price || 1499));
+  const [basePrice, setBasePrice] = useState<number>(amount);
 
   // Checkout calculations states
   const [couponCode, setCouponCode] = useState(coupon);
@@ -91,7 +92,7 @@ export function CheckoutClient({
     setPlanIdState(planId);
     setBatchIdState(batchId);
     setMeetingPlatform(platform);
-    setBasePrice(amount !== null ? amount : c.price);
+    setBasePrice(amount);
     if (coupon) {
       setCouponCode(coupon);
       setAppliedCoupon(coupon);

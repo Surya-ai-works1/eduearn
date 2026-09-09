@@ -127,13 +127,7 @@ export default function TutorRegisterPage() {
         </motion.div>
 
         {/* Password */}
-        <motion.div
-          custom={2}
-          variants={fieldVariants}
-          initial="hidden"
-          animate="visible"
-          className="relative"
-        >
+        <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible">
           <FormField
             label="Password"
             type={showPassword ? "text" : "password"}
@@ -141,21 +135,23 @@ export default function TutorRegisterPage() {
             placeholder="Create a secure password"
             icon={<Lock size={17} aria-hidden="true" />}
             error={errors.password?.message}
-            className="pr-12"
+            rightElement={
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="flex h-9 w-9 items-center justify-center rounded-button text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? (
+                  <EyeOff size={17} aria-hidden="true" />
+                ) : (
+                  <Eye size={17} aria-hidden="true" />
+                )}
+              </button>
+            }
             {...register("password")}
           />
-          <button
-            type="button"
-            onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute bottom-8 right-3 flex h-9 w-9 items-center justify-center rounded-button text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? (
-              <EyeOff size={17} aria-hidden="true" />
-            ) : (
-              <Eye size={17} aria-hidden="true" />
-            )}
-          </button>
         </motion.div>
 
         {/* Password strength meter with checklist */}
@@ -164,13 +160,7 @@ export default function TutorRegisterPage() {
         </motion.div>
 
         {/* Confirm password */}
-        <motion.div
-          custom={4}
-          variants={fieldVariants}
-          initial="hidden"
-          animate="visible"
-          className="relative"
-        >
+        <motion.div custom={4} variants={fieldVariants} initial="hidden" animate="visible">
           <FormField
             label="Confirm password"
             type={showConfirmPassword ? "text" : "password"}
@@ -178,21 +168,23 @@ export default function TutorRegisterPage() {
             placeholder="Re-enter your password"
             icon={<Lock size={17} aria-hidden="true" />}
             error={errors.confirmPassword?.message}
-            className="pr-12"
+            rightElement={
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="flex h-9 w-9 items-center justify-center rounded-button text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                aria-pressed={showConfirmPassword}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff size={17} aria-hidden="true" />
+                ) : (
+                  <Eye size={17} aria-hidden="true" />
+                )}
+              </button>
+            }
             {...register("confirmPassword")}
           />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword((prev) => !prev)}
-            className="absolute bottom-8 right-3 flex h-9 w-9 items-center justify-center rounded-button text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-          >
-            {showConfirmPassword ? (
-              <EyeOff size={17} aria-hidden="true" />
-            ) : (
-              <Eye size={17} aria-hidden="true" />
-            )}
-          </button>
         </motion.div>
 
         {/* Terms & Privacy checkboxes */}

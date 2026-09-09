@@ -543,30 +543,20 @@ export interface CategoryPricingRule {
 }
 
 export function getDefaultPricingRule(categoryNameOrId: string): CategoryPricingRule {
-  if (typeof window !== "undefined") {
-    try {
-      const cached = localStorage.getItem("eduearn_admin_categories") || localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (cached) {
-        const list = JSON.parse(cached);
-        const normId = (categoryNameOrId || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-        const match = list.find((c: any) => 
-          c.id === normId || 
-          c.name.toLowerCase() === categoryNameOrId.toLowerCase() ||
-          c.id === categoryNameOrId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
-        );
-        if (match) {
-          return {
-            minPrice: match.minPrice || match.min_price || 500,
-            recommendedPrice: match.recommendedPrice || match.recommended_price || 999,
-            maxPrice: match.maxPrice || match.max_price || 25000,
-            platformCommission: match.platformCommission || match.platform_commission || 15,
-            defaultDiscount: match.defaultDiscount || match.default_discount || 10
-          };
-        }
-      }
-    } catch (err) {
-      console.warn("Failed to read dynamic pricing rules from localStorage cached values:", err);
-    }
+  const normId = (categoryNameOrId || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const match = SEED_CATEGORIES.find((c: any) =>
+    c.id === normId ||
+    c.name.toLowerCase() === categoryNameOrId.toLowerCase() ||
+    c.id === categoryNameOrId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+  );
+  if (match) {
+    return {
+      minPrice: match.minPrice ?? 500,
+      recommendedPrice: match.recommendedPrice ?? 999,
+      maxPrice: match.maxPrice ?? 25000,
+      platformCommission: match.platformCommission ?? 15,
+      defaultDiscount: match.defaultDiscount ?? 0
+    };
   }
 
   const norm = (categoryNameOrId || "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -582,10 +572,10 @@ export function getDefaultPricingRule(categoryNameOrId: string): CategoryPricing
   if (norm.includes("creative") || norm.includes("design") || norm.includes("video") || norm.includes("art")) {
     return { minPrice: 800, recommendedPrice: 1200, maxPrice: 15000, platformCommission: 16.67, defaultDiscount: 10 };
   }
-  if (norm.includes("science") || norm.includes("math")) {
-    return { minPrice: 600, recommendedPrice: 900, maxPrice: 10000, platformCommission: 11.11, defaultDiscount: 5 };
+  if (norm.includes("science") || norm.includes("math") || norm.includes("academic") || norm.includes("school") || norm.includes("education")) {
+    return { minPrice: 600, recommendedPrice: 900, maxPrice: 10000, platformCommission: 11.11, defaultDiscount: 0 };
   }
-  return { minPrice: 500, recommendedPrice: 700, maxPrice: 8000, platformCommission: 14.28, defaultDiscount: 10 };
+  return { minPrice: 500, recommendedPrice: 700, maxPrice: 8000, platformCommission: 14.28, defaultDiscount: 0 };
 }
 
 export const MarketplaceService = {

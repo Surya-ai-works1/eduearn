@@ -5,17 +5,48 @@ import { PageWrapper } from "../../../components/layout/PageWrapper";
 export const dynamic = "force-dynamic";
 
 interface SuccessPageProps {
-  searchParams: Promise<{ [key: string]: string | undefined }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function CheckoutSuccessPage({ searchParams }: SuccessPageProps) {
-  const resolvedSearchParams = await searchParams;
-  const tutorId = resolvedSearchParams.tutorId || "";
-  const courseId = resolvedSearchParams.courseId || "";
-  const planId = resolvedSearchParams.planId || "Complete Course";
-  const batchId = resolvedSearchParams.batchId || "Morning Batch";
-  const amount = resolvedSearchParams.amount || "4,999";
-  const platform = resolvedSearchParams.platform || "Google Meet";
+  const resolvedSearchParams = await (searchParams ?? Promise.resolve({}));
+
+  const tutorId = typeof resolvedSearchParams.tutorId === "string"
+    ? resolvedSearchParams.tutorId
+    : Array.isArray(resolvedSearchParams.tutorId)
+    ? resolvedSearchParams.tutorId[0] || ""
+    : "";
+
+  const courseId = typeof resolvedSearchParams.courseId === "string"
+    ? resolvedSearchParams.courseId
+    : Array.isArray(resolvedSearchParams.courseId)
+    ? resolvedSearchParams.courseId[0] || ""
+    : "";
+
+  const planId = typeof resolvedSearchParams.planId === "string"
+    ? resolvedSearchParams.planId
+    : Array.isArray(resolvedSearchParams.planId)
+    ? resolvedSearchParams.planId[0] || "Complete Course"
+    : "Complete Course";
+
+  const batchId = typeof resolvedSearchParams.batchId === "string"
+    ? resolvedSearchParams.batchId
+    : Array.isArray(resolvedSearchParams.batchId)
+    ? resolvedSearchParams.batchId[0] || "Morning Batch"
+    : "Morning Batch";
+
+  const rawAmount = resolvedSearchParams.amount;
+  const amount = typeof rawAmount === "string"
+    ? rawAmount
+    : Array.isArray(rawAmount)
+    ? rawAmount[0] || "950"
+    : "950";
+
+  const platform = typeof resolvedSearchParams.platform === "string"
+    ? resolvedSearchParams.platform
+    : Array.isArray(resolvedSearchParams.platform)
+    ? resolvedSearchParams.platform[0] || "Google Meet"
+    : "Google Meet";
 
   return (
     <PageWrapper>

@@ -5,4 +5,5 @@ import { StudentProfile } from "../../types/studentProfile";
 export interface IStudentProfileRepository {
   getProfile(studentId: string): Promise<StudentProfile | null>;
   updateProfile(studentId: string, profile: Partial<StudentProfile>): Promise<StudentProfile>;
+  deleteProfile(studentId: string): Promise<boolean>;
 }

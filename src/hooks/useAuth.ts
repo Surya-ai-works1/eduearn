@@ -45,8 +45,10 @@ interface AuthStore {
   resendVerificationEmail: (email: string) => Promise<AuthResult>;
   sendResetLink: (email: string) => Promise<AuthResult>;
   resetPassword: (password: string) => Promise<AuthResult>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<AuthResult>;
   completeProfile: (fields: Partial<UserSession>, avatarFile?: File) => Promise<{ success: boolean; error?: string }>;
   chooseRole: (role: "student" | "tutor") => Promise<boolean>;
+  deleteAccount: (password: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
 }
 
@@ -167,6 +169,16 @@ export const useAuth = create<AuthStore>((set, get) => ({
       repairSessionInDev();
       const supabase = getSafeSupabase();
       if (!supabase) {
+        if (typeof window !== "undefined") {
+          try {
+            const savedDev = localStorage.getItem("eduearn_dev_preview_user");
+            if (savedDev) {
+              const devUser = JSON.parse(savedDev);
+              set({ user: devUser, isAuthenticated: true, isLoading: false });
+              return;
+            }
+          } catch {}
+        }
         set({ isLoading: false });
         return;
       }
@@ -457,11 +469,11 @@ export const useAuth = create<AuthStore>((set, get) => ({
         } else if (registerRes.ok && !registerData.fallback) {
           console.error("[useAuth register] Server-side registration failed:", registerData.error);
           set({ isLoading: false });
-          return { ok: false, message: registerData.error || "Registration failed." };
+          return { ok: false, message: normalizeError(registerData.error || "Registration failed.") };
         } else if (!registerRes.ok) {
           console.error("[useAuth register] Server error:", registerData);
           set({ isLoading: false });
-          return { ok: false, message: registerData.error || "Server error during registration." };
+          return { ok: false, message: normalizeError(registerData.error || "Server error during registration.") };
         }
       } catch (apiErr) {
         console.warn("[useAuth register] API registration request failed, trying client fallback:", apiErr);
@@ -499,7 +511,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
       if (error) {
         console.error("[DIAGNOSTIC] supabase.auth.signUp() returned an AuthError:", error);
         set({ isLoading: false });
-        return { ok: false, message: error.message };
+        return { ok: false, message: normalizeError(error) };
       }
 
       console.log("[DIAGNOSTIC] supabase.auth.signUp() succeeded. data:", data);
@@ -553,7 +565,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
         });
       }
       set({ isLoading: false });
-      return { ok: false, message: err?.message || String(err) };
+      return { ok: false, message: normalizeError(err) };
     }
   },
 
@@ -633,6 +645,71 @@ export const useAuth = create<AuthStore>((set, get) => ({
     }
   },
 
+  changePassword: async (currentPassword, newPassword) => {
+    try {
+      const supabase = getSafeSupabase();
+      if (!supabase) {
+        if (!currentPassword || !currentPassword.trim()) {
+          return { ok: false, message: "Current password is required." };
+        }
+        return { ok: true, message: "Password changed successfully (Mock Mode)." };
+      }
+
+      set({ isLoading: true });
+
+      const currentUser = get().user;
+      let email = currentUser?.email;
+
+      if (!email) {
+        const { data: { user } } = await supabase.auth.getUser();
+        email = user?.email;
+      }
+
+      if (!email) {
+        set({ isLoading: false });
+        return { ok: false, message: "Unauthenticated session. Please log in again." };
+      }
+
+      // 1. Verify current password securely via Supabase Auth re-authentication
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email,
+        password: currentPassword,
+      });
+
+      if (verifyError) {
+        set({ isLoading: false });
+        return {
+          ok: false,
+          message: "Current password is incorrect. Please try again.",
+        };
+      }
+
+      // 2. Update to new password on Supabase Auth
+      const { data, error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        set({ isLoading: false });
+        return {
+          ok: false,
+          message: normalizeError(updateError),
+        };
+      }
+
+      set({
+        user: data.user ? toUserSession(data.user) : get().user,
+        isAuthenticated: Boolean(data.user ?? get().user),
+        isLoading: false,
+      });
+
+      return { ok: true, message: "Password changed successfully." };
+    } catch (err) {
+      set({ isLoading: false });
+      return { ok: false, message: normalizeError(err) };
+    }
+  },
+
   completeProfile: async (fields, avatarFile) => {
     try {
       const currentUser = get().user;
@@ -668,6 +745,9 @@ export const useAuth = create<AuthStore>((set, get) => ({
           ...updatedUser,
           complete: true,
         };
+        if (typeof window !== "undefined") {
+          localStorage.setItem("eduearn_dev_preview_user", JSON.stringify(mockUpdatedUser));
+        }
         set({ user: mockUpdatedUser, isAuthenticated: true, isLoading: false });
         return { success: true };
       }
@@ -883,6 +963,47 @@ export const useAuth = create<AuthStore>((set, get) => ({
     } catch (err) {
       console.error("Exception inside chooseRole:", err);
       return false;
+    }
+  },
+
+  deleteAccount: async (password: string) => {
+    try {
+      if (!password || !password.trim()) {
+        return { ok: false, message: "Password is required for account deletion." };
+      }
+
+      const supabase = getSafeSupabase();
+      const currentUser = get().user;
+
+      if (supabase && currentUser?.email) {
+        // Re-authenticate user with password before account deletion
+        const { error: verifyError } = await supabase.auth.signInWithPassword({
+          email: currentUser.email,
+          password,
+        });
+
+        if (verifyError) {
+          return { ok: false, message: "Incorrect password. Account was NOT deleted." };
+        }
+      }
+
+      // Trigger server-side account deletion API
+      const res = await fetch("/api/student/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        return { ok: false, message: errData.error || "Failed to delete account on server." };
+      }
+
+      // Logout and invalidate session
+      await get().logout();
+
+      return { ok: true, message: "Account deleted successfully." };
+    } catch (err: any) {
+      return { ok: false, message: normalizeError(err) || "An error occurred during account deletion." };
     }
   },
 

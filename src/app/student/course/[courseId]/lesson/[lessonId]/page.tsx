@@ -199,7 +199,7 @@ export default function LessonPage() {
                   src={activeLesson.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
                   controls
                   className="w-full h-full"
-                  poster={course.thumbnailUrl || '/images/categories/coding-v2.webp'}
+                  poster={course.thumbnailUrl || '/images/courses/python.webp'}
                 />
               </div>
 

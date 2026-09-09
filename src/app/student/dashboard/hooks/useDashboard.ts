@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useAuth } from "../../../../hooks/useAuth";
+import { normalizeError } from "../../../../utils/errors";
 import { PaymentService, PurchaseHistoryItem } from "../../../../features/payments/services/paymentService";
 import { AiService } from "../../../../features/ai/services/aiService";
 import { getCourseThumbnail } from "../../../../lib/courseThumbnailRegistry";
@@ -136,7 +138,7 @@ export function useDashboard(user: any, logout: () => Promise<void>, completePro
       id: "course-python",
       title: "Python Programming Masterclass",
       tutorName: "Vikram Rathore",
-      thumbnail: "/images/categories/coding-v2.webp",
+      thumbnail: "/images/courses/python.webp",
       progress: 90,
       lessonsCount: 10,
       completedLessons: 9,
@@ -194,7 +196,7 @@ export function useDashboard(user: any, logout: () => Promise<void>, completePro
       serialNumber: "EE-CERT-904128",
       issueDate: "June 14, 2026",
       qrCode: "EE-QR-904128",
-      courseImage: "/images/courses/arts.png",
+      courseImage: "/images/courses/arts.jpg",
       tutorName: "Priya Patel",
       blockchainHash: "0x892a...c01f",
     },
@@ -245,8 +247,8 @@ export function useDashboard(user: any, logout: () => Promise<void>, completePro
 
   // Downloadable PDFs list
   const [downloads, setDownloads] = useState([
-    { id: 1, title: "Keyboard chords progressions diagram.pdf", size: "4.8 MB", type: "PDF" },
-    { id: 2, title: "Python Advanced Algorithms Handbook.pdf", size: "12 MB", type: "PDF" },
+    { id: 1, title: "Keyboard chords progressions diagram.pdf", size: "4.8 MB", type: "PDF", courseName: "Music & Keyboard Essentials", downloadedAt: "Saved 2 days ago" },
+    { id: 2, title: "Python Advanced Algorithms Handbook.pdf", size: "12 MB", type: "PDF", courseName: "Python Programming Masterclass", downloadedAt: "Saved 5 days ago" },
   ]);
 
   // Tab controls
@@ -299,6 +301,21 @@ export function useDashboard(user: any, logout: () => Promise<void>, completePro
   const [redeemOpen, setRedeemOpen] = useState(false);
   const [redeemedCodes, setRedeemedCodes] = useState<string[]>([]);
 
+  // Auth service hooks
+  const { changePassword, deleteAccount } = useAuth();
+
+  // Profile submission & password submission state
+  const [isSubmittingProfile, setIsSubmittingProfile] = useState<boolean>(false);
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState<boolean>(false);
+
+  // Avatar Modal & Account Deletion states
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState<boolean>(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [deleteStep, setDeleteStep] = useState<"warning" | "auth" | "confirm">("warning");
+  const [deletePassword, setDeletePassword] = useState<string>("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState<string>("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
+
   // Profile Form editor state
   const [profileForm, setProfileForm] = useState({
     fullName: user?.fullName || "Surya",
@@ -319,7 +336,6 @@ export function useDashboard(user: any, logout: () => Promise<void>, completePro
 
   const [passwordForm, setPasswordForm] = useState({ old: "", new: "", confirm: "" });
 
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatarUrl || null);
 
   // Synchronise avatar when auth user session changes
@@ -601,49 +617,167 @@ export function useDashboard(user: any, logout: () => Promise<void>, completePro
   // Save profile handler
   const handleSaveProfile = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedFullName = (profileForm.fullName || "").trim();
+    if (!trimmedFullName) {
+      toast.error("Full Name cannot be empty.");
+      return;
+    }
+
+    setIsSubmittingProfile(true);
     try {
+      const payload = {
+        ...profileForm,
+        fullName: trimmedFullName,
+        username: (profileForm.username || "").trim(),
+        country: (profileForm.country || "").trim(),
+        language: (profileForm.language || "").trim(),
+        bio: (profileForm.bio || "").trim(),
+      };
+
       const res = await fetch("/api/student/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profileForm),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to update profile.");
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Unable to save your profile right now. Please try again.");
       }
 
-      await completeProfile(profileForm, avatarFile || undefined);
+      const data = await res.json();
+      const savedProfile = data.profile || payload;
+
+      // Synchronize profile form state with API response source of truth
+      setProfileForm((prev) => ({
+        ...prev,
+        fullName: savedProfile.fullName || payload.fullName,
+        username: savedProfile.username || payload.username,
+        bio: savedProfile.bio || payload.bio,
+        country: savedProfile.country || payload.country,
+        language: savedProfile.language || payload.language,
+      }));
+
+      // Synchronize auth context & session storage
+      await completeProfile({
+        fullName: savedProfile.fullName || payload.fullName,
+        username: savedProfile.username || payload.username,
+        bio: savedProfile.bio || payload.bio,
+        country: savedProfile.country || payload.country,
+        language: savedProfile.language || payload.language,
+        avatarUrl: avatarPreview !== null ? avatarPreview : "",
+      });
+
       toast.success("Profile details updated successfully!");
     } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to update profile.");
+      console.error("Profile save error:", err);
+      toast.error(err.message || "Unable to save your profile right now. Please try again.");
+    } finally {
+      setIsSubmittingProfile(false);
     }
-  }, [profileForm, avatarFile, completeProfile]);
+  }, [profileForm, avatarPreview, completeProfile]);
 
-  // Password change handler
-  const handlePasswordChange = useCallback((e: React.FormEvent) => {
+  // Password change handler with secure verification and client validation
+  const handlePasswordChange = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!passwordForm.new || passwordForm.new !== passwordForm.confirm) {
+    const oldPassword = passwordForm.old;
+    const newPassword = passwordForm.new;
+    const confirmPassword = passwordForm.confirm;
+
+    if (!oldPassword || !oldPassword.trim()) {
+      toast.error("Current password is required.");
+      return;
+    }
+
+    if (!newPassword) {
+      toast.error("New password is required.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters long.");
+      return;
+    }
+
+    if (!/[A-Z]/.test(newPassword)) {
+      toast.error("Password must include an uppercase letter.");
+      return;
+    }
+
+    if (!/[a-z]/.test(newPassword)) {
+      toast.error("Password must include a lowercase letter.");
+      return;
+    }
+
+    if (!/\d/.test(newPassword)) {
+      toast.error("Password must include a number.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
       toast.error("Passwords do not match.");
       return;
     }
-    toast.success("Password updated securely!");
-    setPasswordForm({ old: "", new: "", confirm: "" });
-  }, [passwordForm]);
 
-  // File picker handler
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (oldPassword === newPassword) {
+      toast.error("Your new password must be different from your current password.");
+      return;
     }
+
+    setIsSubmittingPassword(true);
+    try {
+      const result = await changePassword(oldPassword, newPassword);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+
+      toast.success(result.message || "Password changed successfully.");
+      setPasswordForm({ old: "", new: "", confirm: "" });
+    } catch (err: any) {
+      toast.error(normalizeError(err) || "Failed to change password. Please try again.");
+    } finally {
+      setIsSubmittingPassword(false);
+    }
+  }, [passwordForm, changePassword]);
+
+  // Predefined avatar selection handler
+  const handleSelectPredefinedAvatar = useCallback((dataUrl: string) => {
+    setAvatarPreview(dataUrl);
+    setIsAvatarModalOpen(false);
   }, []);
+
+  // Account deletion handler
+  const handleDeleteAccountSubmit = useCallback(async () => {
+    if (!deletePassword || !deletePassword.trim()) {
+      toast.error("Please enter your current password to confirm deletion.");
+      return;
+    }
+
+    if (deleteConfirmText.trim().toUpperCase() !== "DELETE") {
+      toast.error("Please type DELETE to confirm account deletion.");
+      return;
+    }
+
+    setIsDeletingAccount(true);
+    try {
+      const res = await deleteAccount(deletePassword);
+      if (!res.ok) {
+        toast.error(res.message);
+        setIsDeletingAccount(false);
+        return;
+      }
+
+      toast.success("Account permanently deleted. Redirecting to login...");
+      setIsDeleteModalOpen(false);
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+    } catch (err: any) {
+      toast.error(normalizeError(err) || "Failed to delete account. Please try again.");
+      setIsDeletingAccount(false);
+    }
+  }, [deletePassword, deleteConfirmText, deleteAccount]);
 
   // Redeem rewards helper
   const handleRedeem = useCallback((cost: number, code: string, rewardName: string) => {
@@ -1187,12 +1321,25 @@ export function useDashboard(user: any, logout: () => Promise<void>, completePro
     setRedeemedCodes,
     profileForm,
     setProfileForm,
+    isSubmittingProfile,
+    isSubmittingPassword,
     passwordForm,
     setPasswordForm,
-    avatarFile,
-    setAvatarFile,
     avatarPreview,
     setAvatarPreview,
+    isAvatarModalOpen,
+    setIsAvatarModalOpen,
+    handleSelectPredefinedAvatar,
+    isDeleteModalOpen,
+    setIsDeleteModalOpen,
+    deleteStep,
+    setDeleteStep,
+    deletePassword,
+    setDeletePassword,
+    deleteConfirmText,
+    setDeleteConfirmText,
+    isDeletingAccount,
+    handleDeleteAccountSubmit,
     welcomeGreeting,
     formattedCountdown,
     dateEventsList,
@@ -1208,7 +1355,6 @@ export function useDashboard(user: any, logout: () => Promise<void>, completePro
     handleUploadAssignment,
     handleSaveProfile,
     handlePasswordChange,
-    handleFileChange,
     handleRedeem,
     liveClasses,
     upcomingClasses,

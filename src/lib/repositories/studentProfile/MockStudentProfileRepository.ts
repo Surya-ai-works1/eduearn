@@ -18,11 +18,13 @@ export class MockStudentProfileRepository implements IStudentProfileRepository {
     }
 
     try {
-      const saved = localStorage.getItem("eduearn_mock_user");
+      const savedDev = localStorage.getItem("eduearn_dev_preview_user");
+      const savedMock = localStorage.getItem("eduearn_mock_user");
+      const saved = savedDev || savedMock;
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
-          id: studentId,
+          id: studentId || parsed.id || "preview-student-id",
           fullName: parsed.fullName || parsed.full_name || "Rahul Sharma",
           email: parsed.email || "rahul.sharma@example.com",
           avatarUrl: parsed.avatarUrl || parsed.avatar_url || "",
@@ -46,12 +48,14 @@ export class MockStudentProfileRepository implements IStudentProfileRepository {
       joinedAt: "2026-07-01T12:00:00Z"
     };
 
+    localStorage.setItem("eduearn_dev_preview_user", JSON.stringify(defaultProfile));
     localStorage.setItem("eduearn_mock_user", JSON.stringify(defaultProfile));
     return defaultProfile;
   }
 
   private saveLocalUser(profile: StudentProfile) {
     if (typeof window === "undefined") return;
+    localStorage.setItem("eduearn_dev_preview_user", JSON.stringify(profile));
     localStorage.setItem("eduearn_mock_user", JSON.stringify(profile));
   }
 
@@ -68,5 +72,16 @@ export class MockStudentProfileRepository implements IStudentProfileRepository {
     };
     this.saveLocalUser(updated);
     return updated;
+  }
+
+  async deleteProfile(studentId: string): Promise<boolean> {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("eduearn_dev_preview_user");
+      localStorage.removeItem("eduearn_mock_user");
+      localStorage.removeItem("eduearn_coins");
+      localStorage.removeItem("eduearn_xp");
+      localStorage.removeItem("eduearn_enrollments");
+    }
+    return true;
   }
 }

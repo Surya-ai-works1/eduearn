@@ -42,9 +42,12 @@ import {
   QrCode,
   Zap,
   Star,
-  Activity,
   UserCheck,
   Notebook,
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PaymentService, PurchaseHistoryItem } from "../../../features/payments/services/paymentService";
@@ -65,6 +68,8 @@ import { AgendaView } from "../../../components/ui/AgendaView";
 import { navigateToClassroom } from "../../../features/classroom/utils/navigation";
 import { MOCK_COURSES } from "../../../constants/mockData";
 import { getCourseThumbnail } from "../../../lib/courseThumbnailRegistry";
+import { PREDEFINED_AVATARS } from "../../../constants/predefinedAvatars";
+import { AvatarModal } from "../../../components/shared/AvatarModal";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { EmptyState } from "../../../components/ui/empty-state";
 
@@ -330,10 +335,10 @@ function StudentDashboardContent() {
     setRedeemedCodes,
     profileForm,
     setProfileForm,
+    isSubmittingProfile,
+    isSubmittingPassword,
     passwordForm,
     setPasswordForm,
-    avatarFile,
-    setAvatarFile,
     avatarPreview,
     setAvatarPreview,
     welcomeGreeting,
@@ -351,8 +356,20 @@ function StudentDashboardContent() {
     handleUploadAssignment,
     handleSaveProfile,
     handlePasswordChange,
-    handleFileChange,
     handleRedeem,
+    isAvatarModalOpen,
+    setIsAvatarModalOpen,
+    handleSelectPredefinedAvatar,
+    isDeleteModalOpen,
+    setIsDeleteModalOpen,
+    deleteStep,
+    setDeleteStep,
+    deletePassword,
+    setDeletePassword,
+    deleteConfirmText,
+    setDeleteConfirmText,
+    isDeletingAccount,
+    handleDeleteAccountSubmit,
     levelProgressPercent,
     learningLevel,
     nextLevelXp,
@@ -364,6 +381,12 @@ function StudentDashboardContent() {
     handleSelectAnswer,
     attendance
   } = dashboard;
+
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [isConfirmRemoveAllOpen, setIsConfirmRemoveAllOpen] = useState(false);
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -1455,7 +1478,28 @@ function StudentDashboardContent() {
                     }
                   />
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-border/40">
+                      <div>
+                        <h3 className="text-sm font-heading font-extrabold text-foreground">
+                          Saved Courses ({wishlist.length})
+                        </h3>
+                        <p className="text-[11px] text-muted-foreground font-semibold">
+                          Courses you saved for later enrollment
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsConfirmRemoveAllOpen(true)}
+                        className="text-xs font-bold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 gap-1.5 cursor-pointer"
+                      >
+                        <Trash2 size={13} />
+                        Remove All Courses
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {wishlist.map((course) => {
                       const hasDiscount = (course as any).discount && (course as any).discount > 0;
                       const originalPrice = hasDiscount ? Math.round(course.price * (1 + (course as any).discount / 100)) : course.price;
@@ -1559,6 +1603,7 @@ function StudentDashboardContent() {
                         </div>
                       );
                     })}
+                  </div>
                   </div>
                 )}
               </motion.div>
@@ -2084,21 +2129,17 @@ function StudentDashboardContent() {
                             profileForm.fullName.charAt(0)
                           )}
                         </div>
-                        <div className="space-y-1.5 text-left">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            id="avatar-input"
-                            onChange={handleFileChange}
-                            className="hidden"
-                          />
-                          <label
-                            htmlFor="avatar-input"
-                            className="px-3 py-1.5 bg-muted hover:bg-muted/70 border border-border/80 rounded-button text-[8px] font-bold uppercase tracking-wider cursor-pointer"
-                          >
-                            Upload Photo
-                          </label>
-                          <p className="text-[8px] text-muted-foreground">PNG/JPG under 2MB.</p>
+                        <div className="space-y-1 text-left">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => setIsAvatarModalOpen(true)}
+                              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-button text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors shadow-soft"
+                            >
+                              CHOOSE AVATAR
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-1">Choose an avatar that represents your learning journey.</p>
                         </div>
                       </div>
 
@@ -2156,8 +2197,15 @@ function StudentDashboardContent() {
                         />
                       </div>
 
-                      <Button type="submit" size="sm" className="h-10 text-xs">
-                        Save Changes
+                      <Button type="submit" size="sm" className="h-10 text-xs" disabled={isSubmittingProfile}>
+                        {isSubmittingProfile ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          "Save Changes"
+                        )}
                       </Button>
                     </form>
                   </Card>
@@ -2170,38 +2218,72 @@ function StudentDashboardContent() {
 
                       <div className="space-y-1 text-xs text-left">
                         <label className="font-bold text-foreground">Old Password *</label>
-                        <input
-                          type="password"
-                          value={passwordForm.old}
-                          onChange={(e) => setPasswordForm((p) => ({ ...p, old: e.target.value }))}
-                          className="h-10 w-full rounded-input border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-                        />
+                        <div className="relative">
+                          <input
+                            type={showOldPassword ? "text" : "password"}
+                            value={passwordForm.old}
+                            onChange={(e) => setPasswordForm((p) => ({ ...p, old: e.target.value }))}
+                            className="h-10 w-full rounded-input border border-border bg-card pl-3 pr-10 text-xs font-semibold text-foreground focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowOldPassword((v) => !v)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                          >
+                            {showOldPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1 text-xs text-left">
                           <label className="font-bold text-foreground">New Password *</label>
-                          <input
-                            type="password"
-                            value={passwordForm.new}
-                            onChange={(e) => setPasswordForm((p) => ({ ...p, new: e.target.value }))}
-                            className="h-10 w-full rounded-input border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-                          />
+                          <div className="relative">
+                            <input
+                              type={showNewPassword ? "text" : "password"}
+                              value={passwordForm.new}
+                              onChange={(e) => setPasswordForm((p) => ({ ...p, new: e.target.value }))}
+                              className="h-10 w-full rounded-input border border-border bg-card pl-3 pr-10 text-xs font-semibold text-foreground focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowNewPassword((v) => !v)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                            >
+                              {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          </div>
                         </div>
 
                         <div className="space-y-1 text-xs text-left">
                           <label className="font-bold text-foreground">Confirm New Password *</label>
-                          <input
-                            type="password"
-                            value={passwordForm.confirm}
-                            onChange={(e) => setPasswordForm((p) => ({ ...p, confirm: e.target.value }))}
-                            className="h-10 w-full rounded-input border border-border bg-card px-3 text-xs font-semibold text-foreground focus:outline-none"
-                          />
+                          <div className="relative">
+                            <input
+                              type={showConfirmPassword ? "text" : "password"}
+                              value={passwordForm.confirm}
+                              onChange={(e) => setPasswordForm((p) => ({ ...p, confirm: e.target.value }))}
+                              className="h-10 w-full rounded-input border border-border bg-card pl-3 pr-10 text-xs font-semibold text-foreground focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmPassword((v) => !v)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                            >
+                              {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          </div>
                         </div>
                       </div>
 
-                      <Button type="submit" size="sm" className="h-10 text-xs">
-                        Change Password
+                      <Button type="submit" size="sm" disabled={isSubmittingPassword} className="h-10 text-xs gap-2">
+                        {isSubmittingPassword ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          "Change Password"
+                        )}
                       </Button>
                     </form>
                   </Card>
@@ -2597,6 +2679,74 @@ function StudentDashboardContent() {
           </>
         )}
       </AnimatePresence>
+      {/* Confirm Remove All Wishlist Modal */}
+      <AnimatePresence>
+        {isConfirmRemoveAllOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[160]"
+              onClick={() => setIsConfirmRemoveAllOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-card border border-border shadow-2xl rounded-2xl z-[161] overflow-hidden p-6 flex flex-col gap-4 text-left"
+            >
+              <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                <h3 className="text-sm font-heading font-extrabold text-foreground flex items-center gap-2">
+                  <Trash2 size={16} className="text-red-500" /> Remove All Wishlisted Courses?
+                </h3>
+                <button
+                  onClick={() => setIsConfirmRemoveAllOpen(false)}
+                  className="p-1 hover:bg-muted rounded cursor-pointer text-muted-foreground hover:text-foreground"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-2 text-xs text-muted-foreground font-semibold">
+                <p>Are you sure you want to clear all <strong>{wishlist.length} courses</strong> from your saved wishlist?</p>
+                <p className="text-[11px] text-muted-foreground/80">This action will remove all saved items. You can add them again anytime from the course catalog.</p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t border-border/40 pt-4 mt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsConfirmRemoveAllOpen(false)}
+                  className="h-8 text-xs font-bold px-4"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => {
+                    setWishlist([]);
+                    setIsConfirmRemoveAllOpen(false);
+                    toast.info("All courses removed from wishlist");
+                  }}
+                  className="h-8 text-xs font-bold px-4 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Yes, Clear All
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Learner Avatar Selection Modal */}
+      <AvatarModal
+        isOpen={isAvatarModalOpen}
+        onClose={() => setIsAvatarModalOpen(false)}
+        onSelectAvatar={handleSelectPredefinedAvatar}
+        currentAvatarUrl={avatarPreview}
+      />
     </div>
   );
 }

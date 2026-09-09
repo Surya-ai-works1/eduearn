@@ -106,61 +106,61 @@ export default function ResetPasswordPage() {
           )}
 
           {/* New password field */}
-          <div className="relative">
-            <FormField
-              label="New password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              placeholder="Create a strong new password"
-              icon={<Lock size={17} aria-hidden="true" />}
-              error={errors.password?.message}
-              className="pr-12"
-              {...register("password")}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute bottom-8 right-3 flex h-9 w-9 items-center justify-center rounded-button text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              aria-label={showPassword ? "Hide new password" : "Show new password"}
-            >
-              {showPassword ? (
-                <EyeOff size={17} aria-hidden="true" />
-              ) : (
-                <Eye size={17} aria-hidden="true" />
-              )}
-            </button>
-          </div>
+          <FormField
+            label="New password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="new-password"
+            placeholder="Create a strong new password"
+            icon={<Lock size={17} aria-hidden="true" />}
+            error={errors.password?.message}
+            rightElement={
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="flex h-9 w-9 items-center justify-center rounded-button text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label={showPassword ? "Hide new password" : "Show new password"}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? (
+                  <EyeOff size={17} aria-hidden="true" />
+                ) : (
+                  <Eye size={17} aria-hidden="true" />
+                )}
+              </button>
+            }
+            {...register("password")}
+          />
 
           {/* Password strength meter */}
           <PasswordStrengthMeter password={password} showRequirements />
 
           {/* Confirm password field */}
-          <div className="relative">
-            <FormField
-              label="Confirm new password"
-              type={showConfirmPassword ? "text" : "password"}
-              autoComplete="new-password"
-              placeholder="Re-enter your new password"
-              icon={<Lock size={17} aria-hidden="true" />}
-              error={errors.confirmPassword?.message}
-              className="pr-12"
-              {...register("confirmPassword")}
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword((prev) => !prev)}
-              className="absolute bottom-8 right-3 flex h-9 w-9 items-center justify-center rounded-button text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              aria-label={
-                showConfirmPassword ? "Hide confirm password" : "Show confirm password"
-              }
-            >
-              {showConfirmPassword ? (
-                <EyeOff size={17} aria-hidden="true" />
-              ) : (
-                <Eye size={17} aria-hidden="true" />
-              )}
-            </button>
-          </div>
+          <FormField
+            label="Confirm new password"
+            type={showConfirmPassword ? "text" : "password"}
+            autoComplete="new-password"
+            placeholder="Re-enter your new password"
+            icon={<Lock size={17} aria-hidden="true" />}
+            error={errors.confirmPassword?.message}
+            rightElement={
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="flex h-9 w-9 items-center justify-center rounded-button text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label={
+                  showConfirmPassword ? "Hide confirm password" : "Show confirm password"
+                }
+                aria-pressed={showConfirmPassword}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff size={17} aria-hidden="true" />
+                ) : (
+                  <Eye size={17} aria-hidden="true" />
+                )}
+              </button>
+            }
+            {...register("confirmPassword")}
+          />
 
           {/* Security note */}
           <div className="flex items-start gap-2 rounded-[10px] border border-border bg-muted/30 px-3 py-2.5">
