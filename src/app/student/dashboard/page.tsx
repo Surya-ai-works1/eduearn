@@ -57,6 +57,7 @@ import { cn } from "../../../utils/cn";
 import { AiService } from "../../../features/ai/services/aiService";
 
 import { PageWrapper } from "../../../components/layout/PageWrapper";
+import { BrandLogo } from "../../../components/shared/BrandLogo";
 import { useTheme } from "next-themes";
 import { Card } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
@@ -423,6 +424,10 @@ function StudentDashboardContent() {
           {isSidebarCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </button>
 
+        <div className={cn("py-4 border-b border-border/40 flex items-center min-h-[64px] h-[64px]", isSidebarCollapsed ? "justify-center px-2" : "px-4 justify-between")}>
+          <BrandLogo href="/" collapsed={isSidebarCollapsed} />
+        </div>
+
         <div className="p-4 border-b border-border/40 flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-primary shrink-0 relative overflow-hidden select-none">
             {avatarPreview ? (
@@ -496,28 +501,31 @@ function StudentDashboardContent() {
               transition={{ type: "spring", stiffness: 260, damping: 28 }}
               className="fixed inset-y-0 left-0 w-64 bg-card border-r border-border z-50 flex flex-col md:hidden"
             >
-              <div className="p-4 border-b border-border flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary overflow-hidden">
-                    {avatarPreview ? (
-                      <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      profileForm.fullName.charAt(0)
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold">{profileForm.fullName}</h4>
-                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-primary">
-                      {learningLevel}
-                    </span>
-                  </div>
-                </div>
+              <div className="p-4 border-b border-border flex items-center justify-between min-h-[64px] h-[64px]">
+                <BrandLogo href="/" onClick={() => setIsMobileMenuOpen(false)} />
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="p-1.5 hover:bg-muted rounded-button cursor-pointer"
+                  aria-label="Close menu"
                 >
                   <X size={16} />
                 </button>
+              </div>
+
+              <div className="p-4 border-b border-border/40 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary overflow-hidden">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    profileForm.fullName.charAt(0)
+                  )}
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold">{profileForm.fullName}</h4>
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-primary">
+                    {learningLevel}
+                  </span>
+                </div>
               </div>
 
               <nav className="flex-1 p-3 flex flex-col gap-1 overflow-y-auto">

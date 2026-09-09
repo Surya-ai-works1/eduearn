@@ -15,12 +15,12 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   collapsed = false,
   className = "",
   onClick,
-  href = "/admin/dashboard",
+  href = "/",
 }) => {
   const content = (
     <div className={`flex items-center select-none ${className}`}>
       <div className={cn(
-        "relative shrink-0 overflow-hidden",
+        "relative shrink-0 overflow-hidden transition-all duration-200",
         collapsed ? "w-8 h-8 rounded-lg" : "w-[112px] h-[32px]"
       )}>
         <img
@@ -39,16 +39,13 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     </div>
   );
 
-  if (onClick) {
-    return (
-      <div onClick={onClick} className="cursor-pointer">
-        {content}
-      </div>
-    );
-  }
-
   return (
-    <Link href={href} className="cursor-pointer block">
+    <Link
+      href={href}
+      onClick={onClick}
+      className="cursor-pointer block hover:opacity-90 transition-opacity"
+      aria-label="Go to EduEarn home"
+    >
       {content}
     </Link>
   );
