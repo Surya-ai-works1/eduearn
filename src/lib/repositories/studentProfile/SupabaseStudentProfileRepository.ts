@@ -19,8 +19,23 @@ export class SupabaseStudentProfileRepository implements IStudentProfileReposito
     };
   }
 
-  async getProfile(studentId: string): Promise<StudentProfile | null> {
-    const supabase = createClient();
+  private async getSupabaseClient(client?: any) {
+    if (client) return client;
+    if (typeof window === "undefined") {
+      try {
+        const { createClient: createServerClient } = await import("../../supabase/server");
+        const serverClient = await createServerClient();
+        if (serverClient) return serverClient;
+      } catch {}
+    }
+    const { createClient: createBrowserClient } = await import("../../supabase");
+    return createBrowserClient();
+  }
+
+  async getProfile(studentId: string, client?: any): Promise<StudentProfile | null> {
+    const supabase = await this.getSupabaseClient(client);
+    if (!supabase) return null;
+
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -31,31 +46,58 @@ export class SupabaseStudentProfileRepository implements IStudentProfileReposito
     return this.mapDbToProfile(data);
   }
 
-  async updateProfile(studentId: string, profile: Partial<StudentProfile>): Promise<StudentProfile> {
-    const supabase = createClient();
-    const updatePayload: any = {};
+  async updateProfile(studentId: string, profile: Partial<StudentProfile>, client?: any): Promise<StudentProfile> {
+    const supabase = await this.getSupabaseClient(client);
+    if (!supabase) {
+      throw new Error("Supabase client is unavailable");
+    }
 
-    if (profile.fullName !== undefined) updatePayload.full_name = profile.fullName;
+    const updatePayload: any = {
+      id: studentId,
+    };
+
+    if (profile.fullName !== undefined) {
+      updatePayload.full_name = profile.fullName;
+      updatePayload.display_name = profile.fullName;
+    }
     if (profile.bio !== undefined) updatePayload.bio = profile.bio;
     if (profile.avatarUrl !== undefined) updatePayload.avatar_url = profile.avatarUrl;
     if (profile.country !== undefined) updatePayload.country = profile.country;
     if (profile.language !== undefined) updatePayload.language = profile.language;
     if (profile.skills !== undefined) updatePayload.skills = profile.skills;
+    if (profile.email !== undefined && profile.email) updatePayload.email = profile.email;
     updatePayload.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
       .from("profiles")
-      .update(updatePayload)
-      .eq("id", studentId)
+      .upsert(updatePayload, { onConflict: "id" })
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Database error updating profile:", error);
+      throw new Error(error.message || "Failed to update profile in database");
+    }
+
+    if (!data) {
+      return {
+        id: studentId,
+        fullName: profile.fullName || "Student Learner",
+        email: profile.email || "",
+        avatarUrl: profile.avatarUrl || "",
+        bio: profile.bio || "",
+        skills: profile.skills || [],
+        country: profile.country || "",
+        language: profile.language || "",
+        joinedAt: new Date().toISOString(),
+      };
+    }
+
     return this.mapDbToProfile(data);
   }
 
-  async deleteProfile(studentId: string): Promise<boolean> {
-    const supabase = createClient();
+  async deleteProfile(studentId: string, client?: any): Promise<boolean> {
+    const supabase = await this.getSupabaseClient(client);
     if (!supabase) return true;
     const { error } = await supabase
       .from("profiles")

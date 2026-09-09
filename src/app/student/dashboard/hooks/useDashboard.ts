@@ -640,12 +640,12 @@ export function useDashboard(user: any, logout: () => Promise<void>, completePro
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || "Unable to save your profile right now. Please try again.");
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error || "Unable to save your profile right now. Please try again.");
       }
 
-      const data = await res.json();
       const savedProfile = data.profile || payload;
 
       // Synchronize profile form state with API response source of truth

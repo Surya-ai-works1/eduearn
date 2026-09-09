@@ -6,16 +6,16 @@ import { createClient } from "../supabase";
 import { IS_MOCK } from "../config";
 
 export class StudentProfileService {
-  async getProfile(studentId: string): Promise<StudentProfile | null> {
-    return StudentProfileRepository.getProfile(studentId);
+  async getProfile(studentId: string, supabaseClient?: any): Promise<StudentProfile | null> {
+    return StudentProfileRepository.getProfile(studentId, supabaseClient);
   }
 
-  async updateProfile(studentId: string, profile: Partial<StudentProfile>): Promise<StudentProfile> {
-    return StudentProfileRepository.updateProfile(studentId, profile);
+  async updateProfile(studentId: string, profile: Partial<StudentProfile>, supabaseClient?: any): Promise<StudentProfile> {
+    return StudentProfileRepository.updateProfile(studentId, profile, supabaseClient);
   }
 
-  async deleteProfile(studentId: string): Promise<boolean> {
-    return StudentProfileRepository.deleteProfile(studentId);
+  async deleteProfile(studentId: string, supabaseClient?: any): Promise<boolean> {
+    return StudentProfileRepository.deleteProfile(studentId, supabaseClient);
   }
 
   async getStudentStats(studentId: string): Promise<StudentStats> {

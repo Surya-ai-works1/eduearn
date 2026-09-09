@@ -295,7 +295,7 @@ export class SupabaseAdminRepository implements IAdminRepository {
       }
       this.setFallbackData("eduearn_mock_suspended_users", mockList);
       
-      const { data: userProfile } = await supabase.from("profiles").select("*").eq("id", userId).single();
+      const { data: userProfile } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
       return {
         id: userId,
         name: userProfile?.full_name || "User Account",

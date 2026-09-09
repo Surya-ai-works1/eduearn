@@ -144,12 +144,12 @@ async function syncProfile(supabase: any, user: User) {
 
     const { data: newProfile, error: insertError } = await supabase
       .from("profiles")
-      .insert(newProfileData)
+      .upsert(newProfileData)
       .select()
-      .single();
+      .maybeSingle();
 
     if (insertError) {
-      console.warn("Trigger sync conflict, profile already exists:", insertError.message);
+      console.warn("Profile sync notice:", insertError.message);
     }
 
     return newProfile || newProfileData;

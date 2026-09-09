@@ -108,8 +108,8 @@ export class SupabaseEnrollmentRepository implements IEnrollmentRepository {
     (async () => {
       try {
         const [{ data: profile }, { data: course }] = await Promise.all([
-          supabase.from("profiles").select("email, full_name").eq("id", studentId).single(),
-          supabase.from("courses").select("title").eq("id", courseId).single(),
+          supabase.from("profiles").select("email, full_name").eq("id", studentId).maybeSingle(),
+          supabase.from("courses").select("title").eq("id", courseId).maybeSingle(),
         ]);
 
         if (profile?.email && course?.title) {

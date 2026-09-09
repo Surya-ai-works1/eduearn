@@ -10,28 +10,31 @@ export async function GET() {
     if (!supabase) {
       const profile = await studentProfileService.getProfile("preview-student-id");
       const stats = await studentProfileService.getStudentStats("preview-student-id");
-      return NextResponse.json({ profile, stats, isMock: true });
+      return NextResponse.json({ success: true, profile, stats, isMock: true });
     }
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
     }
 
-    const profile = await studentProfileService.getProfile(user.id);
+    const profile = await studentProfileService.getProfile(user.id, supabase);
     const stats = await studentProfileService.getStudentStats(user.id);
 
-    return NextResponse.json({ profile, stats });
+    return NextResponse.json({ success: true, profile, stats });
   } catch (err: any) {
     console.error("Failed to load profile:", err);
-    return NextResponse.json({ error: err.message || "Failed to load profile" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Unable to load your profile right now. Please try again." },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { fullName, username, bio, country, language, skills, avatarUrl } = body;
 
     if (!supabase) {
@@ -50,7 +53,7 @@ export async function POST(request: Request) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
     }
 
     const profile = await studentProfileService.updateProfile(user.id, {
@@ -61,11 +64,14 @@ export async function POST(request: Request) {
       language,
       skills,
       avatarUrl
-    });
+    }, supabase);
 
     return NextResponse.json({ success: true, profile });
   } catch (err: any) {
     console.error("Failed to update profile:", err);
-    return NextResponse.json({ error: err.message || "Failed to update profile" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Unable to save your profile right now. Please try again." },
+      { status: 500 }
+    );
   }
 }
