@@ -67,6 +67,7 @@ export const SUBJECTS_MAP = {
       { id: "drawing", name: "Drawing", fee: "₹600–₹800/month" },
       { id: "painting", name: "Painting", fee: "₹600–₹800/month" },
       { id: "sketching", name: "Sketching", fee: "₹600–₹800/month" },
+      { id: "origami", name: "Origami", fee: "₹600–₹800/month" },
       { id: "crafts", name: "Crafts", fee: "₹600–₹800/month" },
       { id: "keyboard", name: "Keyboard", fee: "₹700–₹1000/month" },
       { id: "guitar", name: "Guitar", fee: "₹700–₹1000/month" },
@@ -328,10 +329,17 @@ export const MOCK_COURSES = Array.from({ length: 100 }).map((_, idx) => {
   else if (subjectObj.id === "chess") title = "Chess Tactics & Strategy";
   else if (subjectObj.id === "chatgpt") title = "AI Prompt Engineering Coach";
   else if (subjectObj.id === "drawing") title = "Pencil Sketching & Drawing";
+  else if (subjectObj.id === "sketching") title = "Sketching Technique & Shading";
+  else if (subjectObj.id === "painting") title = "Canvas Painting & Color Theory";
+  else if (subjectObj.id === "origami") title = "Paper Folding & Origami Art";
+  else if (subjectObj.id === "physics") title = "Physics Principles & Lab Experiments";
+  else if (subjectObj.id === "mathematics") title = "Mathematics Fundamentals";
+  else if (subjectObj.id === "chemistry") title = "Chemistry Reaction & Lab Essentials";
   else if (subjectObj.id === "music") title = "Introduction to Music Theory";
   else if (subjectObj.id === "entrepreneurship") title = "Entrepreneurship Bootcamp";
   
   const thumbnail = getCourseThumbnail({
+    id: subjectObj.id,
     subjectId: subjectObj.id,
     subjectName: subjectObj.name,
     category: subjectObj.category,

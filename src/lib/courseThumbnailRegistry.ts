@@ -58,9 +58,13 @@ const SUBJECT_THUMBNAILS: Record<string, string> = {
   "social-studies": "/images/courses/academics.webp",
   "geography": "/images/courses/academics.webp",
   "history": "/images/courses/academics.webp",
+  "class-1": "/images/courses/class1.webp",
+  "class1": "/images/courses/class1.webp",
+  "class-7": "/images/courses/class7.webp",
+  "class7": "/images/courses/class7.webp",
 
   // Business & Commerce
-  "economics": "/images/courses/economics.webp",
+  "economics": "/images/courses/economics.png",
   "commerce": "/images/courses/commerce.png",
   "class-11-commerce": "/images/courses/commerce.png",
   "class-12-commerce": "/images/courses/commerce.png",
@@ -88,10 +92,11 @@ const SUBJECT_THUMBNAILS: Record<string, string> = {
   "hip-hop": "/images/courses/dance.jpg",
   "western": "/images/courses/dance.jpg",
   "classical": "/images/courses/dance.jpg",
-  "drawing": "/images/courses/arts.jpg",
-  "painting": "/images/courses/arts.jpg",
-  "sketching": "/images/courses/arts.jpg",
-  "crafts": "/images/courses/arts.jpg",
+  "origami": "/images/courses/origami.webp",
+  "sketching": "/images/courses/sketching.webp",
+  "painting": "/images/courses/painting.webp",
+  "drawing": "/images/courses/sketching.webp",
+  "crafts": "/images/courses/origami.webp",
   "arts": "/images/courses/arts.jpg",
   "yoga": "/images/courses/arts.jpg",
   "fitness": "/images/courses/sports.webp",
@@ -150,13 +155,19 @@ export function getCourseThumbnail(input?: CourseThumbnailInput | string | null)
     return explicitThumbnail;
   }
 
-  // 2. Check by subjectId
+  // 2. Check by course ID or slug
+  if (input.id) {
+    const idKey = input.id.toLowerCase().trim();
+    if (SUBJECT_THUMBNAILS[idKey]) return SUBJECT_THUMBNAILS[idKey];
+  }
+
+  // 3. Check by subjectId
   if (input.subjectId) {
     const sid = input.subjectId.toLowerCase().trim();
     if (SUBJECT_THUMBNAILS[sid]) return SUBJECT_THUMBNAILS[sid];
   }
 
-  // 3. Check by subjectName
+  // 4. Check by subjectName
   if (input.subjectName) {
     const sname = input.subjectName.toLowerCase().replace(/[^a-z0-9]/g, "-").trim();
     if (SUBJECT_THUMBNAILS[sname]) return SUBJECT_THUMBNAILS[sname];
@@ -167,18 +178,24 @@ export function getCourseThumbnail(input?: CourseThumbnailInput | string | null)
     }
   }
 
-  // 4. Check by title keywords
+  // 5. Check by title keywords
   if (input.title) {
     const t = input.title.toLowerCase();
+    if (t.includes("class 1 ") || t.includes("class 1 training") || t.includes("class 1-")) return "/images/courses/class1.webp";
+    if (t.includes("class 7 ") || t.includes("class 7 training") || t.includes("class 7-")) return "/images/courses/class7.webp";
+    if (t.includes("origami")) return "/images/courses/origami.webp";
+    if (t.includes("sketching")) return "/images/courses/sketching.webp";
+    if (t.includes("painting") || t.includes("paint")) return "/images/courses/painting.webp";
+    if (t.includes("drawing")) return "/images/courses/sketching.webp";
     if (t.includes("biology")) return "/images/courses/biology.webp";
     if (t.includes("computer science") || t.includes("computer-science")) return "/images/courses/computer-science.webp";
     if (t.includes("english")) return "/images/courses/english.webp";
-    if (t.includes("economics")) return "/images/courses/economics.webp";
+    if (t.includes("economics")) return "/images/courses/economics.png";
     if (t.includes("commerce")) return "/images/courses/commerce.png";
     if (t.includes("accountancy") || t.includes("accounting")) return "/images/courses/accountancy.webp";
     if (t.includes("python")) return "/images/courses/python.webp";
     if (t.includes("web dev") || t.includes("react") || t.includes("javascript")) return "/images/courses/web-dev.webp";
-    if (t.includes("ai ") || t.includes("machine learning") || t.includes("prompt")) return "/images/courses/ai.webp";
+    if (t.includes("ai ") || t.includes("machine learning") || t.includes("prompt")) return "/images/courses/ai-data-science.webp";
     if (t.includes("math")) return "/images/courses/mathematics.webp";
     if (t.includes("physics")) return "/images/courses/physics.webp";
     if (t.includes("chemistry")) return "/images/courses/chemistry.webp";
@@ -186,10 +203,9 @@ export function getCourseThumbnail(input?: CourseThumbnailInput | string | null)
     if (t.includes("music") || t.includes("piano") || t.includes("guitar")) return "/images/courses/music.jpg";
     if (t.includes("dance") || t.includes("kuchipudi") || t.includes("bharatanatyam")) return "/images/courses/dance.jpg";
     if (t.includes("cooking") || t.includes("baking")) return "/images/courses/cooking.webp";
-    if (t.includes("sketching") || t.includes("drawing") || t.includes("paint")) return "/images/courses/arts.jpg";
   }
 
-  // 5. Check by category / categoryId / subcategory
+  // 6. Check by category / categoryId / subcategory
   const cat = (input.category || input.categoryId || input.subcategory || "").toLowerCase();
   if (cat) {
     for (const [key, val] of Object.entries(CATEGORY_FALLBACKS)) {
