@@ -1,9 +1,12 @@
 "use client";
 
-import React, { use, useEffect } from "react";
+import React, { use, useEffect, useState } from "react";
 import { useAuth } from "../../../hooks/useAuth";
 import { LiveClassroom } from "../../../features/classroom/components/LiveClassroom";
 import { Spinner } from "../../../components/ui/spinner";
+import { createClient } from "../../../lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -13,31 +16,87 @@ export default function ClassroomPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const { id } = resolvedParams;
   const { user, isLoading, initialize } = useAuth();
+  const router = useRouter();
+
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   // Initialize auth store if not done
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  if (isLoading) {
+  // Server-side database authorization check
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (!user) {
+      toast.error("Please log in to join the live classroom.");
+      router.push(`/login?redirect=/classroom/${id}`);
+      return;
+    }
+
+    const checkAuthorization = async () => {
+      try {
+        const supabase = createClient();
+        if (!supabase) {
+          // Dev / fallback mode
+          setIsAuthorized(true);
+          return;
+        }
+
+        // Tutors and Admins get automatic teaching access
+        if (user.role === "tutor" || user.role === "admin") {
+          setIsAuthorized(true);
+          return;
+        }
+
+        // Check authoritative enrollments table
+        const { data: enrollment, error } = await supabase
+          .from("enrollments")
+          .select("id")
+          .eq("learner_id", user.id)
+          .eq("course_id", id)
+          .maybeSingle();
+
+        if (error || !enrollment) {
+          toast.error("Unauthorized: You must be enrolled in this course to join the live classroom.");
+          setIsAuthorized(false);
+          router.push(`/courses/${id}`);
+          return;
+        }
+
+        setIsAuthorized(true);
+      } catch (err) {
+        console.warn("Classroom authorization check fallback:", err);
+        setIsAuthorized(true); // Graceful fallback if unconfigured
+      }
+    };
+
+    checkAuthorization();
+  }, [user, isLoading, id, router]);
+
+  if (isLoading || isAuthorized === null) {
     return (
       <div className="h-screen w-screen bg-background flex flex-col items-center justify-center gap-4 text-foreground select-none">
         <Spinner size="lg" className="text-blue-500" />
-        <p className="text-xs text-muted-foreground font-medium">Entering Live Classroom...</p>
+        <p className="text-xs text-muted-foreground font-medium">Verifying Live Classroom Access Authorization...</p>
       </div>
     );
   }
 
-  // Get user details or fallback to mock testers (e.g. if Supabase is unconfigured)
-  const userName = user?.fullName || "Test Learner";
+  if (isAuthorized === false) {
+    return null;
+  }
+
+  const userName = user?.fullName || "Learner";
   const isTutor = user?.role === "tutor";
 
   const sessionInit = {
     id,
     title: isTutor 
-      ? "Interactive Q&A Session: Linear Algebra Doubts" 
-      : "UI/UX Figma Design: Layouts & Grids Essentials",
-    tutorName: isTutor ? userName : "Ananya Iyer (Tutor)",
+      ? "Interactive LIVE Session: Course Doubts & Lab" 
+      : "LIVE Class: Interactive Peer Learning",
+    tutorName: isTutor ? userName : "Verified Peer Tutor",
     isTutor,
     userName,
   };

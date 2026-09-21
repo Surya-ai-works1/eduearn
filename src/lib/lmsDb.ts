@@ -147,7 +147,28 @@ export const lmsDb = {
       .from("courses")
       .select("*, lessons(*)")
       .eq("approval_status", "approved")
-      .eq("status", "published");
+      .eq("status", "published")
+      .not("tutor_id", "is", null);
+    if (error) throw error;
+    return data || [];
+  },
+
+  getCatalogCourseTemplates: async (): Promise<Course[]> => {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("courses")
+      .select("*, lessons(*)")
+      .is("tutor_id", null);
+    if (error) throw error;
+    return data || [];
+  },
+
+  getMarketplaceCourses: async (): Promise<Course[]> => {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("courses")
+      .select("*, lessons(*)")
+      .or("and(approval_status.eq.approved,status.eq.published),tutor_id.is.null");
     if (error) throw error;
     return data || [];
   },

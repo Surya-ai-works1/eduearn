@@ -40,6 +40,7 @@ import {
   Play,
   ArrowRight,
   Tv,
+  Cpu,
 } from "lucide-react";
 
 // Icon lookup helper
@@ -48,6 +49,7 @@ const CategoryIcon = ({ name, className }: { name: string; className?: string })
     case "GraduationCap": return <GraduationCap className={className} />;
     case "Code": return <Code className={className} />;
     case "BrainCircuit": return <BrainCircuit className={className} />;
+    case "Cpu": return <Cpu className={className} />;
     case "Briefcase": return <Briefcase className={className} />;
     case "Palette": return <Palette className={className} />;
     case "Camera": return <Camera className={className} />;
@@ -63,6 +65,8 @@ const slugToIdMap: Record<string, string> = {
   "academic-education": "academics",
   "technology-programming": "technology-programming",
   "ai-data-science": "ai-data-science",
+  "engineering": "engineering",
+  "engineering-electronics": "engineering",
   "business-entrepreneurship": "business-entrepreneurship",
   "creative-arts": "creative-arts-design",
   "creative-arts-design": "creative-arts-design",
@@ -184,6 +188,29 @@ const CATEGORY_META_DATA: Record<string, CategoryDetail> = {
     ],
     mockLive: [
       { title: "Fine-Tuning LLMs Overview", tutor: "Karan Malhotra", time: "Today at 7:00 PM", participants: 85 }
+    ]
+  },
+  "engineering": {
+    id: "engineering",
+    name: "Engineering & Electronics",
+    desc: "Master ECE & Embedded Systems, EEE & Power, Robotics & IoT, VLSI, EV & BMS, and practical hardware engineering.",
+    iconName: "Cpu",
+    bannerColor: "from-purple-600/20 to-blue-600/20 border-purple-500/20",
+    subjects: ["ECE & Embedded", "EEE & Power", "Robotics & IoT", "Embedded Systems", "Power Systems", "EV & BMS"],
+    mockCourses: [
+      { id: "course-eng-1", title: "ESP32 & Embedded Systems Foundations", tutor: "Dr. Ravi Kumar", duration: "16 Hours", rating: 4.9, students: 310, price: 699, difficulty: "Beginner" },
+      { id: "course-eng-2", title: "Robotics & Autonomous Systems with Arduino", tutor: "Karan Malhotra", duration: "22 Hours", rating: 4.8, students: 240, price: 799, difficulty: "Intermediate" },
+      { id: "course-eng-3", title: "Power Electronics & EV Battery Management", tutor: "Vikram Rathore", duration: "20 Hours", rating: 4.9, students: 180, price: 899, difficulty: "Advanced" },
+    ],
+    mockTutors: [
+      { id: "tutor-eng-1", name: "Dr. Ravi Kumar", role: "Embedded & VLSI Specialist", rating: 4.9, price: 600, languages: "English, Hindi", reviewsCount: 142 },
+      { id: "tutor-eng-2", name: "Karan Malhotra", role: "Robotics & IoT Expert", rating: 4.8, price: 550, languages: "English, Telugu", reviewsCount: 98 },
+    ],
+    mockPaths: [
+      { title: "Embedded & IoT Engineering Pathway", steps: ["C/C++ Microcontrollers", "ESP32 Sensor Interfacing", "IoT Protocols & Cloud"], project: "Smart Sensor Gateway" }
+    ],
+    mockLive: [
+      { title: "ESP32 Microcontroller Workshop", tutor: "Dr. Ravi Kumar", time: "Today at 6:30 PM", participants: 58 }
     ]
   },
   "business-entrepreneurship": {

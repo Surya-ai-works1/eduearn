@@ -381,45 +381,67 @@ export function CourseDetailsClient({
               </h3>
               
               <Card variant="default" className="p-6 border-border bg-card flex flex-col sm:flex-row gap-5 items-start">
-                <Link href={`/tutors/${tutor.id}`}>
-                  <Avatar src={tutor.avatar} name={tutor.fullName} size="lg" badge="verified" className="shrink-0 cursor-pointer" />
-                </Link>
+                {(tutor as any)?.isPending || !tutor?.id ? (
+                  <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                    <Clock size={24} className="text-amber-500" />
+                  </div>
+                ) : (
+                  <Link href={`/tutors/${tutor.id}`}>
+                    <Avatar src={tutor.avatar} name={(tutor as any).fullName || (tutor as any).name} size="lg" badge="verified" className="shrink-0 cursor-pointer" />
+                  </Link>
+                )}
                 <div className="flex flex-col gap-3 grow">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-left">
                     <div>
-                      <Link href={`/tutors/${tutor.id}`}>
-                        <h4 className="text-sm font-heading font-extrabold text-foreground hover:text-primary transition-colors cursor-pointer">
-                          {tutor.fullName}
+                      {(tutor as any)?.isPending || !tutor?.id ? (
+                        <h4 className="text-sm font-heading font-extrabold text-foreground">
+                          {(tutor as any)?.name || "Awaiting Tutor Assignment"}
                         </h4>
-                      </Link>
-                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded">
-                        Verified Student Tutor
-                      </span>
+                      ) : (
+                        <Link href={`/tutors/${tutor.id}`}>
+                          <h4 className="text-sm font-heading font-extrabold text-foreground hover:text-primary transition-colors cursor-pointer">
+                            {(tutor as any).fullName || (tutor as any).name}
+                          </h4>
+                        </Link>
+                      )}
+                      {(tutor as any)?.isPending || !tutor?.id ? (
+                        <span className="text-[9px] uppercase tracking-wider font-extrabold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">
+                          Tutor Assignment Pending
+                        </span>
+                      ) : (
+                        <span className="text-[9px] uppercase tracking-wider font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                          Verified Student Tutor
+                        </span>
+                      )}
                     </div>
 
-                    <button
-                      onClick={() => toast.success(`Followed ${tutor.fullName}!`)}
-                      className="px-3 py-1 bg-muted hover:bg-primary hover:text-white rounded-button text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer focus:outline-none"
-                    >
-                      Follow Tutor
-                    </button>
+                    {!((tutor as any)?.isPending || !tutor?.id) && (
+                      <button
+                        onClick={() => toast.success(`Followed ${(tutor as any).fullName || (tutor as any).name}!`)}
+                        className="px-3 py-1 bg-muted hover:bg-primary hover:text-white rounded-button text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer focus:outline-none"
+                      >
+                        Follow Tutor
+                      </button>
+                    )}
                   </div>
 
                   <p className="text-[11px] text-muted-foreground leading-relaxed text-left">
-                    {tutor.bio}
+                    {tutor.bio || "This course is currently awaiting assignment to a verified EduEarn student tutor."}
                   </p>
 
                   {/* Tutor stats */}
-                  <div className="flex flex-wrap items-center gap-6 mt-1 text-[10px] text-muted-foreground font-semibold">
-                    <span className="flex items-center gap-1">
-                      <Star size={12} className="fill-amber-500 text-amber-500" />
-                      {tutor.rating.toFixed(1)} Rating
-                    </span>
-                    <span>•</span>
-                    <span>{tutor.totalStudents} Students Taught</span>
-                    <span>•</span>
-                    <span>{tutor.totalCourses} Courses Published</span>
-                  </div>
+                  {!((tutor as any)?.isPending || !tutor?.id) && (
+                    <div className="flex flex-wrap items-center gap-6 mt-1 text-[10px] text-muted-foreground font-semibold">
+                      <span className="flex items-center gap-1">
+                        <Star size={12} className="fill-amber-500 text-amber-500" />
+                        {(tutor.rating || 0).toFixed(1)} Rating
+                      </span>
+                      <span>•</span>
+                      <span>{(tutor as any).totalStudents || (tutor as any).studentsCount || 0} Students Taught</span>
+                      <span>•</span>
+                      <span>{(tutor as any).totalCourses || (tutor as any).coursesCount || 0} Courses Published</span>
+                    </div>
+                  )}
                 </div>
               </Card>
             </div>
@@ -626,6 +648,20 @@ export function CourseDetailsClient({
                   >
                     Continue Learning
                   </Button>
+                ) : (tutor as any)?.isPending || !tutor?.id ? (
+                  <div className="space-y-1.5 w-full">
+                    <Button
+                      aria-disabled="true"
+                      disabled
+                      size="md"
+                      className="w-full opacity-60 cursor-not-allowed bg-slate-700 text-slate-300"
+                    >
+                      Awaiting Tutor Assignment
+                    </Button>
+                    <p className="text-[10px] text-amber-500 font-semibold leading-relaxed text-center">
+                      This course will become available for enrollment once a verified tutor is assigned.
+                    </p>
+                  </div>
                 ) : user?.role === "tutor" ? (
                   <div className="space-y-1.5 w-full">
                     <Button

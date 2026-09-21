@@ -57,8 +57,6 @@ export function Footer() {
     setEmail("");
   };
 
-  const logoSrc = resolvedTheme === "dark" ? "/logo-light.svg" : "/logo-dark.svg";
-
   return (
     <footer className="bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 py-16 border-t border-slate-200 dark:border-slate-800/80 selection:bg-primary selection:text-white">
       <Container className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8 pb-12 border-b border-slate-200 dark:border-slate-800/60">
@@ -66,11 +64,18 @@ export function Footer() {
         <div className="lg:col-span-4 flex flex-col items-start gap-4">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src={logoSrc}
+              src="/logo-dark.svg"
               alt={siteConfig.name}
               width={112}
               height={32}
-              className="h-8 w-auto object-contain"
+              className="h-8 w-auto object-contain dark:hidden"
+            />
+            <Image
+              src="/logo-light.svg"
+              alt={siteConfig.name}
+              width={112}
+              height={32}
+              className="h-8 w-auto object-contain hidden dark:block"
             />
           </Link>
           <p className="text-sm text-slate-600 dark:text-slate-400 max-w-sm leading-relaxed mt-2">
@@ -157,17 +162,17 @@ export function Footer() {
               Categories
             </h4>
             <ul className="flex flex-col gap-2 text-xs">
-              <li><Link href="/courses?category=academics" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Academic Tuition</Link></li>
-              <li><Link href="/courses?category=skills&subject=kuchipudi" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Dance &amp; Choreography</Link></li>
-              <li><Link href="/courses?category=skills&subject=keyboard" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Music &amp; Instruments</Link></li>
-              <li><Link href="/courses?category=skills&subject=photography" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">DSLR Photography</Link></li>
-              <li><Link href="/courses?category=skills&subject=web-development" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Coding &amp; Development</Link></li>
-              <li><Link href="/courses?category=ai" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">AI &amp; Innovation</Link></li>
-              <li><Link href="/courses?category=academics&subject=english" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Languages Taught</Link></li>
-              <li><Link href="/courses?category=skills&subject=cooking" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Cooking Essentials</Link></li>
-              <li><Link href="/courses?category=skills&subject=chess" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Chess Strategies</Link></li>
-              <li><Link href="/courses?category=skills&subject=drawing" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Drawing &amp; Art</Link></li>
-              <li><Link href="/courses?category=skills&subject=public-speaking" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Public Speaking</Link></li>
+              <li><Link href="/courses?category=academic-education" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Academic Tuition</Link></li>
+              <li><Link href="/courses?category=dance&subject=kuchipudi" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Dance &amp; Choreography</Link></li>
+              <li><Link href="/courses?category=music&subject=keyboard" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Music &amp; Instruments</Link></li>
+              <li><Link href="/courses?category=photography-media&subject=photography" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">DSLR Photography</Link></li>
+              <li><Link href="/courses?category=technology-programming&subject=web-development" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Coding &amp; Development</Link></li>
+              <li><Link href="/courses?category=ai-data-science" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">AI &amp; Innovation</Link></li>
+              <li><Link href="/courses?category=academic-education&subject=english" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Languages Taught</Link></li>
+              <li><Link href="/courses?category=cooking-lifestyle&subject=cooking" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Cooking Essentials</Link></li>
+              <li><Link href="/courses?category=sports-fitness&subject=chess" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Chess Strategies</Link></li>
+              <li><Link href="/courses?category=creative-arts-design&subject=drawing" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Drawing &amp; Art</Link></li>
+              <li><Link href="/courses?category=communication&subject=public-speaking" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">Public Speaking</Link></li>
             </ul>
           </div>
 

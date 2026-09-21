@@ -70,7 +70,7 @@
   --secondary: #12121A;
   --secondary-foreground: #A5A5B5;
   --muted: #1D1D29;
-  --muted-foreground: #777789;
+  --muted-foreground: #94A3B8;
   --accent: #5B4CF0;
   --accent-foreground: #FFFFFF;
   --destructive: #EF4444;
@@ -80,22 +80,6 @@
   --border: #2A2A38;
   --input: #2A2A38;
   --ring: #5B4CF0;
-
-  /* Slate Primitives (Dark Theme Overrides mapping to premium dark palette) */
-  --slate-50: #12121A;  /* Secondary background */
-  --slate-100: #12121A; /* Secondary background */
-  --slate-200: #2A2A38; /* Borders */
-  --slate-300: #CBD5E1; /* High contrast text placeholder */
-  --slate-400: #A5A5B5; /* Secondary text */
-  --slate-450: #777789; /* intermediate muted text */
-  --slate-500: #777789; /* Muted text */
-  --slate-600: #777789; /* Muted text */
-  --slate-650: #A5A5B5;
-  --slate-700: #A5A5B5; /* Secondary text */
-  --slate-800: #2A2A38; /* Borders */
-  --slate-850: #1D1D29; /* Elevated cards */
-  --slate-900: #171722; /* Cards */
-  --slate-950: #0B0B12; /* Background */
 }
 
 @theme {

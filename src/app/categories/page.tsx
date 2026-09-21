@@ -36,6 +36,7 @@ import {
   Award,
   ShieldCheck,
   CheckCircle,
+  Cpu,
 } from "lucide-react";
 
 // Helper map to match icon string to Lucide component
@@ -47,6 +48,8 @@ const IconComponent = ({ name, className }: { name: string; className?: string }
       return <Code className={className} />;
     case "BrainCircuit":
       return <BrainCircuit className={className} />;
+    case "Cpu":
+      return <Cpu className={className} />;
     case "Briefcase":
       return <Briefcase className={className} />;
     case "Palette":
@@ -150,6 +153,26 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
       thumbnailColor: "from-purple-600/20 to-pink-600/20",
     },
     stats: { courses: 15, liveClasses: 6, students: 1850, rating: 4.9 },
+  },
+  {
+    id: "engineering",
+    name: "Engineering & Electronics",
+    desc: "Master ECE & Embedded, EEE & Power, Robotics & IoT, VLSI, and practical hardware engineering.",
+    iconName: "Cpu",
+    badge: "New",
+    accentColor: "border-purple-500/20 text-purple-400 group-hover:border-purple-500/40",
+    badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    skills: ["ECE & Embedded", "EEE & Power", "Robotics & IoT"],
+    featuredCourse: {
+      title: "ESP32 & Embedded Systems Foundations",
+      tutor: "Dr. Ravi Kumar",
+      duration: "16 Hours",
+      rating: 4.9,
+      students: 310,
+      price: 699,
+      thumbnailColor: "from-purple-600/20 to-blue-600/20",
+    },
+    stats: { courses: 14, liveClasses: 8, students: 420, rating: 4.9 },
   },
   {
     id: "business",
@@ -364,6 +387,7 @@ export default function CategoriesPage() {
       case "academics": return "academic-education";
       case "technology-programming": return "technology-programming";
       case "ai-data-science": return "ai-data-science";
+      case "engineering": return "engineering";
       case "business-entrepreneurship": return "business-entrepreneurship";
       case "creative-arts-design": return "creative-arts";
       case "photography-media": return "photography-media";
@@ -649,7 +673,7 @@ export default function CategoriesPage() {
             <AnimatePresence>
               {filteredCategories.map((cat) => (
                 <motion.div key={cat.id} variants={staggerChildVariants} className="h-full">
-                  <Link href={`/categories/${getCategorySlug(cat.id)}`} className="block h-full">
+                  <Link href={cat.id === "engineering" ? "/engineering" : `/categories/${getCategorySlug(cat.id)}`} className="block h-full">
                     <Card
                       variant="glass"
                       className="p-3 pb-4 border border-border/80 hover:border-primary/20 bg-card rounded-2xl h-full flex flex-col justify-between group transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden relative"

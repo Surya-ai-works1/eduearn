@@ -225,6 +225,37 @@ export const SEED_CATEGORIES: MarketplaceCategory[] = [
     ]
   },
   {
+    id: "engineering",
+    name: "Engineering & Electronics",
+    status: "Enabled",
+    subcategories: [
+      {
+        name: "ECE & Embedded",
+        skills: [
+          { id: "embedded-systems", name: "Embedded Systems", isFeatured: true, isHidden: false, orderIndex: 0 },
+          { id: "iot", name: "IoT", isFeatured: true, isHidden: false, orderIndex: 1 },
+          { id: "robotics", name: "Robotics", isFeatured: true, isHidden: false, orderIndex: 2 },
+          { id: "vlsi", name: "VLSI", isFeatured: false, isHidden: false, orderIndex: 3 },
+          { id: "wireless-5g", name: "Wireless / 5G", isFeatured: false, isHidden: false, orderIndex: 4 },
+          { id: "automotive-embedded", name: "Automotive Embedded", isFeatured: false, isHidden: false, orderIndex: 5 },
+          { id: "edge-ai", name: "Edge AI", isFeatured: false, isHidden: false, orderIndex: 6 }
+        ]
+      },
+      {
+        name: "EEE & Power",
+        skills: [
+          { id: "power-systems", name: "Power Systems", isFeatured: true, isHidden: false, orderIndex: 0 },
+          { id: "electrical-machines", name: "Electrical Machines", isFeatured: false, isHidden: false, orderIndex: 1 },
+          { id: "power-electronics", name: "Power Electronics", isFeatured: true, isHidden: false, orderIndex: 2 },
+          { id: "renewable-energy", name: "Renewable Energy", isFeatured: false, isHidden: false, orderIndex: 3 },
+          { id: "ev-bms", name: "EV & BMS", isFeatured: true, isHidden: false, orderIndex: 4 },
+          { id: "plc-scada", name: "PLC / SCADA", isFeatured: false, isHidden: false, orderIndex: 5 },
+          { id: "industrial-automation", name: "Industrial Automation", isFeatured: false, isHidden: false, orderIndex: 6 }
+        ]
+      }
+    ]
+  },
+  {
     id: "creative-arts-design",
     name: "Creative Arts & Design",
     status: "Enabled",

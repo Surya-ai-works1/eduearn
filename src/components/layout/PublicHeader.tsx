@@ -44,14 +44,17 @@ import {
   Mic,
   Globe,
   Activity,
-  Laptop
+  Laptop,
+  Cpu
 } from "lucide-react";
 import { MarketplaceService } from "../../features/payments/services/marketplaceService";
+import { MarketplaceDb } from "../../lib/marketplaceDb";
 
 const categoryIconMap: Record<string, React.ComponentType<any>> = {
   "academics": GraduationCap,
   "technology-programming": Laptop,
   "ai-data-science": Sparkles,
+  "engineering": Cpu,
   "creative-arts-design": Palette,
   "video-editing-animation": Video,
   "photography-media": Camera,
@@ -69,6 +72,7 @@ const categoryMetaMap: Record<string, { courses: number; badge?: "Popular" | "Tr
   "academics": { courses: 382, badge: "Popular", badgeColor: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
   "technology-programming": { courses: 248, badge: "Popular", badgeColor: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" },
   "ai-data-science": { courses: 195, badge: "NEW", badgeColor: "bg-purple-500/10 text-purple-500 border-purple-500/20" },
+  "engineering": { courses: 14, badge: "NEW", badgeColor: "bg-purple-500/10 text-purple-500 border-purple-500/20" },
   "creative-arts-design": { courses: 142, badge: "Trending", badgeColor: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
   "video-editing-animation": { courses: 110, badge: "Trending", badgeColor: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
   "photography-media": { courses: 76 },
@@ -87,6 +91,7 @@ const getPopularSkills = (catId: string, fallbackSkills: { name: string; id: str
     "academics": ["Mathematics", "Physics", "Chemistry"],
     "technology-programming": ["Python", "Java", "React"],
     "ai-data-science": ["ChatGPT", "Gemini", "Claude"],
+    "engineering": ["ECE & Embedded", "EEE & Power", "Robotics & IoT"],
     "creative-arts-design": ["Drawing", "Painting", "Sketching"],
     "photography-media": ["Mobile Photography", "DSLR", "Portraits"],
     "languages": ["English", "Spanish", "French"],
@@ -121,6 +126,7 @@ export function PublicHeader() {
       case "academics": return "academic-education";
       case "technology-programming": return "technology-programming";
       case "ai-data-science": return "ai-data-science";
+      case "engineering": return "engineering";
       case "business-entrepreneurship": return "business-entrepreneurship";
       case "creative-arts-design": return "creative-arts";
       case "photography-media": return "photography-media";
@@ -139,6 +145,11 @@ export function PublicHeader() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       setCategoriesList(MarketplaceService.getCategories());
+      MarketplaceDb.getEngineeringRealCounts().then((counts) => {
+        if (counts && counts.coursesCount > 0) {
+          categoryMetaMap["engineering"].courses = counts.coursesCount;
+        }
+      });
     }
   }, [activeDropdown]);
 
@@ -173,8 +184,6 @@ export function PublicHeader() {
     return () => clearTimeout(timer);
   }, [pathname]);
 
-  const logoSrc = resolvedTheme === "dark" ? "/logo-light.svg" : "/logo-dark.svg";
-
   const resolvedMainNav = [
     { title: "Courses", href: "/courses" },
     { title: "Tutors", href: "/tutors" },
@@ -205,18 +214,22 @@ export function PublicHeader() {
           }
           className="shrink-0 flex items-center gap-2 relative z-50 pointer-events-auto"
         >
-          {mounted ? (
-            <Image
-              src={logoSrc}
-              alt={siteConfig.name}
-              width={112}
-              height={32}
-              priority
-              className="w-full h-auto object-contain dark:brightness-100"
-            />
-          ) : (
-            <div className="w-28 h-8 bg-muted rounded-input animate-pulse" />
-          )}
+          <Image
+            src="/logo-dark.svg"
+            alt={siteConfig.name}
+            width={112}
+            height={32}
+            priority
+            className="w-28 h-auto object-contain dark:hidden"
+          />
+          <Image
+            src="/logo-light.svg"
+            alt={siteConfig.name}
+            width={112}
+            height={32}
+            priority
+            className="w-28 h-auto object-contain hidden dark:block"
+          />
         </Link>
 
         {/* Desktop Left Nav Wrapper */}
@@ -245,28 +258,28 @@ export function PublicHeader() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.98 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="absolute left-0 mt-3 w-[880px] bg-white dark:bg-card/95 border border-slate-200 dark:border-border/80 shadow-2xl rounded-3xl p-6 pb-8 focus:outline-none max-h-[70vh] overflow-y-auto z-[99999] scrollbar-thin scrollbar-thumb-muted/40"
+                  className="absolute left-0 mt-3 w-[880px] bg-white dark:bg-card border border-slate-200 dark:border-border shadow-2xl rounded-3xl p-6 pb-8 focus:outline-none max-h-[70vh] overflow-y-auto z-[99999] scrollbar-thin scrollbar-thumb-muted/40 opacity-100"
                 >
                   <div className="flex items-center flex-wrap gap-2.5 border-b border-border/40 pb-3.5 mb-4 text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground select-none">
                     <span className="text-foreground mr-1.5 font-black text-primary">Quick Shortcuts:</span>
                     <Link
                       href="/courses?sort=trending"
                       onClick={() => setActiveDropdown(null)}
-                      className="inline-flex items-center justify-center h-8 gap-1.5 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-full text-[9.5px] font-bold text-slate-700 dark:text-slate-300 hover:text-primary hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer"
+                      className="inline-flex items-center justify-center h-8 gap-1.5 px-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-[9.5px] font-bold text-slate-800 dark:text-slate-100 hover:text-primary dark:hover:text-primary transition-all cursor-pointer"
                     >
                       <span>🔥</span> <span>Trending</span>
                     </Link>
                     <Link
                       href="/courses?sort=popular"
                       onClick={() => setActiveDropdown(null)}
-                      className="inline-flex items-center justify-center h-8 gap-1.5 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-full text-[9.5px] font-bold text-slate-700 dark:text-slate-300 hover:text-primary hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer"
+                      className="inline-flex items-center justify-center h-8 gap-1.5 px-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-[9.5px] font-bold text-slate-800 dark:text-slate-100 hover:text-primary dark:hover:text-primary transition-all cursor-pointer"
                     >
                       <span>⭐</span> <span>Popular</span>
                     </Link>
                     <Link
                       href="/courses?sort=new"
                       onClick={() => setActiveDropdown(null)}
-                      className="inline-flex items-center justify-center h-8 gap-1.5 px-3 bg-slate-50 dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-full text-[9.5px] font-bold text-slate-700 dark:text-slate-300 hover:text-primary hover:bg-primary/5 hover:border-primary/30 transition-all cursor-pointer"
+                      className="inline-flex items-center justify-center h-8 gap-1.5 px-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-[9.5px] font-bold text-slate-800 dark:text-slate-100 hover:text-primary dark:hover:text-primary transition-all cursor-pointer"
                     >
                       <span>📚</span> <span>New Courses</span>
                     </Link>
@@ -280,16 +293,20 @@ export function PublicHeader() {
                           key={cat.id} 
                           onClick={(e) => {
                             if ((e.target as HTMLElement).closest('a')) return;
-                            router.push(`/categories/${getCategorySlug(cat.id)}`);
+                            if (cat.id === "engineering") {
+                              router.push("/engineering");
+                            } else {
+                              router.push(`/categories/${getCategorySlug(cat.id)}`);
+                            }
                             setActiveDropdown(null);
                           }}
-                          className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 hover:bg-slate-50 dark:hover:bg-slate-900/60 hover:shadow-lg hover:border-primary/20 transition-all duration-300 flex flex-col justify-between group min-h-[160px] cursor-pointer"
+                          className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-850 hover:shadow-lg hover:border-primary/40 transition-all duration-300 flex flex-col justify-between group min-h-[160px] cursor-pointer opacity-100"
                         >
                           <div className="space-y-3">
                             <div className="space-y-1">
                               <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-center gap-1.5 text-slate-900 dark:text-slate-100 font-extrabold text-xs select-none">
-                                  <div className="w-6 h-6 rounded bg-primary/5 border border-primary/10 flex items-center justify-center text-primary shrink-0">
+                                <div className="flex items-center gap-1.5 text-slate-900 dark:text-slate-50 font-black text-xs select-none">
+                                  <div className="w-6 h-6 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
                                     <Icon size={12} />
                                   </div>
                                   <span className="leading-tight">{cat.name}</span>
@@ -300,21 +317,21 @@ export function PublicHeader() {
                                   </span>
                                 )}
                               </div>
-                              <div className="text-[8.5px] text-slate-500 dark:text-slate-400 font-bold pl-8 leading-none select-none">
-                                {categoryMetaMap[cat.id]?.courses || 45} Courses
+                              <div className="text-[8.5px] text-slate-600 dark:text-slate-300 font-extrabold pl-8 leading-none select-none">
+                                {cat.id === "engineering" ? "14 Courses • 18 Projects" : `${categoryMetaMap[cat.id]?.courses || 45} Courses`}
                               </div>
                             </div>
 
-                            <ul className="space-y-1.5 pl-2 border-l border-slate-200 dark:border-slate-800/60">
+                            <ul className="space-y-1.5 pl-2 border-l border-slate-200 dark:border-slate-800">
                               {(() => {
                                 const allSkills = cat.subcategories.flatMap((subcat: any) => subcat.skills);
                                 const visibleSkills = getPopularSkills(cat.id, allSkills);
                                 return visibleSkills.map((skill: any, skIdx: number) => (
                                   <li key={skIdx}>
                                     <Link
-                                      href={`/courses?category=${cat.id}&subject=${skill.id}`}
+                                      href={cat.id === "engineering" ? "/engineering" : `/courses?category=${cat.id}&subject=${skill.id}`}
                                       onClick={() => setActiveDropdown(null)}
-                                      className="text-[10px] text-slate-600 dark:text-slate-400 hover:text-primary transition-all font-semibold block hover:translate-x-0.5"
+                                      className="text-[10px] text-slate-700 dark:text-slate-200 hover:text-primary dark:hover:text-primary transition-all font-semibold block hover:translate-x-0.5"
                                     >
                                       • {skill.name}
                                     </Link>
@@ -324,10 +341,14 @@ export function PublicHeader() {
                             </ul>
                           </div>
 
-                          <div className="pt-3 border-t border-slate-200 dark:border-slate-800/40 mt-3 flex justify-between items-center select-none">
-                            <span className="text-[9px] font-extrabold text-primary group-hover:underline flex items-center gap-0.5">
+                          <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 mt-3 flex justify-between items-center select-none">
+                            <Link
+                              href={cat.id === "engineering" ? "/engineering" : `/categories/${getCategorySlug(cat.id)}`}
+                              onClick={() => setActiveDropdown(null)}
+                              className="text-[9.5px] font-black text-primary hover:underline flex items-center gap-0.5"
+                            >
                               View All &rarr;
-                            </span>
+                            </Link>
                           </div>
                         </div>
                       );

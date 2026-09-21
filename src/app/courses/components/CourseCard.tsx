@@ -159,21 +159,26 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             </span>
           </h3>
 
-          {/* Tutor Name */}
+          {/* Tutor Name & Status */}
           <div className="flex items-center gap-1.5 pt-0.5">
-            {tutorAvatar && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={tutorAvatar}
-                alt=""
-                className="w-5 h-5 rounded-full border border-border object-cover"
-              />
-            )}
-            <span className="text-[11px] text-muted-foreground font-semibold hover:text-foreground transition-colors">
-              {tutorName}
-            </span>
-            {isAiVerified && (
-              <span className="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full" title="AI-Verified Tutor" />
+            {tutorName === "Awaiting Tutor Assignment" || !tutorAvatar ? (
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">
+                Awaiting Tutor Assignment
+              </span>
+            ) : (
+              <>
+                <img
+                  src={tutorAvatar}
+                  alt=""
+                  className="w-5 h-5 rounded-full border border-border object-cover"
+                />
+                <span className="text-[11px] text-muted-foreground font-semibold hover:text-foreground transition-colors">
+                  {tutorName}
+                </span>
+                {isAiVerified && (
+                  <span className="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full" title="AI-Verified Tutor" />
+                )}
+              </>
             )}
           </div>
         </div>
@@ -182,11 +187,15 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         <div className="border-t border-border/40 pt-4 flex flex-col gap-2.5">
           {/* Ratings & Students */}
           <div className="flex items-center justify-between text-[11px] text-muted-foreground select-none font-medium">
-            <div className="flex items-center gap-1">
-              <Star size={13} className="text-yellow-500 fill-current" />
-              <span className="font-bold text-foreground">{rating.toFixed(1)}</span>
-              <span>({studentsCount} learners)</span>
-            </div>
+            {rating > 0 ? (
+              <div className="flex items-center gap-1">
+                <Star size={13} className="text-yellow-500 fill-current" />
+                <span className="font-bold text-foreground">{rating.toFixed(1)}</span>
+                <span>({studentsCount} learners)</span>
+              </div>
+            ) : (
+              <span className="text-[10px] text-muted-foreground italic">Catalog Template</span>
+            )}
             <div className="flex items-center gap-1">
               <Users size={12} />
               <span>{lessonsCount} lessons</span>

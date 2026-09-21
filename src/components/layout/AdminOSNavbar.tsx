@@ -49,8 +49,6 @@ export function AdminOSNavbar() {
     setActiveDropdown(null);
   }, [pathname]);
 
-  const logoSrc = resolvedTheme === "dark" ? "/logo-light.svg" : "/logo-dark.svg";
-
   const adminNavItems = [
     { title: "Overview", href: "/" },
     { title: "Users", href: "/admin/dashboard?tab=users" },
@@ -87,18 +85,22 @@ export function AdminOSNavbar() {
         {/* Brand Logo & Admin Badge */}
         <div className="flex items-center gap-3">
           <Link href="/" className="shrink-0 flex items-center gap-2 relative z-50 pointer-events-auto">
-            {mounted ? (
-              <Image
-                src={logoSrc}
-                alt={siteConfig.name}
-                width={106}
-                height={30}
-                priority
-                className="w-auto h-8 object-contain dark:brightness-100"
-              />
-            ) : (
-              <div className="w-24 h-8 bg-muted rounded-input animate-pulse" />
-            )}
+            <Image
+              src="/logo-dark.svg"
+              alt={siteConfig.name}
+              width={106}
+              height={30}
+              priority
+              className="w-auto h-8 object-contain dark:hidden"
+            />
+            <Image
+              src="/logo-light.svg"
+              alt={siteConfig.name}
+              width={106}
+              height={30}
+              priority
+              className="w-auto h-8 object-contain hidden dark:block"
+            />
           </Link>
           <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-black font-mono tracking-wider bg-blue-600/10 text-blue-600 dark:text-blue-500 border border-blue-600/20 px-2 py-0.5 rounded uppercase">
             CONTROL PLANE

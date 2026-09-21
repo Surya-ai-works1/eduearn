@@ -213,6 +213,41 @@ export const navigationConfig = {
         { title: "Robotics", href: "/courses?category=ai&subject=robotics", category: "ai", subject: "robotics" },
       ],
     },
+    {
+      id: "engineering",
+      title: "Engineering & Electronics",
+      subcategories: [
+        {
+          title: "ECE & Embedded",
+          items: [
+            { title: "Embedded Systems", href: "/engineering", category: "engineering", subject: "embedded-systems" },
+            { title: "IoT", href: "/engineering", category: "engineering", subject: "iot" },
+            { title: "Robotics", href: "/engineering", category: "engineering", subject: "robotics" },
+            { title: "VLSI", href: "/engineering", category: "engineering", subject: "vlsi" },
+            { title: "Wireless / 5G", href: "/engineering", category: "engineering", subject: "wireless-5g" },
+            { title: "Automotive Embedded", href: "/engineering", category: "engineering", subject: "automotive-embedded" },
+            { title: "Edge AI", href: "/engineering", category: "engineering", subject: "edge-ai" },
+          ],
+        },
+        {
+          title: "EEE & Power",
+          items: [
+            { title: "Power Systems", href: "/engineering", category: "engineering", subject: "power-systems" },
+            { title: "Electrical Machines", href: "/engineering", category: "engineering", subject: "electrical-machines" },
+            { title: "Power Electronics", href: "/engineering", category: "engineering", subject: "power-electronics" },
+            { title: "Renewable Energy", href: "/engineering", category: "engineering", subject: "renewable-energy" },
+            { title: "EV & BMS", href: "/engineering", category: "engineering", subject: "ev-bms" },
+            { title: "PLC / SCADA", href: "/engineering", category: "engineering", subject: "plc-scada" },
+            { title: "Industrial Automation", href: "/engineering", category: "engineering", subject: "industrial-automation" },
+          ],
+        },
+      ],
+      items: [
+        { title: "ECE & Embedded", href: "/engineering", category: "engineering", subject: "ece" },
+        { title: "EEE & Power", href: "/engineering", category: "engineering", subject: "eee" },
+        { title: "Robotics & IoT", href: "/engineering", category: "engineering", subject: "robotics-iot" },
+      ],
+    },
   ] as MegaMenuCategory[],
 
   footerNav: {

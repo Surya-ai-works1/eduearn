@@ -8,6 +8,7 @@ import Link from "next/link";
 import { lmsDb } from "../../../lib/lmsDb";
 import { createClient } from "../../../lib/supabase/server";
 import { enrollmentService } from "../../../lib/services/enrollmentService";
+import { getCourseThumbnail } from "../../../lib/courseThumbnailRegistry";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -27,21 +28,23 @@ export default async function CourseDetailsPage({ params }: PageProps) {
     const dbCourse = await lmsDb.getCourseById(id);
     if (dbCourse) {
       const supabase = await createClient();
-      let tutorName = "Tutor Instructor";
-      let tutorBio = "EduSpark Certified Expert Tutor.";
-      let tutorAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=tutor";
+      let isTutorVerified = false;
+      let tutorName = "Tutor Assignment Pending";
+      let tutorBio = "This course is currently awaiting assignment to a verified EduEarn student tutor.";
+      let tutorAvatar = "";
 
-      if (supabase) {
+      if (supabase && dbCourse.tutor_id) {
         try {
           const { data: profile } = await supabase
             .from("profiles")
             .select("*")
             .eq("id", dbCourse.tutor_id)
             .maybeSingle();
-          if (profile) {
-            tutorName = profile.full_name || profile.display_name || "Tutor Instructor";
-            tutorBio = profile.bio || "EduSpark Certified Expert Tutor.";
-            if (profile.avatar_url) tutorAvatar = profile.avatar_url;
+          if (profile && profile.role === "tutor") {
+            tutorName = profile.full_name || profile.display_name || "EduEarn Tutor";
+            tutorBio = profile.bio || "EduEarn Verified Tutor.";
+            tutorAvatar = profile.avatar_url || "";
+            isTutorVerified = true;
           }
         } catch (err) {}
       }
@@ -51,32 +54,35 @@ export default async function CourseDetailsPage({ params }: PageProps) {
         id: dbCourse.id,
         title: dbCourse.title,
         price: Number(dbCourse.price),
-        tutorId: dbCourse.tutor_id,
+        tutorId: isTutorVerified ? dbCourse.tutor_id : null,
         tutorName,
         tutorAvatar,
-        rating: 4.8,
-        studentsCount: 150,
+        rating: isTutorVerified ? 4.8 : 0,
+        studentsCount: isTutorVerified ? 150 : 0,
         lessonsCount: dbCourse.lessons?.length || 0,
         level: dbCourse.level,
         category: dbCourse.category,
         categoryId: dbCourse.category.toLowerCase().replace(/\s+/g, "-"),
         subjectId: dbCourse.category.toLowerCase().replace(/\s+/g, "-"),
-        duration: "10 hours",
+        duration: (dbCourse as any).duration || "10 hours",
         language: "English",
         createdAt: dbCourse.created_at,
         description: dbCourse.description || dbCourse.subtitle || "",
+        image: getCourseThumbnail(dbCourse),
+        imageSrc: getCourseThumbnail(dbCourse),
       };
 
       tutor = {
-        id: dbCourse.tutor_id,
+        id: isTutorVerified ? dbCourse.tutor_id : null,
         name: tutorName,
         avatar: tutorAvatar,
-        rating: 4.8,
-        reviewsCount: 42,
-        studentsCount: 150,
-        coursesCount: 3,
+        rating: isTutorVerified ? 4.8 : 0,
+        reviewsCount: isTutorVerified ? 42 : 0,
+        studentsCount: isTutorVerified ? 150 : 0,
+        coursesCount: isTutorVerified ? 3 : 0,
         bio: tutorBio,
-        verificationStatus: "verified",
+        verificationStatus: isTutorVerified ? "verified" : "pending",
+        isPending: !isTutorVerified,
       };
 
       // Fetch dynamic reviews
@@ -131,7 +137,7 @@ export default async function CourseDetailsPage({ params }: PageProps) {
             category: rc.category,
             price: Number(rc.price),
             rating: 4.8,
-            duration: "10 hours",
+            duration: (rc as any).duration || "10 hours",
             lessonsCount: rc.lessons?.length || 0,
             studentsCount: 150,
             isAiVerified: true,

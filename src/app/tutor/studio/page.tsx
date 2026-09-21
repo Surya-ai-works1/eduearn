@@ -25,6 +25,9 @@ export default function TutorStudioDashboard() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [earnings, setEarnings] = useState<TutorEarnings | null>(null);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [applyingCourseId, setApplyingCourseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Form State
@@ -32,7 +35,7 @@ export default function TutorStudioDashboard() {
   const [submittingWithdrawal, setSubmittingWithdrawal] = useState(false);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState("courses"); // "courses" | "earnings"
+  const [activeTab, setActiveTab] = useState("courses"); // "courses" | "templates" | "earnings"
 
   const fetchTutorData = useCallback(async () => {
     if (!user) return;
@@ -46,6 +49,28 @@ export default function TutorStudioDashboard() {
 
       const tutorWithdrawals = await lmsDb.getWithdrawalRequests(user.id);
       setWithdrawals(tutorWithdrawals);
+
+      // Fetch my course applications
+      try {
+        const res = await fetch("/api/tutor/courses/my-applications");
+        if (res.ok) {
+          const data = await res.json();
+          setApplications(data.applications || []);
+        }
+      } catch (err) {}
+
+      // Fetch unassigned course templates
+      try {
+        const { createClient } = await import("../../../lib/supabase");
+        const supabase = createClient();
+        if (supabase) {
+          const { data: tmplData } = await supabase
+            .from("courses")
+            .select("*")
+            .is("tutor_id", null);
+          setTemplates(tmplData || []);
+        }
+      } catch (err) {}
     } catch (err: any) {
       console.error(err);
       toast.error("Failed to load Tutor Studio data");
@@ -86,6 +111,28 @@ export default function TutorStudioDashboard() {
       toast.error("Withdrawal request failed");
     } finally {
       setSubmittingWithdrawal(false);
+    }
+  };
+
+  const handleApplyToTeach = async (courseId: string) => {
+    if (!user) return;
+    setApplyingCourseId(courseId);
+    try {
+      const res = await fetch("/api/tutor/courses/apply-to-teach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId, applicationNote: "Applied from Tutor Creator Studio." }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to apply to teach course template.");
+      }
+      toast.success("Application to teach submitted! Admin will review your credentials shortly.");
+      fetchTutorData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit application");
+    } finally {
+      setApplyingCourseId(null);
     }
   };
 
@@ -133,7 +180,7 @@ export default function TutorStudioDashboard() {
               <FaChartLine className="text-blue-500" /> Tutor Creator Studio
             </h1>
             <p className="text-xs text-muted-foreground font-light">
-              Create courses, build syllabus modules, and manage student payouts.
+              Create courses, apply to teach catalog templates, and manage student payouts.
             </p>
           </div>
           <Link
@@ -186,7 +233,15 @@ export default function TutorStudioDashboard() {
                 activeTab === "courses" ? "border-blue-500 text-blue-400" : "border-transparent hover:text-white"
               }`}
             >
-              My Courses Catalog
+              My Courses ({courses.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("templates")}
+              className={`px-4 py-2 border-b-2 transition ${
+                activeTab === "templates" ? "border-blue-500 text-blue-400" : "border-transparent hover:text-white"
+              }`}
+            >
+              Available Course Templates ({templates.length})
             </button>
             <button
               onClick={() => setActiveTab("earnings")}
@@ -255,7 +310,95 @@ export default function TutorStudioDashboard() {
             </div>
           )}
 
-          {/* Tab 2: Earnings Ledger */}
+          {/* Tab 2: Available Course Templates */}
+          {activeTab === "templates" && (
+            <div className="space-y-4">
+              {templates.length === 0 ? (
+                <div className="bg-card border border-border shadow-md rounded-2xl p-12 text-center space-y-4 max-w-md mx-auto">
+                  <FaBookOpen className="text-5xl text-slate-700 mx-auto" />
+                  <h3 className="text-sm font-bold text-foreground">No Templates Available</h3>
+                  <p className="text-xs text-muted-foreground font-light leading-relaxed">
+                    All current course templates are already assigned to verified educators or under active review.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {templates.map((tmpl) => {
+                    const myApp = applications.find((a) => a.course_id === tmpl.id);
+                    const isApplying = applyingCourseId === tmpl.id;
+
+                    return (
+                      <div
+                        key={tmpl.id}
+                        className="bg-card border border-border shadow-sm hover:shadow-md transition-shadow duration-200 rounded-2xl p-5 flex flex-col justify-between gap-4 group"
+                      >
+                        <div className="space-y-2 text-left">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded">
+                              {tmpl.category}
+                            </span>
+                            <span className="text-[10px] font-extrabold uppercase text-green-500 font-mono">
+                              ₹{tmpl.selling_price || tmpl.price || 1299}
+                            </span>
+                          </div>
+                          <h4 className="text-sm font-bold text-foreground group-hover:text-blue-400 transition duration-300">
+                            {tmpl.title}
+                          </h4>
+                          <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                            {tmpl.subtitle || tmpl.description || "Official EduEarn curriculum template."}
+                          </p>
+                          <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-semibold">
+                            <span>Level: {tmpl.level || "Beginner"}</span>
+                            <span>•</span>
+                            <span>Duration: {tmpl.duration || "10 hours"}</span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-border flex items-center justify-between">
+                          <span className="text-[9.5px] text-muted-foreground italic">
+                            Unassigned Catalog Template
+                          </span>
+
+                          {myApp?.status === "UNDER_REVIEW" ? (
+                            <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-extrabold uppercase tracking-wider rounded-lg">
+                              Application Under Review
+                            </span>
+                          ) : myApp?.status === "APPROVED" ? (
+                            <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-extrabold uppercase tracking-wider rounded-lg">
+                              Approved Educator
+                            </span>
+                          ) : myApp?.status === "REJECTED" ? (
+                            <div className="flex items-center gap-2">
+                              <span className="px-2.5 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[9.5px] font-bold uppercase rounded-lg">
+                                Application Declined
+                              </span>
+                              <button
+                                onClick={() => handleApplyToTeach(tmpl.id)}
+                                disabled={isApplying}
+                                className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition disabled:opacity-50"
+                              >
+                                Re-Apply
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleApplyToTeach(tmpl.id)}
+                              disabled={isApplying}
+                              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition shadow-md shadow-blue-500/20 disabled:opacity-50 flex items-center gap-1.5"
+                            >
+                              {isApplying ? "Submitting..." : "Apply to Teach"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab 3: Earnings Ledger */}
           {activeTab === "earnings" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
               

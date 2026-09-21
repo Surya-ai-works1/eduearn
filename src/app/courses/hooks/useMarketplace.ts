@@ -3,6 +3,13 @@ import { MOCK_COURSES } from "../../../constants/mockData";
 import { lmsDb } from "../../../lib/lmsDb";
 import { createClient } from "../../../lib/supabase";
 import { toast } from "sonner";
+import { getCourseThumbnail } from "../../../lib/courseThumbnailRegistry";
+import {
+  getCanonicalCategoryId,
+  getCanonicalSubjectId,
+  isCategoryMatch,
+  isSubjectMatch,
+} from "../../../utils/slugify";
 
 export interface FiltersState {
   searchQuery: string;
@@ -65,46 +72,55 @@ export function useMarketplace(categoryParam?: string, subjectParam?: string) {
     }
   }, []);
 
-  // Fetch published courses from Supabase with fallback to mock data
+  // Fetch published courses & catalog templates from Supabase with fallback to mock data
   const loadCourses = useCallback(async () => {
     try {
       setIsLoading(true);
-      const dbCourses = await lmsDb.getAllPublishedCourses();
+      const dbCourses = await lmsDb.getMarketplaceCourses();
       if (dbCourses && dbCourses.length > 0) {
         const supabase = createClient();
         const mapped = [];
 
         for (const c of dbCourses) {
-          let tutorName = "Tutor Instructor";
-          let tutorAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Tutor%20Instructor";
-          try {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("full_name, display_name, avatar_url")
-              .eq("id", c.tutor_id)
-              .maybeSingle();
-            if (profile) {
-              tutorName = profile.full_name || profile.display_name || "Tutor Instructor";
-              tutorAvatar = profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(tutorName)}`;
-            }
-          } catch (err) {}
+          let tutorName = "Awaiting Tutor Assignment";
+          let tutorAvatar = "";
+          let isTemplate = !c.tutor_id || c.status === "draft";
+
+          if (supabase && c.tutor_id) {
+            try {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name, display_name, avatar_url, role")
+                .eq("id", c.tutor_id)
+                .maybeSingle();
+              if (profile && profile.role === "tutor") {
+                tutorName = profile.full_name || profile.display_name || "EduEarn Tutor";
+                tutorAvatar = profile.avatar_url || "";
+                isTemplate = false;
+              }
+            } catch (err) {}
+          }
+
+          const catId = getCanonicalCategoryId(c.category);
+          const subId = getCanonicalSubjectId((c as any).subcategory || c.title || c.category);
 
           mapped.push({
             id: c.id,
             title: c.title,
-            tutorId: c.tutor_id,
+            tutorId: isTemplate ? null : c.tutor_id,
             tutorName,
             tutorAvatar,
+            isTemplate,
             category: c.category,
-            categoryId: c.category?.toLowerCase().replace(/\s+/g, "-"),
-            subjectId: c.category?.toLowerCase().replace(/\s+/g, "-"),
-            price: Number(c.price),
-            rating: 4.8,
-            duration: "10 hours",
+            categoryId: catId,
+            subjectId: subId,
+            price: Number((c as any).selling_price || c.price || 0),
+            rating: isTemplate ? 0 : 4.8,
+            duration: (c as any).duration || "10 hours",
             lessonsCount: c.lessons?.length || 0,
-            studentsCount: 150,
-            isAiVerified: true,
-            imageSrc: c.thumbnail || null,
+            studentsCount: isTemplate ? 0 : 150,
+            isAiVerified: !isTemplate,
+            imageSrc: getCourseThumbnail(c),
             level: c.level,
             language: "English",
             createdAt: c.created_at,
@@ -184,9 +200,25 @@ export function useMarketplace(categoryParam?: string, subjectParam?: string) {
   // Filtered & Sorted result set
   const filteredCourses = useMemo(() => {
     return coursesList.filter((course, idx) => {
-      // URL parameters check
-      if (categoryParam && course.categoryId !== categoryParam) return false;
-      if (subjectParam && course.subjectId !== subjectParam) return false;
+      // Category check (Canonical alias matching)
+      const targetCat = categoryParam || filters.category;
+      if (
+        targetCat &&
+        !isCategoryMatch(course.categoryId, targetCat) &&
+        !isCategoryMatch(course.category, targetCat)
+      ) {
+        return false;
+      }
+
+      // Subject check (Canonical subject matching)
+      if (
+        subjectParam &&
+        !isSubjectMatch(course.subjectId, subjectParam) &&
+        !isSubjectMatch(course.subjectName, subjectParam) &&
+        !isSubjectMatch(course.title, subjectParam)
+      ) {
+        return false;
+      }
 
       // Search query check
       if (filters.searchQuery.trim()) {
@@ -196,9 +228,6 @@ export function useMarketplace(categoryParam?: string, subjectParam?: string) {
         const matchesTutor = course.tutorName.toLowerCase().includes(query);
         if (!matchesTitle && !matchesCategory && !matchesTutor) return false;
       }
-
-      // Sidebar category selection
-      if (!categoryParam && filters.category && course.categoryId !== filters.category) return false;
 
       // Price type
       if (filters.priceType === "free" && course.price > 0) return false;

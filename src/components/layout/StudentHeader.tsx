@@ -64,8 +64,6 @@ export function StudentHeader() {
     return () => clearTimeout(timer);
   }, [pathname]);
 
-  const logoSrc = resolvedTheme === "dark" ? "/logo-light.svg" : "/logo-dark.svg";
-
   const resolvedMainNav = [
     { title: "My Learn", href: "/learn" },
     { title: "LMS Catalog", href: "/learn/courses" },
@@ -92,18 +90,22 @@ export function StudentHeader() {
             href="/" 
             className="shrink-0 flex items-center gap-2 relative z-50 pointer-events-auto"
           >
-            {mounted ? (
-              <Image
-                src={logoSrc}
-                alt={siteConfig.name}
-                width={112}
-                height={32}
-                priority
-                className="w-full h-auto object-contain dark:brightness-100"
-              />
-            ) : (
-              <div className="w-28 h-8 bg-muted rounded-input animate-pulse" />
-            )}
+            <Image
+              src="/logo-dark.svg"
+              alt={siteConfig.name}
+              width={112}
+              height={32}
+              priority
+              className="w-28 h-auto object-contain dark:hidden"
+            />
+            <Image
+              src="/logo-light.svg"
+              alt={siteConfig.name}
+              width={112}
+              height={32}
+              priority
+              className="w-28 h-auto object-contain hidden dark:block"
+            />
           </Link>
 
           {/* Breadcrumb */}

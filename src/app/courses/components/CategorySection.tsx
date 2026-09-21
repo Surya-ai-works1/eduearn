@@ -1,4 +1,5 @@
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Code, Cpu, Smartphone, Database, Terminal, Shield, Palette, Layout, Box } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -11,6 +12,8 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   onCategorySelect,
   activeCategory,
 }) => {
+  const router = useRouter();
+
   const categories = [
     { id: "web-development", name: "Web Development", icon: Code, color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
     { id: "ai-ml", name: "AI/ML", icon: Cpu, color: "bg-purple-500/10 text-purple-500 border-purple-500/20" },
@@ -20,6 +23,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
     { id: "ethical-hacking", name: "Ethical Hacking", icon: Shield, color: "bg-red-500/10 text-red-500 border-red-500/20" },
     { id: "ui-ux-designing", name: "UI UX Designing", icon: Palette, color: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20" },
     { id: "ai-tools", name: "AI Tools", icon: Terminal, color: "bg-teal-500/10 text-teal-500 border-teal-500/20" },
+    { id: "engineering", name: "Engineering", icon: Cpu, color: "bg-violet-500/10 text-violet-500 border-violet-500/20" },
     { id: "others", name: "Others", icon: Box, color: "bg-slate-500/10 text-slate-500 border-slate-500/20" },
   ];
 
@@ -35,7 +39,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-3">
           {categories.map((cat) => {
             const Icon = cat.icon;
             const isSelected = activeCategory === cat.id;
@@ -45,8 +49,14 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                 key={cat.id}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => onCategorySelect(cat.id)}
-                className={`flex flex-col items-center justify-center p-4 border rounded-2xl shadow-soft transition-all duration-300 gap-3 cursor-pointer ${
+                onClick={() => {
+                  if (cat.id === "engineering") {
+                    router.push("/engineering");
+                  } else {
+                    onCategorySelect(cat.id);
+                  }
+                }}
+                className={`flex flex-col items-center justify-center p-3 border rounded-2xl shadow-soft transition-all duration-300 gap-2.5 cursor-pointer ${
                   isSelected
                     ? "bg-primary border-primary text-primary-foreground"
                     : "bg-card border-border/80 text-foreground hover:border-primary/50"
@@ -54,10 +64,10 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                 role="checkbox"
                 aria-checked={isSelected}
               >
-                <div className={`p-2.5 rounded-xl border flex items-center justify-center ${
+                <div className={`p-2 rounded-xl border flex items-center justify-center ${
                   isSelected ? "bg-white/10 border-white/20 text-white" : cat.color
                 }`}>
-                  <Icon size={18} />
+                  <Icon size={16} />
                 </div>
                 <span className="text-[10px] font-heading font-black text-center truncate max-w-full">
                   {cat.name}

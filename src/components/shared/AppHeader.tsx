@@ -36,15 +36,12 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onBellClick,
 }) => {
   const { user, logout } = useAuth();
-  const { resolvedTheme } = useTheme();
   const router = useRouter();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const userDropdownRef = useOutsideClick<HTMLDivElement>(() => {
     setUserDropdownOpen(false);
   });
-
-  const logoSrc = resolvedTheme === "dark" ? "/logo-light.svg" : "/logo-dark.svg";
 
   return (
     <header
@@ -63,12 +60,20 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         {/* Platform Logo */}
         <Link href="/admin/dashboard" className="flex items-center gap-2 shrink-0">
           <Image
-            src={logoSrc}
+            src="/logo-dark.svg"
             alt="EduEarn Admin Console"
             width={90}
             height={26}
             priority
-            className="w-auto h-6 object-contain"
+            className="w-auto h-6 object-contain dark:hidden"
+          />
+          <Image
+            src="/logo-light.svg"
+            alt="EduEarn Admin Console"
+            width={90}
+            height={26}
+            priority
+            className="w-auto h-6 object-contain hidden dark:block"
           />
         </Link>
         <span className="hidden sm:inline text-muted-foreground/30 text-lg font-light mx-1">|</span>
