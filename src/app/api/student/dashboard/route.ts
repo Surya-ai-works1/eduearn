@@ -1,7 +1,7 @@
 // src/app/api/student/dashboard/route.ts
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { getStudentDashboard } from '@/lib/services/studentDashboardService';
 
 /**
@@ -12,7 +12,7 @@ import { getStudentDashboard } from '@/lib/services/studentDashboardService';
  */
 export async function GET(request: Request) {
   // Initialise Supabase client (server side) to retrieve authenticated user.
-  const supabase = createClient();
+  const supabase = await createClient();
   if (!supabase) {
     return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
   }

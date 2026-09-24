@@ -164,7 +164,7 @@ export default async function CourseDetailsPage({ params }: PageProps) {
 
   // Fallback to mock data if not found in database
   if (!course) {
-    course = MOCK_COURSES.find((c) => c.id === id);
+    course = MOCK_COURSES.find((c) => c.id === id || (c as any).legacyId === id);
     if (course) {
       tutor = MOCK_TUTORS.find((t) => t.id === course.tutorId) || MOCK_TUTORS[0];
       relatedCourses = MOCK_COURSES.filter(

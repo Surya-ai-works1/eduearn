@@ -1024,15 +1024,22 @@ export default function AiAssistantPage() {
                                     return null;
                                   }
 
+                                  const safeLine = line
+                                    .replace(/&/g, "&amp;")
+                                    .replace(/</g, "&lt;")
+                                    .replace(/>/g, "&gt;")
+                                    .replace(/"/g, "&quot;")
+                                    .replace(/'/g, "&#039;")
+                                    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                                    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+                                    .replace(/\`(.*?)\`/g, '<code class="bg-muted/65 px-1 py-0.5 rounded text-[10px] border border-border font-mono">$1</code>');
+
                                   return (
                                     <p
                                       key={lineIdx}
                                       className="mb-1.5 last:mb-0 leading-relaxed"
                                       dangerouslySetInnerHTML={{
-                                        __html: line
-                                          .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                                          .replace(/\*(.*?)\*/g, "<em>$1</em>")
-                                          .replace(/\`(.*?)\`/g, '<code class="bg-muted/65 px-1 py-0.5 rounded text-[10px] border border-border font-mono">$1</code>'),
+                                        __html: safeLine,
                                       }}
                                     />
                                   );

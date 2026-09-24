@@ -5,8 +5,17 @@ import { Quiz, QuizAttempt, Question } from "../../types/quiz";
 import { createClient } from "../../supabase";
 
 export class SupabaseQuizRepository implements IQuizRepository {
+  private async getSupabase() {
+    if (typeof window === "undefined") {
+      const { createClient } = await import("../../supabase/server");
+      const client = await createClient();
+      if (client) return client;
+    }
+    return createClient();
+  }
+
   async getQuizzesByStudent(studentId: string): Promise<Quiz[]> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     // 1. Fetch enrolled course IDs
     const { data: enrollments, error: enrollError } = await supabase
@@ -55,7 +64,10 @@ export class SupabaseQuizRepository implements IQuizRepository {
   }
 
   async getQuizById(id: string): Promise<Quiz | null> {
-    const supabase = createClient();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (!isUuid) return null;
+
+    const supabase = await this.getSupabase();
     const { data: item, error } = await supabase
       .from("quizzes")
       .select("*, courses(title)")
@@ -90,7 +102,7 @@ export class SupabaseQuizRepository implements IQuizRepository {
   }
 
   async getAttemptsByStudent(studentId: string): Promise<QuizAttempt[]> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
     const { data, error } = await supabase
       .from("quiz_attempts")
       .select("*")
@@ -114,7 +126,7 @@ export class SupabaseQuizRepository implements IQuizRepository {
   }
 
   async getAttempt(studentId: string, quizId: string): Promise<QuizAttempt | null> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
     const { data, error } = await supabase
       .from("quiz_attempts")
       .select("*")
@@ -143,23 +155,27 @@ export class SupabaseQuizRepository implements IQuizRepository {
   }
 
   async saveAttempt(attempt: QuizAttempt): Promise<QuizAttempt> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     // Only save to DB if it is submitted
     if (attempt.status !== "Submitted") {
       return attempt; // Skip transient in-progress saves in database
     }
 
+    const insertPayload: any = {
+      user_id: attempt.studentId,
+      quiz_id: attempt.quizId,
+      score: attempt.percentage, // save percentage as score
+      passed: attempt.passed || false,
+      completed_at: attempt.submittedAt || new Date().toISOString(),
+    };
+    if (attempt.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(attempt.id)) {
+      insertPayload.id = attempt.id;
+    }
+
     const { data, error } = await supabase
       .from("quiz_attempts")
-      .insert({
-        id: attempt.id,
-        user_id: attempt.studentId,
-        quiz_id: attempt.quizId,
-        score: attempt.percentage, // save percentage as score
-        passed: attempt.passed || false,
-        completed_at: attempt.submittedAt || new Date().toISOString(),
-      })
+      .insert(insertPayload)
       .select()
       .single();
 

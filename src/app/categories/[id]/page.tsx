@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { SEED_CATEGORIES } from "../../../features/payments/services/marketplaceService";
-import { MOCK_COURSES, MOCK_TUTORS } from "../../../constants/mockData";
+import { MOCK_COURSES, MOCK_TUTORS, getMockCourseUuid } from "../../../constants/mockData";
 import { useAuth } from "../../../hooks/useAuth";
 import { useCourseContext } from "../../../hooks/useCourseContext";
 import { Container } from "../../../components/layout/Container";
@@ -65,8 +65,8 @@ const slugToIdMap: Record<string, string> = {
   "academic-education": "academics",
   "technology-programming": "technology-programming",
   "ai-data-science": "ai-data-science",
-  "engineering": "engineering",
-  "engineering-electronics": "engineering",
+  "engineering": "engineering-electronics",
+  "engineering-electronics": "engineering-electronics",
   "business-entrepreneurship": "business-entrepreneurship",
   "creative-arts": "creative-arts-design",
   "creative-arts-design": "creative-arts-design",
@@ -131,9 +131,9 @@ const CATEGORY_META_DATA: Record<string, CategoryDetail> = {
     bannerColor: "from-blue-600/20 to-indigo-600/20 border-blue-500/20",
     subjects: ["Mathematics", "Physics", "Chemistry", "Biology", "English", "History"],
     mockCourses: [
-      { id: "course-1", title: "Calculus Basic Training", tutor: "Priya Patel", duration: "12 Hours", rating: 4.8, students: 240, price: 499, difficulty: "Beginner" },
-      { id: "course-2", title: "Organic Chemistry Deep Dive", tutor: "Dr. Ravi Kumar", duration: "18 Hours", rating: 4.9, students: 180, price: 699, difficulty: "Intermediate" },
-      { id: "course-3", title: "Classical Physics Foundations", tutor: "Amit Sharma", duration: "15 Hours", rating: 4.7, students: 150, price: 399, difficulty: "Beginner" },
+      { id: getMockCourseUuid(1), title: "Calculus Basic Training", tutor: "Priya Patel", duration: "12 Hours", rating: 4.8, students: 240, price: 499, difficulty: "Beginner" },
+      { id: getMockCourseUuid(2), title: "Organic Chemistry Deep Dive", tutor: "Dr. Ravi Kumar", duration: "18 Hours", rating: 4.9, students: 180, price: 699, difficulty: "Intermediate" },
+      { id: getMockCourseUuid(3), title: "Classical Physics Foundations", tutor: "Amit Sharma", duration: "15 Hours", rating: 4.7, students: 150, price: 399, difficulty: "Beginner" },
     ],
     mockTutors: [
       { id: "tutor-1", name: "Dr. Ravi Kumar", role: "Physics & Chemistry Specialist", rating: 4.9, price: 500, languages: "English, Hindi", reviewsCount: 184 },
@@ -154,9 +154,9 @@ const CATEGORY_META_DATA: Record<string, CategoryDetail> = {
     bannerColor: "from-cyan-600/20 to-blue-600/20 border-cyan-500/20",
     subjects: ["Python", "JavaScript", "React", "Next.js", "Node.js", "Flutter", "Docker"],
     mockCourses: [
-      { id: "course-11", title: "Next.js 16 Production Guide", tutor: "Vikram Rathore", duration: "32 Hours", rating: 4.9, students: 680, price: 999, difficulty: "Advanced" },
-      { id: "course-12", title: "Python for Absolute Beginners", tutor: "Priya Patel", duration: "14 Hours", rating: 4.8, students: 1120, price: 299, difficulty: "Beginner" },
-      { id: "course-13", title: "Rust Programming Basics", tutor: "Karan Malhotra", duration: "20 Hours", rating: 4.7, students: 310, price: 599, difficulty: "Intermediate" },
+      { id: getMockCourseUuid(11), title: "Next.js 16 Production Guide", tutor: "Vikram Rathore", duration: "32 Hours", rating: 4.9, students: 680, price: 999, difficulty: "Advanced" },
+      { id: getMockCourseUuid(12), title: "Python for Absolute Beginners", tutor: "Priya Patel", duration: "14 Hours", rating: 4.8, students: 1120, price: 299, difficulty: "Beginner" },
+      { id: getMockCourseUuid(13), title: "Rust Programming Basics", tutor: "Karan Malhotra", duration: "20 Hours", rating: 4.7, students: 310, price: 599, difficulty: "Intermediate" },
     ],
     mockTutors: [
       { id: "tutor-3", name: "Vikram Rathore", role: "Ex-Google Software Architect", rating: 4.9, price: 800, languages: "English, Hindi", reviewsCount: 310 },
@@ -177,8 +177,8 @@ const CATEGORY_META_DATA: Record<string, CategoryDetail> = {
     bannerColor: "from-purple-600/20 to-pink-600/20 border-purple-500/20",
     subjects: ["ChatGPT", "Gemini", "LangChain", "Prompt Engineering", "Machine Learning", "PyTorch"],
     mockCourses: [
-      { id: "course-21", title: "AI Prompt Engineering 101", tutor: "Karan Malhotra", duration: "10 Hours", rating: 4.9, students: 420, price: 699, difficulty: "Beginner" },
-      { id: "course-22", title: "Deep Learning Foundations with PyTorch", tutor: "Dr. Ravi Kumar", duration: "25 Hours", rating: 4.8, students: 280, price: 899, difficulty: "Advanced" },
+      { id: getMockCourseUuid(21), title: "AI Prompt Engineering 101", tutor: "Karan Malhotra", duration: "10 Hours", rating: 4.9, students: 420, price: 699, difficulty: "Beginner" },
+      { id: getMockCourseUuid(22), title: "Deep Learning Foundations with PyTorch", tutor: "Dr. Ravi Kumar", duration: "25 Hours", rating: 4.8, students: 280, price: 899, difficulty: "Advanced" },
     ],
     mockTutors: [
       { id: "tutor-5", name: "Karan Malhotra", role: "AI Research Engineer", rating: 4.9, price: 900, languages: "English, Punjabi", reviewsCount: 154 },
@@ -190,27 +190,50 @@ const CATEGORY_META_DATA: Record<string, CategoryDetail> = {
       { title: "Fine-Tuning LLMs Overview", tutor: "Karan Malhotra", time: "Today at 7:00 PM", participants: 85 }
     ]
   },
-  "engineering": {
-    id: "engineering",
+  "engineering-electronics": {
+    id: "engineering-electronics",
     name: "Engineering & Electronics",
-    desc: "Master ECE & Embedded Systems, EEE & Power, Robotics & IoT, VLSI, EV & BMS, and practical hardware engineering.",
+    desc: "Master hands-on ECE, EEE, Embedded Systems, Robotics, IoT, Power Systems, and EV engineering.",
     iconName: "Cpu",
-    bannerColor: "from-purple-600/20 to-blue-600/20 border-purple-500/20",
-    subjects: ["ECE & Embedded", "EEE & Power", "Robotics & IoT", "Embedded Systems", "Power Systems", "EV & BMS"],
+    bannerColor: "from-blue-600/20 to-cyan-600/20 border-blue-500/20",
+    subjects: ["Embedded Systems", "IoT", "Robotics", "VLSI", "Power Systems", "EV & BMS", "PLC / SCADA", "ECE & Embedded", "EEE & Power"],
     mockCourses: [
-      { id: "course-eng-1", title: "ESP32 & Embedded Systems Foundations", tutor: "Dr. Ravi Kumar", duration: "16 Hours", rating: 4.9, students: 310, price: 699, difficulty: "Beginner" },
-      { id: "course-eng-2", title: "Robotics & Autonomous Systems with Arduino", tutor: "Karan Malhotra", duration: "22 Hours", rating: 4.8, students: 240, price: 799, difficulty: "Intermediate" },
-      { id: "course-eng-3", title: "Power Electronics & EV Battery Management", tutor: "Vikram Rathore", duration: "20 Hours", rating: 4.9, students: 180, price: 899, difficulty: "Advanced" },
+      { id: "course-eng-1", title: "ESP32 & IoT Embedded Firmware Masterclass", tutor: "Dr. Ananya Ray", duration: "22 Hours", rating: 4.9, students: 310, price: 699, difficulty: "Intermediate" },
+      { id: "course-eng-2", title: "Electric Vehicle Powertrain & BMS Engineering", tutor: "Prof. K. Venkatesh", duration: "18 Hours", rating: 4.8, students: 245, price: 799, difficulty: "Advanced" },
+      { id: "course-eng-3", title: "Robotics Kinematics & ROS2 Architecture", tutor: "Siddharth Rao", duration: "16 Hours", rating: 4.9, students: 190, price: 649, difficulty: "Beginner" },
     ],
     mockTutors: [
-      { id: "tutor-eng-1", name: "Dr. Ravi Kumar", role: "Embedded & VLSI Specialist", rating: 4.9, price: 600, languages: "English, Hindi", reviewsCount: 142 },
-      { id: "tutor-eng-2", name: "Karan Malhotra", role: "Robotics & IoT Expert", rating: 4.8, price: 550, languages: "English, Telugu", reviewsCount: 98 },
+      { id: "tutor-eng-1", name: "Dr. Ananya Ray", role: "Embedded Systems & IoT Architect", rating: 4.9, price: 650, languages: "English, Telugu, Hindi", reviewsCount: 142 },
+      { id: "tutor-eng-2", name: "Prof. K. Venkatesh", role: "Power Electronics & EV Specialist", rating: 4.8, price: 700, languages: "English, Tamil", reviewsCount: 98 },
     ],
     mockPaths: [
-      { title: "Embedded & IoT Engineering Pathway", steps: ["C/C++ Microcontrollers", "ESP32 Sensor Interfacing", "IoT Protocols & Cloud"], project: "Smart Sensor Gateway" }
+      { title: "Embedded & Robotics Engineer Track", steps: ["C / C++ Bare-Metal", "RTOS & ESP32 / STM32", "ROS2 & Edge AI Integration"], project: "Autonomous Mobile Robot" }
     ],
     mockLive: [
-      { title: "ESP32 Microcontroller Workshop", tutor: "Dr. Ravi Kumar", time: "Today at 6:30 PM", participants: 58 }
+      { title: "Hardware Debugging & Logic Analyzers Live", tutor: "Dr. Ananya Ray", time: "Today at 6:00 PM", participants: 68 }
+    ]
+  },
+  "engineering": {
+    id: "engineering-electronics",
+    name: "Engineering & Electronics",
+    desc: "Master hands-on ECE, EEE, Embedded Systems, Robotics, IoT, Power Systems, and EV engineering.",
+    iconName: "Cpu",
+    bannerColor: "from-blue-600/20 to-cyan-600/20 border-blue-500/20",
+    subjects: ["Embedded Systems", "IoT", "Robotics", "VLSI", "Power Systems", "EV & BMS", "PLC / SCADA", "ECE & Embedded", "EEE & Power"],
+    mockCourses: [
+      { id: "course-eng-1", title: "ESP32 & IoT Embedded Firmware Masterclass", tutor: "Dr. Ananya Ray", duration: "22 Hours", rating: 4.9, students: 310, price: 699, difficulty: "Intermediate" },
+      { id: "course-eng-2", title: "Electric Vehicle Powertrain & BMS Engineering", tutor: "Prof. K. Venkatesh", duration: "18 Hours", rating: 4.8, students: 245, price: 799, difficulty: "Advanced" },
+      { id: "course-eng-3", title: "Robotics Kinematics & ROS2 Architecture", tutor: "Siddharth Rao", duration: "16 Hours", rating: 4.9, students: 190, price: 649, difficulty: "Beginner" },
+    ],
+    mockTutors: [
+      { id: "tutor-eng-1", name: "Dr. Ananya Ray", role: "Embedded Systems & IoT Architect", rating: 4.9, price: 650, languages: "English, Telugu, Hindi", reviewsCount: 142 },
+      { id: "tutor-eng-2", name: "Prof. K. Venkatesh", role: "Power Electronics & EV Specialist", rating: 4.8, price: 700, languages: "English, Tamil", reviewsCount: 98 },
+    ],
+    mockPaths: [
+      { title: "Embedded & Robotics Engineer Track", steps: ["C / C++ Bare-Metal", "RTOS & ESP32 / STM32", "ROS2 & Edge AI Integration"], project: "Autonomous Mobile Robot" }
+    ],
+    mockLive: [
+      { title: "Hardware Debugging & Logic Analyzers Live", tutor: "Dr. Ananya Ray", time: "Today at 6:00 PM", participants: 68 }
     ]
   },
   "business-entrepreneurship": {
@@ -221,8 +244,8 @@ const CATEGORY_META_DATA: Record<string, CategoryDetail> = {
     bannerColor: "from-emerald-600/20 to-teal-600/20 border-emerald-500/20",
     subjects: ["Startups", "Finance", "Strategy", "Pitch Deck", "Marketing", "Sales"],
     mockCourses: [
-      { id: "course-31", title: "Startup Foundations & Pitch Deck", tutor: "Sophia Miller", duration: "15 Hours", rating: 4.7, students: 190, price: 599, difficulty: "Beginner" },
-      { id: "course-32", title: "Venture Capital Valuation Rules", tutor: "Amit Sharma", duration: "8 Hours", rating: 4.6, students: 95, price: 499, difficulty: "Intermediate" },
+      { id: getMockCourseUuid(31), title: "Startup Foundations & Pitch Deck", tutor: "Sophia Miller", duration: "15 Hours", rating: 4.7, students: 190, price: 599, difficulty: "Beginner" },
+      { id: getMockCourseUuid(32), title: "Venture Capital Valuation Rules", tutor: "Amit Sharma", duration: "8 Hours", rating: 4.6, students: 95, price: 499, difficulty: "Intermediate" },
     ],
     mockTutors: [
       { id: "tutor-6", name: "Sophia Miller", role: "Startup Mentor & Pitch Coach", rating: 4.8, price: 700, languages: "English", reviewsCount: 68 },
@@ -245,8 +268,8 @@ const getGenericMetadata = (id: string, name: string): CategoryDetail => ({
   bannerColor: "from-violet-600/20 to-indigo-600/20 border-violet-500/20",
   subjects: ["General Basics", "Intermediate Practice", "Expert Roadmaps"],
   mockCourses: [
-    { id: "course-generic-1", title: `${name} Mastery Level 1`, tutor: "Expert Tutor", duration: "10 Hours", rating: 4.8, students: 120, price: 499, difficulty: "Beginner" },
-    { id: "course-generic-2", title: `${name} Professional Workshop`, tutor: "Senior Coach", duration: "14 Hours", rating: 4.7, students: 85, price: 799, difficulty: "Intermediate" },
+    { id: getMockCourseUuid(91), title: `${name} Mastery Level 1`, tutor: "Expert Tutor", duration: "10 Hours", rating: 4.8, students: 120, price: 499, difficulty: "Beginner" },
+    { id: getMockCourseUuid(92), title: `${name} Professional Workshop`, tutor: "Senior Coach", duration: "14 Hours", rating: 4.7, students: 85, price: 799, difficulty: "Intermediate" },
   ],
   mockTutors: [
     { id: "tutor-generic", name: "Aditi Rao", role: `${name} Lead Educator`, rating: 4.8, price: 400, languages: "English, Hindi", reviewsCount: 45 },

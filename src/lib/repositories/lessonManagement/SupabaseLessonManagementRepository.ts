@@ -5,8 +5,17 @@ import { LessonManagementItem } from "../../types/lessonManagement";
 import { createClient } from "../../supabase";
 
 export class SupabaseLessonManagementRepository implements ILessonManagementRepository {
+  private async getSupabase() {
+    if (typeof window === "undefined") {
+      const { createClient } = await import("../../supabase/server");
+      const client = await createClient();
+      if (client) return client;
+    }
+    return createClient();
+  }
+
   async getLessons(courseId: string): Promise<LessonManagementItem[]> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
     const { data, error } = await supabase
       .from("lessons")
       .select("*")
@@ -39,7 +48,7 @@ export class SupabaseLessonManagementRepository implements ILessonManagementRepo
     courseId: string,
     lessonData: Omit<LessonManagementItem, "id" | "courseId" | "createdAt">
   ): Promise<LessonManagementItem> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     // Gracefully omit lessonType, resources, and status which are not in lessons schema
     const { data, error } = await supabase
@@ -79,7 +88,7 @@ export class SupabaseLessonManagementRepository implements ILessonManagementRepo
     lessonId: string,
     updates: Partial<LessonManagementItem>
   ): Promise<LessonManagementItem> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     const dbUpdates: any = {};
     if (updates.title !== undefined) dbUpdates.title = updates.title;
@@ -118,7 +127,7 @@ export class SupabaseLessonManagementRepository implements ILessonManagementRepo
   }
 
   async deleteLesson(lessonId: string): Promise<boolean> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
     const { error } = await supabase
       .from("lessons")
       .delete()
@@ -132,7 +141,7 @@ export class SupabaseLessonManagementRepository implements ILessonManagementRepo
   }
 
   async updateLessonOrder(courseId: string, orderedIds: string[]): Promise<boolean> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     // Perform ordering updates concurrently
     const promises = orderedIds.map((id, index) =>

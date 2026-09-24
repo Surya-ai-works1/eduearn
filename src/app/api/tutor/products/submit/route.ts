@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "../../../../../lib/supabase";
+import { createClient } from "@/lib/supabase/server";
+import { getApiUser } from "@/lib/apiAuth";
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createClient();
+    const auth = await getApiUser("tutor");
+    if ("error" in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const supabase = await createClient();
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase unconfigured on server" }, { status: 503 });
+    }
+
+    const tutor_id = auth.user.id;
     const body = await req.json();
     const {
       title,
@@ -18,7 +29,6 @@ export async function POST(req: NextRequest) {
       duration = "1 Month",
       total_sessions = 16,
       sessions_per_month = 16,
-      tutor_id,
       is_project = false,
       hardware_required = false,
       hardware_cost = 0,
@@ -27,9 +37,9 @@ export async function POST(req: NextRequest) {
       learning_outcomes = [],
     } = body;
 
-    if (!title || !category || !tutor_id) {
+    if (!title || !category) {
       return NextResponse.json(
-        { error: "Missing required product parameters (title, category, tutor_id)." },
+        { error: "Missing required product parameters (title, category)." },
         { status: 400 }
       );
     }

@@ -225,12 +225,12 @@ export const SEED_CATEGORIES: MarketplaceCategory[] = [
     ]
   },
   {
-    id: "engineering",
+    id: "engineering-electronics",
     name: "Engineering & Electronics",
     status: "Enabled",
     subcategories: [
       {
-        name: "ECE & Embedded",
+        name: "Electronics & Communication (ECE)",
         skills: [
           { id: "embedded-systems", name: "Embedded Systems", isFeatured: true, isHidden: false, orderIndex: 0 },
           { id: "iot", name: "IoT", isFeatured: true, isHidden: false, orderIndex: 1 },
@@ -238,15 +238,16 @@ export const SEED_CATEGORIES: MarketplaceCategory[] = [
           { id: "vlsi", name: "VLSI", isFeatured: false, isHidden: false, orderIndex: 3 },
           { id: "wireless-5g", name: "Wireless / 5G", isFeatured: false, isHidden: false, orderIndex: 4 },
           { id: "automotive-embedded", name: "Automotive Embedded", isFeatured: false, isHidden: false, orderIndex: 5 },
-          { id: "edge-ai", name: "Edge AI", isFeatured: false, isHidden: false, orderIndex: 6 }
+          { id: "dsp-audio", name: "DSP / Audio", isFeatured: false, isHidden: false, orderIndex: 6 },
+          { id: "edge-ai", name: "Edge AI", isFeatured: false, isHidden: false, orderIndex: 7 }
         ]
       },
       {
-        name: "EEE & Power",
+        name: "Electrical & Electronics (EEE)",
         skills: [
           { id: "power-systems", name: "Power Systems", isFeatured: true, isHidden: false, orderIndex: 0 },
-          { id: "electrical-machines", name: "Electrical Machines", isFeatured: false, isHidden: false, orderIndex: 1 },
-          { id: "power-electronics", name: "Power Electronics", isFeatured: true, isHidden: false, orderIndex: 2 },
+          { id: "electrical-machines", name: "Electrical Machines", isFeatured: true, isHidden: false, orderIndex: 1 },
+          { id: "power-electronics", name: "Power Electronics", isFeatured: false, isHidden: false, orderIndex: 2 },
           { id: "renewable-energy", name: "Renewable Energy", isFeatured: false, isHidden: false, orderIndex: 3 },
           { id: "ev-bms", name: "EV & BMS", isFeatured: true, isHidden: false, orderIndex: 4 },
           { id: "plc-scada", name: "PLC / SCADA", isFeatured: false, isHidden: false, orderIndex: 5 },
@@ -617,6 +618,27 @@ export const MarketplaceService = {
       if (cached) {
         try {
           raw = JSON.parse(cached);
+          // Legacy alias migration: map legacy 'engineering' ID to canonical 'engineering-electronics'
+          raw = raw.map((c: any) => {
+            if (c.id === "engineering") {
+              const engSeed = SEED_CATEGORIES.find(sc => sc.id === "engineering-electronics");
+              return { ...c, id: "engineering-electronics", name: "Engineering & Electronics", subcategories: engSeed?.subcategories || c.subcategories };
+            }
+            return c;
+          });
+          const hasEngineering = raw.some((c: any) => c.id === "engineering-electronics");
+          if (!hasEngineering) {
+            const aiIdx = raw.findIndex((c: any) => c.id === "ai-data-science");
+            const engCategory = SEED_CATEGORIES.find(c => c.id === "engineering-electronics");
+            if (engCategory) {
+              if (aiIdx !== -1) {
+                raw.splice(aiIdx + 1, 0, engCategory);
+              } else {
+                raw.push(engCategory);
+              }
+              localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(raw));
+            }
+          }
         } catch {
           raw = SEED_CATEGORIES;
         }
@@ -629,6 +651,7 @@ export const MarketplaceService = {
       if (!win.__eduearn_synced_pricing) {
         win.__eduearn_synced_pricing = true;
         try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const { BusinessRulesDb } = require("../../../lib/businessRulesDb");
           BusinessRulesDb.getCategoryRules().then((rules: any[]) => {
             const currentCached = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -680,6 +703,7 @@ export const MarketplaceService = {
 
     // Push to Supabase asynchronously in the background
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { BusinessRulesDb } = require("../../../lib/businessRulesDb");
       BusinessRulesDb.getCategoryRules().then((rules: any[]) => {
         const updatedRules = categories.map(c => {

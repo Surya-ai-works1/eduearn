@@ -5,6 +5,15 @@ import { AssignmentItem, AssignmentSubmissionItem, AssignmentPaginationResult } 
 import { createClient } from "../../supabase";
 
 export class SupabaseAssignmentManagementRepository implements IAssignmentManagementRepository {
+  private async getSupabase() {
+    if (typeof window === "undefined") {
+      const { createClient } = await import("../../supabase/server");
+      const client = await createClient();
+      if (client) return client;
+    }
+    return createClient();
+  }
+
   async getAssignments(
     courseId: string,
     search?: string,
@@ -12,7 +21,7 @@ export class SupabaseAssignmentManagementRepository implements IAssignmentManage
     page: number = 1,
     limit: number = 6
   ): Promise<AssignmentPaginationResult> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     let query = supabase
       .from("assignments")
@@ -61,7 +70,7 @@ export class SupabaseAssignmentManagementRepository implements IAssignmentManage
     courseId: string,
     assignmentData: Omit<AssignmentItem, "id" | "courseId" | "createdAt">
   ): Promise<AssignmentItem> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     const { data, error } = await supabase
       .from("assignments")
@@ -95,7 +104,7 @@ export class SupabaseAssignmentManagementRepository implements IAssignmentManage
     assignmentId: string,
     updates: Partial<AssignmentItem>
   ): Promise<AssignmentItem> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     const dbUpdates: any = {};
     if (updates.title !== undefined) dbUpdates.title = updates.title;
@@ -127,7 +136,7 @@ export class SupabaseAssignmentManagementRepository implements IAssignmentManage
   }
 
   async deleteAssignment(assignmentId: string): Promise<boolean> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
     const { error } = await supabase
       .from("assignments")
       .delete()
@@ -138,7 +147,7 @@ export class SupabaseAssignmentManagementRepository implements IAssignmentManage
   }
 
   async getSubmissions(tutorId: string): Promise<AssignmentSubmissionItem[]> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     // 1. Fetch all course IDs for the tutor
     const { data: coursesData, error: coursesError } = await supabase
@@ -216,7 +225,7 @@ export class SupabaseAssignmentManagementRepository implements IAssignmentManage
     grade: string,
     feedback: string
   ): Promise<AssignmentSubmissionItem> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     const { data, error } = await supabase
       .from("assignment_submissions")

@@ -35,7 +35,15 @@ export const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
     onSearchChange("");
   };
 
-  const quickSearches = ["Python", "Calculus", "React", "ESP32", "Arduino", "Robotics", "IoT"];
+  const quickSearches = [
+    "Python",
+    "Calculus",
+    "React",
+    "ESP32",
+    "Arduino",
+    "Robotics",
+    "IoT",
+  ];
 
   return (
     <section className="relative w-full py-16 bg-gradient-to-b from-primary/5 via-muted/20 to-transparent border-b border-border/40 select-none text-left overflow-hidden">

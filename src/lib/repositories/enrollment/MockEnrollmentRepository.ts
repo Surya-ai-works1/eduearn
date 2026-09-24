@@ -10,7 +10,7 @@ export class MockEnrollmentRepository implements IEnrollmentRepository {
         {
           id: 'mock-enroll-1',
           studentId: 'student-1',
-          courseId: 'course-1',
+          courseId: '00000000-0000-4000-8000-000000000001',
           enrolledAt: new Date().toISOString(),
           status: 'active',
           progressPercent: 35,
@@ -26,7 +26,7 @@ export class MockEnrollmentRepository implements IEnrollmentRepository {
         {
           id: 'mock-enroll-1',
           studentId: 'student-1',
-          courseId: 'course-1',
+          courseId: '00000000-0000-4000-8000-000000000001',
           enrolledAt: new Date().toISOString(),
           status: 'active',
           progressPercent: 35,
@@ -50,7 +50,7 @@ export class MockEnrollmentRepository implements IEnrollmentRepository {
   }
 
   private attachCourseDetails(enrollment: Enrollment): Enrollment {
-    const course = MOCK_COURSES.find((c) => c.id === enrollment.courseId);
+    const course = MOCK_COURSES.find((c) => c.id === enrollment.courseId || (c as any).legacyId === enrollment.courseId);
     if (!course) return enrollment;
 
     const tutor = MOCK_TUTORS.find((t) => t.id === course.tutorId);

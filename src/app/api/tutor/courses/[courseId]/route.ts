@@ -34,6 +34,24 @@ export async function PUT(
     }
 
     const { courseId } = await params;
+
+    const { data: course, error: courseErr } = await supabase
+      .from("courses")
+      .select("id, tutor_id")
+      .eq("id", courseId)
+      .maybeSingle();
+
+    if (courseErr || !course) {
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
+    }
+
+    if (course.tutor_id !== user.id) {
+      return NextResponse.json(
+        { error: "Forbidden: You are not authorized to modify this course" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
 
     const updatedCourse = await courseManagementService.updateCourse(courseId, body, profile.role);
@@ -77,6 +95,24 @@ export async function DELETE(
     }
 
     const { courseId } = await params;
+
+    const { data: course, error: courseErr } = await supabase
+      .from("courses")
+      .select("id, tutor_id")
+      .eq("id", courseId)
+      .maybeSingle();
+
+    if (courseErr || !course) {
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
+    }
+
+    if (course.tutor_id !== user.id) {
+      return NextResponse.json(
+        { error: "Forbidden: You are not authorized to delete this course" },
+        { status: 403 }
+      );
+    }
+
     await courseManagementService.deleteCourse(courseId);
     return NextResponse.json({ success: true });
   } catch (err: any) {

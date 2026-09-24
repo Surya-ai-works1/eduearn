@@ -22,7 +22,7 @@ for (let i = 0; i < testScripts.length; i++) {
   
   try {
     // Run script synchronously and print output
-    execSync(`npx ts-node ${scriptPath}`, { stdio: "inherit" });
+    execSync(`npx tsx ${scriptPath}`, { stdio: "inherit" });
     console.log(""); // newline separator
   } catch (err) {
     console.error(`❌ Verification failed on script: ${script}\n`);

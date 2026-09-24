@@ -6,11 +6,11 @@
 
 export type CanonicalRole = "student" | "tutor" | "admin" | "super-admin" | "finance" | "moderator" | "support";
 
-export const PRIMARY_ADMIN_EMAIL = "suryasaiteja2005@gmail.com";
+export const PRIMARY_ADMIN_EMAIL = process.env.PRIMARY_ADMIN_EMAIL || "suryasaiteja2005@gmail.com";
 
 export function isPrimaryAdmin(email?: string | null): boolean {
   if (!email) return false;
-  return email.toLowerCase().trim() === PRIMARY_ADMIN_EMAIL;
+  return email.toLowerCase().trim() === PRIMARY_ADMIN_EMAIL.toLowerCase().trim();
 }
 
 export function normalizeRole(rawRole: any): CanonicalRole {

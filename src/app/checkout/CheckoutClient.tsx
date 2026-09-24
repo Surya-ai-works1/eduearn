@@ -119,95 +119,124 @@ export function CheckoutClient({
   const gst = Math.round((discountedAmount + platformFee) * 0.18); // 18% GST on services
   const finalTotal = Math.max(0, discountedAmount + platformFee + gst - walletDeduction);
 
-  const handlePay = () => {
+  const handlePay = async () => {
     setIsProcessing(true);
-    toast.info("Connecting with secure Razorpay Sandbox...");
+    toast.info("Initializing secure Razorpay TEST checkout...");
 
-    setTimeout(() => {
-      // 1. Deduct wallet credits if applied
-      if (walletDeduction > 0) {
-        PaymentService.deductWalletCredits(walletDeduction);
-      }
-
-      // 2. Add course purchase history item
-      PaymentService.addPurchase(course.id, course.title, basePrice - discount);
-
-      // 3. Add course to dynamic Student Dashboard enrolled courses list
-      if (typeof window !== "undefined") {
-        const studentCourses = localStorage.getItem("eduearn_student_courses");
-        const list = studentCourses ? JSON.parse(studentCourses) : [];
-        
-        // Avoid duplicate enrollments
-        if (!list.some((c: any) => c.id === course.id)) {
-          const newEnroll = {
-            id: course.id,
-            title: course.title,
-            tutorName: tutor.fullName,
-            thumbnail: course.thumbnail,
-            progress: 0,
-            lessonsCount: course.lessonsCount || 10,
-            completedLessons: 0,
-            duration: course.duration || "8 hours",
-            estimatedCompletion: "Getting Started",
-            category: course.category || "General",
-            lastStudied: "Just Enrolled",
-          };
-          list.push(newEnroll);
-          localStorage.setItem("eduearn_student_courses", JSON.stringify(list));
-        }
-
-        // Add dynamically scheduled live class to localstorage registry
-        const storedClasses = localStorage.getItem("eduearn_live_classes");
-        const parsedClasses = storedClasses ? JSON.parse(storedClasses) : [];
-        const nextMonday = new Date();
-        nextMonday.setDate(nextMonday.getDate() + ((1 + 7 - nextMonday.getDay()) % 7 || 7));
-        const dateStr = nextMonday.toLocaleDateString("en-IN", { weekday: 'short', month: 'short', day: 'numeric' });
-
-        parsedClasses.push({
-          id: `live-${Date.now()}`,
-          title: `Intro Session - ${course.title}`,
-          tutorName: tutor.fullName,
-          time: batchIdState.includes("Morning") ? "7:00 AM IST" : batchIdState.includes("Evening") ? "6:00 PM IST" : "10:00 AM IST",
-          date: dateStr,
-          status: "Scheduled",
-          link: meetingPlatform === "Zoom" ? "https://zoom.us/j/90823901" : "https://meet.google.com/abc-defg-hij",
-          meetingPlatform
-        });
-        localStorage.setItem("eduearn_live_classes", JSON.stringify(parsedClasses));
-
-        // Create transaction entry for Admin Revenue dashboard
-        const storedTrans = localStorage.getItem("eduearn_admin_enrollments");
-        const parsedTrans = storedTrans ? JSON.parse(storedTrans) : [];
-        parsedTrans.push({
-          id: `tx-${Date.now()}`,
-          student: "Surya K",
-          tutor: tutor.fullName,
-          tutorId: tutor.id,
-          course: course.title,
+    try {
+      // 1. Create authoritative order on server
+      const orderRes = await fetch("/api/payments/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           courseId: course.id,
-          plan: planIdState,
-          batch: batchIdState,
-          amount: basePrice - discount,
-          commission: Math.round((basePrice - discount) * 0.15), // 15% admin commission split
-          status: "Success",
-          date: new Date().toISOString().split("T")[0]
-        });
-        localStorage.setItem("eduearn_admin_enrollments", JSON.stringify(parsedTrans));
+          couponCode: appliedCoupon || undefined,
+        }),
+      });
+
+      const orderData = await orderRes.json();
+      if (!orderRes.ok || !orderData.order) {
+        if (orderData.alreadyEnrolled) {
+          toast.info("You are already enrolled in this course! Redirecting to student dashboard...");
+          router.push("/student/dashboard");
+          return;
+        }
+        toast.error(orderData.error || "Failed to initialize payment order.");
+        setIsProcessing(false);
+        return;
       }
 
-      // 4. Generate user & tutor notifications
-      PaymentService.addNotification(
-        "Enrollment Successful 🎉",
-        `You have enrolled in ${course.title} by ${tutor.fullName} successfully. Check the learning dashboard.`,
-        "welcome"
-      );
+      // 2. Load Razorpay Checkout SDK dynamically if not already available
+      const loadScript = (): Promise<boolean> => {
+        return new Promise((resolve) => {
+          if (typeof window !== "undefined" && (window as any).Razorpay) {
+            return resolve(true);
+          }
+          const script = document.createElement("script");
+          script.src = "https://checkout.razorpay.com/v1/checkout.js";
+          script.onload = () => resolve(true);
+          script.onerror = () => resolve(false);
+          document.body.appendChild(script);
+        });
+      };
 
-      toast.success("Payment successful! Redirecting...");
+      const scriptLoaded = await loadScript();
+      if (!scriptLoaded || typeof (window as any).Razorpay === "undefined") {
+        toast.error("Unable to load Razorpay Checkout. Please check your network connection.");
+        setIsProcessing(false);
+        return;
+      }
+
+      // 3. Open Razorpay Checkout Modal
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency || "INR",
+        name: "EduEarn",
+        description: orderData.title || course.title,
+        order_id: orderData.order.id,
+        handler: async function (response: any) {
+          try {
+            setIsProcessing(true);
+            toast.info("Verifying payment with EduEarn server...");
+
+            const verifyRes = await fetch("/api/payments/verify-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok || !verifyData.success) {
+              toast.error(verifyData.error || "Cryptographic payment verification failed.");
+              setIsProcessing(false);
+              return;
+            }
+
+            // Sync wallet deduction if credits were applied
+            if (walletDeduction > 0) {
+              PaymentService.deductWalletCredits(walletDeduction);
+            }
+
+            toast.success("Payment verified and enrollment confirmed! 🎉");
+            setIsProcessing(false);
+            router.push(`/checkout/success?courseId=${course.id}&orderId=${response.razorpay_order_id}&tutorId=${tutor.id}`);
+          } catch (verifyErr) {
+            console.error("Verification communication error:", verifyErr);
+            toast.error("Error communicating with verification server.");
+            setIsProcessing(false);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setIsProcessing(false);
+            toast.info("Payment cancelled.");
+          },
+        },
+        prefill: {
+          name: "Student",
+          email: "student@eduearn.local",
+        },
+        theme: {
+          color: "#4f46e5",
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on("payment.failed", function (response: any) {
+        setIsProcessing(false);
+        toast.error(response?.error?.description || "Payment failed. Please try again.");
+      });
+      rzp.open();
+    } catch (err: any) {
+      console.error("Checkout initiation error:", err);
+      toast.error(err?.message || "An unexpected error occurred during checkout.");
       setIsProcessing(false);
-
-      // Redirect to dynamic Success Page
-      router.push(`/checkout/success?courseId=${course.id}&tutorId=${tutor.id}&planId=${planIdState}&batchId=${batchIdState}&amount=${finalTotal}&platform=${meetingPlatform}`);
-    }, 2500);
+    }
   };
 
   return (

@@ -70,15 +70,26 @@ export async function POST(request: Request) {
     // 1. Check courses table
     const { data: dbCourse } = await supabase
       .from('courses')
-      .select('id, base_price, selling_price')
+      .select('id, price, base_price, selling_price, status, approval_status')
       .eq('id', courseId)
       .maybeSingle();
 
     if (dbCourse) {
+      // Must be published and approved to enroll
+      if (dbCourse.status && dbCourse.status !== 'published') {
+        return NextResponse.json({ error: 'Course is not currently available for enrollment.' }, { status: 400 });
+      }
+      if (dbCourse.approval_status && dbCourse.approval_status !== 'approved') {
+        return NextResponse.json({ error: 'Course is pending approval.' }, { status: 400 });
+      }
+
       productFound = true;
-      const selling = Number(dbCourse.selling_price ?? dbCourse.base_price ?? 0);
-      const base = Number(dbCourse.base_price ?? 0);
-      isFree = selling === 0 || base === 0;
+      const effectivePrice = dbCourse.selling_price !== null && dbCourse.selling_price !== undefined
+        ? Number(dbCourse.selling_price)
+        : (dbCourse.base_price !== null && dbCourse.base_price !== undefined
+            ? Number(dbCourse.base_price)
+            : Number(dbCourse.price ?? 0));
+      isFree = effectivePrice === 0;
     } else {
       // 2. Check projects table
       const { data: dbProject } = await supabase
@@ -101,8 +112,10 @@ export async function POST(request: Request) {
 
         if (dbPackage) {
           productFound = true;
-          const selling = Number(dbPackage.selling_price ?? dbPackage.base_price ?? 0);
-          isFree = selling === 0;
+          const effectivePackagePrice = dbPackage.selling_price !== null && dbPackage.selling_price !== undefined
+            ? Number(dbPackage.selling_price)
+            : Number(dbPackage.base_price ?? 0);
+          isFree = effectivePackagePrice === 0;
         }
       }
     }

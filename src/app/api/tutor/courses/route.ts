@@ -33,8 +33,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || undefined;
     const category = searchParams.get("category") || undefined;
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "10", 10) || 10));
 
     const result = await courseManagementService.getCourses(user.id, {
       search,
@@ -43,7 +43,15 @@ export async function GET(request: Request) {
       limit,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      items: result.courses,
+      courses: result.courses,
+      total: result.pagination.total,
+      page: result.pagination.page,
+      pageSize: result.pagination.limit,
+      totalPages: result.pagination.pages,
+      pagination: result.pagination,
+    });
   } catch (err: any) {
     console.error("Failed to load courses:", err);
     return NextResponse.json(

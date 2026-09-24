@@ -5,8 +5,17 @@ import { Assignment, AssignmentSubmission } from "../../types/assignment";
 import { createClient } from "../../supabase";
 
 export class SupabaseAssignmentRepository implements IAssignmentRepository {
+  private async getSupabase() {
+    if (typeof window === "undefined") {
+      const { createClient } = await import("../../supabase/server");
+      const client = await createClient();
+      if (client) return client;
+    }
+    return createClient();
+  }
+
   async getAssignmentsByStudent(studentId: string): Promise<Assignment[]> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     // 1. Fetch enrolled course IDs
     const { data: enrollments, error: enrollError } = await supabase
@@ -89,7 +98,7 @@ export class SupabaseAssignmentRepository implements IAssignmentRepository {
   }
 
   async getSubmission(studentId: string, assignmentId: string): Promise<AssignmentSubmission | null> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
     const { data, error } = await supabase
       .from("assignment_submissions")
       .select("*")
@@ -105,7 +114,7 @@ export class SupabaseAssignmentRepository implements IAssignmentRepository {
       assignmentId: data.assignment_id,
       studentId: data.student_id,
       submittedAt: data.created_at,
-      submissionType: (data.submission_type || "file") as "file" | "url" | "text",
+      submissionType: "file",
       submissionUrl: data.file_url || data.content || "",
       status: data.grade ? "Graded" : "Submitted",
       grade: data.grade,
@@ -119,14 +128,13 @@ export class SupabaseAssignmentRepository implements IAssignmentRepository {
     submissionUrl: string,
     submissionType: "file" | "url" | "text"
   ): Promise<AssignmentSubmission> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     const subData = {
       assignment_id: assignmentId,
       student_id: studentId,
       content: submissionType === "text" ? submissionUrl : "",
       file_url: submissionType !== "text" ? submissionUrl : "",
-      submission_type: submissionType,
       created_at: new Date().toISOString(),
     };
 
@@ -143,7 +151,7 @@ export class SupabaseAssignmentRepository implements IAssignmentRepository {
       assignmentId: data.assignment_id,
       studentId: data.student_id,
       submittedAt: data.created_at,
-      submissionType: (data.submission_type || "file") as "file" | "url" | "text",
+      submissionType: submissionType,
       submissionUrl: data.file_url || data.content || "",
       status: data.grade ? "Graded" : "Submitted",
       grade: data.grade,

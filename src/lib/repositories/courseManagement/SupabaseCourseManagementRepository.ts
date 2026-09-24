@@ -5,11 +5,20 @@ import { CourseManagementItem, CoursePaginationResult } from "../../types/course
 import { createClient } from "../../supabase";
 
 export class SupabaseCourseManagementRepository implements ICourseManagementRepository {
+  private async getSupabase() {
+    if (typeof window === "undefined") {
+      const { createClient } = await import("../../supabase/server");
+      const client = await createClient();
+      if (client) return client;
+    }
+    return createClient();
+  }
+
   async getCourses(
     tutorId: string,
     options: { search?: string; category?: string; page: number; limit: number }
   ): Promise<CoursePaginationResult> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     let query = supabase
       .from("courses")
@@ -90,7 +99,7 @@ export class SupabaseCourseManagementRepository implements ICourseManagementRepo
     tutorId: string,
     courseData: Omit<CourseManagementItem, "id" | "tutorId" | "createdAt" | "updatedAt" | "studentsCount" | "rating">
   ): Promise<CourseManagementItem> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     // Gracefully omit language and tags from database insert since columns are missing
     const { data, error } = await supabase
@@ -105,7 +114,7 @@ export class SupabaseCourseManagementRepository implements ICourseManagementRepo
         thumbnail: courseData.thumbnail,
         price: courseData.price,
         status: courseData.status,
-        approval_status: "approved", // Dev/test auto-approval
+        approval_status: courseData.status === "published" ? "approved" : "pending",
       })
       .select()
       .single();
@@ -138,7 +147,7 @@ export class SupabaseCourseManagementRepository implements ICourseManagementRepo
     courseId: string,
     updates: Partial<CourseManagementItem>
   ): Promise<CourseManagementItem> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     // Map properties to database columns, gracefully omitting language and tags
     const dbUpdates: any = {};
@@ -185,7 +194,7 @@ export class SupabaseCourseManagementRepository implements ICourseManagementRepo
   }
 
   async deleteCourse(courseId: string): Promise<boolean> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
 
     // Hard delete matches standard table behavior
     const { error } = await supabase

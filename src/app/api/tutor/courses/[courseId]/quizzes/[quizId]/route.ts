@@ -1,7 +1,7 @@
 // src/app/api/tutor/courses/[courseId]/quizzes/[quizId]/route.ts
 
 import { NextResponse } from "next/server";
-import { createClient } from "../../../../../../../lib/supabase/server";
+import { getApiUser, verifyCourseOwnership } from "@/lib/apiAuth";
 import { quizManagementService } from "../../../../../../../lib/services/quizManagementService";
 
 export async function PUT(
@@ -9,31 +9,17 @@ export async function PUT(
   { params }: { params: Promise<{ courseId: string; quizId: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    if (!supabase) {
-      return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
-    }
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+    const auth = await getApiUser("tutor");
+    if (auth.error || !auth.user) {
+      return NextResponse.json({ error: auth.error || "Unauthorized" }, { status: auth.status || 401 });
     }
 
-    // Role Verification (RBAC)
-    const { data: profile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profileErr || !profile || profile.role !== "tutor") {
-      return NextResponse.json(
-        { error: "Forbidden: Only tutors can modify quizzes" },
-        { status: 403 }
-      );
+    const { courseId, quizId } = await params;
+    const ownership = await verifyCourseOwnership(courseId, auth.user.id);
+    if (!ownership.authorized) {
+      return NextResponse.json({ error: ownership.error }, { status: ownership.status });
     }
 
-    const { quizId } = await params;
     const body = await request.json();
 
     const updatedQuiz = await quizManagementService.updateQuiz(quizId, body);
@@ -52,31 +38,17 @@ export async function DELETE(
   { params }: { params: Promise<{ courseId: string; quizId: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    if (!supabase) {
-      return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
-    }
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+    const auth = await getApiUser("tutor");
+    if (auth.error || !auth.user) {
+      return NextResponse.json({ error: auth.error || "Unauthorized" }, { status: auth.status || 401 });
     }
 
-    // Role Verification (RBAC)
-    const { data: profile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profileErr || !profile || profile.role !== "tutor") {
-      return NextResponse.json(
-        { error: "Forbidden: Only tutors can delete quizzes" },
-        { status: 403 }
-      );
+    const { courseId, quizId } = await params;
+    const ownership = await verifyCourseOwnership(courseId, auth.user.id);
+    if (!ownership.authorized) {
+      return NextResponse.json({ error: ownership.error }, { status: ownership.status });
     }
 
-    const { quizId } = await params;
     await quizManagementService.deleteQuiz(quizId);
     return NextResponse.json({ success: true });
   } catch (err: any) {

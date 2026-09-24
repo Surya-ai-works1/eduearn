@@ -99,8 +99,8 @@ export async function POST(request: Request) {
           category: "Pathways",
           level: "Beginner",
           price: 0,
-          status: "published",
-          approval_status: "approved",
+          status: "private",
+          approval_status: "internal",
         })
         .select()
         .single();

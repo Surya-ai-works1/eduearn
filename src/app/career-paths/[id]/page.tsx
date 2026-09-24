@@ -101,7 +101,7 @@ export default function CareerPathDetailPage({ params }: PageProps) {
 
   // Main course reference for bundle purchase link fallback
   const primaryCourseId = useMemo(() => {
-    return recommendedCourses[0]?.id || "course-1";
+    return recommendedCourses[0]?.id || "00000000-0000-4000-8000-000000000001";
   }, [recommendedCourses]);
 
   const scrollToCourses = () => {

@@ -3,8 +3,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AiCompatibilityLayer } from "@/lib/ai/compatibility/AiCompatibilityLayer";
 import { getApiUser } from "@/lib/apiAuth";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
+  const rl = rateLimit(req, 30, 60, "ai");
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `AI rate limit reached. Please wait ${rl.resetSeconds} seconds.` },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rl.resetSeconds) },
+      }
+    );
+  }
+
   try {
     // Authenticate AI calls - allow any authenticated user
     const auth = await getApiUser();

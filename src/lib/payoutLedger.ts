@@ -1,4 +1,4 @@
-import { createClient } from "./supabase";
+import { createAdminClient } from "./supabase/admin";
 
 export interface PayoutCalculationInput {
   orderId: string;
@@ -12,6 +12,10 @@ export interface PayoutCalculationInput {
   grossAmount: number;
   discountCode?: string;
   hardwareCost?: number;
+  basePrice?: number;
+  sellingPrice?: number;
+  discountAmount?: number;
+  discountId?: string | null;
 }
 
 export interface PayoutCalculationResult {
@@ -93,7 +97,7 @@ export class PayoutLedgerService {
     message?: string;
   }> {
     try {
-      const supabase = createClient();
+      const supabase = createAdminClient();
       const calc = this.calculatePayout(input);
 
       // Call database atomic function
@@ -104,13 +108,13 @@ export class PayoutLedgerService {
         p_product_id: input.productId || null,
         p_product_type: input.productType,
         p_gross_amount: input.grossAmount,
-        p_discount_id: calc.discountId || null,
+        p_discount_id: input.discountId ?? calc.discountId ?? null,
         p_tutor_id: input.tutorId || null,
         p_package_id: input.packageId || null,
         p_module_id: input.moduleId || null,
-        p_base_price: calc.basePrice,
-        p_selling_price: calc.sellingPrice,
-        p_discount_amount: calc.discountAmount,
+        p_base_price: input.basePrice ?? calc.basePrice,
+        p_selling_price: input.sellingPrice ?? calc.sellingPrice,
+        p_discount_amount: input.discountAmount ?? calc.discountAmount,
         p_payment_fee: calc.paymentFee,
         p_tutor_share_percent: calc.tutorSharePercent,
         p_tutor_payout_amount: calc.tutorPayoutAmount,
@@ -146,7 +150,7 @@ export class PayoutLedgerService {
     reason: string
   ): Promise<{ success: boolean; ledgerId?: string }> {
     try {
-      const supabase = createClient();
+      const supabase = createAdminClient();
       
       const { data: original, error: fetchErr } = await supabase
         .from("payout_ledger")

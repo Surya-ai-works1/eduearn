@@ -1,7 +1,7 @@
 // src/app/api/student/course/[id]/complete/route.ts
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { courseDetailsService } from '@/lib/services/courseDetailsService';
 
 /**
@@ -13,7 +13,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const resolvedParams = await params;
   const id = resolvedParams.id;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   if (!supabase) {
     return NextResponse.json({ error: "Supabase is unconfigured/disabled on localhost" }, { status: 503 });
   }

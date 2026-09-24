@@ -69,5 +69,5 @@ ON CONFLICT (slug) DO NOTHING;
 INSERT INTO public.discounts (code, type, discount_mode, percentage, fixed_amount, max_discount, minimum_purchase, usage_limit, active, start_at, end_at) VALUES
   ('EDUEARN10', 'LAUNCH', 'percentage', 10, 0, 500, 499, 1000, true, now(), now() + interval '1 year'),
   ('WELCOME200', 'FIRST_PURCHASE', 'fixed', 0, 200, 200, 999, 500, true, now(), now() + interval '1 year'),
-  ('ENGINEER15', 'SPECIAL', 'percentage', 15, 0, 1500, 1999, 500, true, now(), now() + interval '1 year')
+  ('ENGINEER15', 'STUDENT', 'percentage', 15, 0, 1500, 1999, 500, true, now(), now() + interval '1 year')
 ON CONFLICT (code) DO NOTHING;

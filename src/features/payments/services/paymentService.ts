@@ -247,8 +247,8 @@ export const PaymentService = {
   // --- PURCHASE HISTORY METHODS ---
   getPurchaseHistory(): PurchaseHistoryItem[] {
     const defaults: PurchaseHistoryItem[] = [
-      { id: "pur-1", courseId: "course-1", courseTitle: "Next.js 16 Masterclass", amount: 1499, date: "2026-06-10", status: "Success", invoiceNo: "INV-2026-001" },
-      { id: "pur-2", courseId: "course-2", courseTitle: "UI/UX Advanced Blueprint", amount: 1999, date: "2026-06-12", status: "Success", invoiceNo: "INV-2026-002" },
+      { id: "pur-1", courseId: "00000000-0000-4000-8000-000000000001", courseTitle: "Next.js 16 Masterclass", amount: 1499, date: "2026-06-10", status: "Success", invoiceNo: "INV-2026-001" },
+      { id: "pur-2", courseId: "00000000-0000-4000-8000-000000000002", courseTitle: "UI/UX Advanced Blueprint", amount: 1999, date: "2026-06-12", status: "Success", invoiceNo: "INV-2026-002" },
     ];
     if (!isClient) return defaults;
     const saved = localStorage.getItem("eduearn_purchase_history");
@@ -265,18 +265,21 @@ export const PaymentService = {
     
     let category = "Programming";
     let basePrice = amount;
-    try {
-      const { data: dbCourse } = await supabase
-        .from("courses")
-        .select("category, price")
-        .eq("id", courseId)
-        .maybeSingle();
-      if (dbCourse) {
-        category = dbCourse.category;
-        basePrice = Number(dbCourse.price || amount);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(courseId);
+    if (isUuid) {
+      try {
+        const { data: dbCourse } = await supabase
+          .from("courses")
+          .select("category, price")
+          .eq("id", courseId)
+          .maybeSingle();
+        if (dbCourse) {
+          category = dbCourse.category;
+          basePrice = Number(dbCourse.price || amount);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch course details for purchase split:", err);
       }
-    } catch (err) {
-      console.warn("Failed to fetch course details for purchase split:", err);
     }
 
     // 2. Fetch category pricing rule from Supabase
@@ -620,8 +623,8 @@ export const PaymentService = {
   // --- REFUNDS MANAGEMENT ---
   getRefundRequests(): RefundRequest[] {
     const defaults: RefundRequest[] = [
-      { id: "ref-1", courseId: "course-3", courseTitle: "Python Backend Mastery", studentName: "Rohan Das", amount: 999, reason: "Course content is too basic.", status: "Pending", date: "2026-06-27" },
-      { id: "ref-2", courseId: "course-4", courseTitle: "TypeScript Fundamentals", studentName: "Preeti Sen", amount: 499, reason: "Accidental purchase.", status: "Approved", date: "2026-06-25" },
+      { id: "ref-1", courseId: "00000000-0000-4000-8000-000000000003", courseTitle: "Python Backend Mastery", studentName: "Rohan Das", amount: 999, reason: "Course content is too basic.", status: "Pending", date: "2026-06-27" },
+      { id: "ref-2", courseId: "00000000-0000-4000-8000-000000000004", courseTitle: "TypeScript Fundamentals", studentName: "Preeti Sen", amount: 499, reason: "Accidental purchase.", status: "Approved", date: "2026-06-25" },
     ];
     if (!isClient) return defaults;
     const saved = localStorage.getItem("eduearn_refund_requests");

@@ -23,7 +23,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
     { id: "ethical-hacking", name: "Ethical Hacking", icon: Shield, color: "bg-red-500/10 text-red-500 border-red-500/20" },
     { id: "ui-ux-designing", name: "UI UX Designing", icon: Palette, color: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20" },
     { id: "ai-tools", name: "AI Tools", icon: Terminal, color: "bg-teal-500/10 text-teal-500 border-teal-500/20" },
-    { id: "engineering", name: "Engineering", icon: Cpu, color: "bg-violet-500/10 text-violet-500 border-violet-500/20" },
+    { id: "engineering", name: "Engineering", icon: Cpu, color: "bg-blue-600/10 text-blue-500 border-blue-600/20", href: "/engineering" },
     { id: "others", name: "Others", icon: Box, color: "bg-slate-500/10 text-slate-500 border-slate-500/20" },
   ];
 
@@ -39,7 +39,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-3.5 sm:gap-4">
           {categories.map((cat) => {
             const Icon = cat.icon;
             const isSelected = activeCategory === cat.id;
@@ -50,13 +50,13 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
-                  if (cat.id === "engineering") {
-                    router.push("/engineering");
+                  if (cat.href || cat.id === "engineering") {
+                    router.push(cat.href || "/engineering");
                   } else {
                     onCategorySelect(cat.id);
                   }
                 }}
-                className={`flex flex-col items-center justify-center p-3 border rounded-2xl shadow-soft transition-all duration-300 gap-2.5 cursor-pointer ${
+                className={`flex flex-col items-center justify-center p-3.5 sm:p-4 border rounded-2xl shadow-soft transition-all duration-300 gap-2.5 sm:gap-3 cursor-pointer ${
                   isSelected
                     ? "bg-primary border-primary text-primary-foreground"
                     : "bg-card border-border/80 text-foreground hover:border-primary/50"

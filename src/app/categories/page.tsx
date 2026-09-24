@@ -155,24 +155,24 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
     stats: { courses: 15, liveClasses: 6, students: 1850, rating: 4.9 },
   },
   {
-    id: "engineering",
+    id: "engineering-electronics",
     name: "Engineering & Electronics",
-    desc: "Master ECE & Embedded, EEE & Power, Robotics & IoT, VLSI, and practical hardware engineering.",
+    desc: "Master ECE & Embedded, EEE & Power, Robotics & IoT, VLSI, EV & BMS, and practical hardware engineering.",
     iconName: "Cpu",
     badge: "New",
-    accentColor: "border-purple-500/20 text-purple-400 group-hover:border-purple-500/40",
-    badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    skills: ["ECE & Embedded", "EEE & Power", "Robotics & IoT"],
+    accentColor: "border-blue-500/20 text-blue-400 group-hover:border-blue-500/40",
+    badgeColor: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    skills: ["ECE & Embedded", "EEE & Power", "Robotics & IoT", "VLSI", "EV & BMS", "PLC / SCADA"],
     featuredCourse: {
-      title: "ESP32 & Embedded Systems Foundations",
-      tutor: "Dr. Ravi Kumar",
-      duration: "16 Hours",
+      title: "ESP32 & IoT Embedded Firmware Masterclass",
+      tutor: "Dr. Ananya Ray",
+      duration: "22 Hours",
       rating: 4.9,
       students: 310,
       price: 699,
-      thumbnailColor: "from-purple-600/20 to-blue-600/20",
+      thumbnailColor: "from-blue-600/20 to-cyan-600/20",
     },
-    stats: { courses: 14, liveClasses: 8, students: 420, rating: 4.9 },
+    stats: { courses: 14, liveClasses: 8, students: 950, rating: 4.9 },
   },
   {
     id: "business",
@@ -387,7 +387,8 @@ export default function CategoriesPage() {
       case "academics": return "academic-education";
       case "technology-programming": return "technology-programming";
       case "ai-data-science": return "ai-data-science";
-      case "engineering": return "engineering";
+      case "engineering":
+      case "engineering-electronics": return "engineering";
       case "business-entrepreneurship": return "business-entrepreneurship";
       case "creative-arts-design": return "creative-arts";
       case "photography-media": return "photography-media";

@@ -58,3 +58,27 @@ export async function getApiUser(requiredRole?: CanonicalRole) {
     return { error: err.message || "Authentication internal error", status: 500 };
   }
 }
+
+export async function verifyCourseOwnership(courseId: string, tutorId: string) {
+  if (IS_MOCK) return { authorized: true };
+  try {
+    const supabase = await createClient();
+    if (!supabase) return { authorized: false, error: "Database unavailable", status: 503 };
+
+    const { data: course, error } = await supabase
+      .from("courses")
+      .select("id, tutor_id")
+      .eq("id", courseId)
+      .maybeSingle();
+
+    if (error || !course) {
+      return { authorized: false, error: "Course not found", status: 404 };
+    }
+    if (course.tutor_id !== tutorId) {
+      return { authorized: false, error: "Forbidden: You do not own this course", status: 403 };
+    }
+    return { authorized: true, course };
+  } catch (err: any) {
+    return { authorized: false, error: err.message || "Failed to verify ownership", status: 500 };
+  }
+}

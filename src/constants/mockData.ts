@@ -6,6 +6,18 @@ import { getCourseThumbnail } from "../lib/courseThumbnailRegistry";
 // 1. DATA MODELS & STRUCTURES
 // ==========================================
 
+export function getMockCourseUuid(indexOrLegacyId: number | string): string {
+  if (typeof indexOrLegacyId === "number") {
+    return `00000000-0000-4000-8000-${String(indexOrLegacyId).padStart(12, "0")}`;
+  }
+  const match = String(indexOrLegacyId).match(/course-(\d+)/);
+  if (match) {
+    const num = parseInt(match[1], 10);
+    return `00000000-0000-4000-8000-${String(num).padStart(12, "0")}`;
+  }
+  return String(indexOrLegacyId);
+}
+
 export const SUBJECTS_MAP = {
   academics: {
     name: "Academic Education",
@@ -313,7 +325,9 @@ export const MOCK_COURSES = Array.from({ length: 100 }).map((_, idx) => {
   const level = levels[idx % levels.length];
   
   const rating = [4.5, 4.6, 4.7, 4.8, 4.9, 5.0][idx % 6];
-  const courseId = `course-${idx + 1}`;
+  const deterministicUuid = getMockCourseUuid(idx + 1);
+  const courseId = deterministicUuid;
+  const legacyId = `course-${idx + 1}`;
   let title = `Masterclass: ${subjectObj.name} Training`;
   if (subjectObj.id === "biology") title = "Biology Training";
   else if (subjectObj.id === "computer-science") title = "Computer Science Training";
@@ -427,6 +441,7 @@ export const MOCK_COURSES = Array.from({ length: 100 }).map((_, idx) => {
 
   return {
     id: courseId,
+    legacyId,
     tutorId: tutor.id,
     tutorName: tutor.fullName,
     tutorAvatar: tutor.avatar,

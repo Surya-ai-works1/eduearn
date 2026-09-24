@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "verify": "npx ts-node scripts/verify.ts"
+    "verify": "npx tsx scripts/verify.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

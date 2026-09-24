@@ -46,7 +46,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 }) => {
   // Mock badges for high-fidelity look
   const isBestseller = useMemo(() => studentsCount > 250, [studentsCount]);
-  const isNew = useMemo(() => id.includes("course-2") || id.includes("course-5") || id.includes("course-9"), [id]);
+  const isNew = useMemo(() => id.includes("000000000002") || id.includes("000000000005") || id.includes("000000000009") || id.includes("course-2") || id.includes("course-5") || id.includes("course-9"), [id]);
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();

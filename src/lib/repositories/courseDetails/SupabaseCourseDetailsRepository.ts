@@ -11,11 +11,21 @@ import { createClient } from '@/lib/supabase';
  * Marking a lesson complete updates the enrollment progress for the current learner.
  */
 export class SupabaseCourseDetailsRepository implements ICourseDetailsRepository {
+  private async getSupabase() {
+    if (typeof window === "undefined") {
+      const { createClient } = await import("@/lib/supabase/server");
+      const client = await createClient();
+      if (client) return client;
+    }
+    const { createClient } = await import("@/lib/supabase/client");
+    return createClient();
+  }
+
   async getCourseDetails(courseId: string): Promise<Course | null> {
     const dbCourse = await lmsDb.getCourseById(courseId);
     if (!dbCourse) return null;
 
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
     let instructorName = "Tutor Instructor";
     let tutorAvatar = "";
 
@@ -65,7 +75,7 @@ export class SupabaseCourseDetailsRepository implements ICourseDetailsRepository
 
   // Mark a lesson as completed for the logged-in learner.
   async markLessonComplete(courseId: string, lessonId: string): Promise<void> {
-    const supabase = createClient();
+    const supabase = await this.getSupabase();
     if (!supabase) return; // Supabase not configured — skip silently.
 
     const { data: { user } } = await supabase.auth.getUser();

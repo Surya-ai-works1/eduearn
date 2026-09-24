@@ -92,7 +92,11 @@ export class SupabaseEnrollmentRepository implements IEnrollmentRepository {
       return await this.attachCourseDetails(supabase, enrollment);
     }
 
-    const { data: enrolled, error: enrollErr } = await supabase
+    const insertClient = typeof window === 'undefined' && process.env.SUPABASE_SERVICE_ROLE_KEY
+      ? (await import('@/lib/supabase/admin')).createAdminClient()
+      : supabase;
+
+    const { data: enrolled, error: enrollErr } = await insertClient
       .from('enrollments')
       .insert({
         learner_id: studentId,

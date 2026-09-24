@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "../../../../../lib/supabase";
+import { createClient } from "@/lib/supabase/server";
+import { getApiUser } from "@/lib/apiAuth";
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createClient();
+    const auth = await getApiUser("admin");
+    if ("error" in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const supabase = await createClient();
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase unconfigured on server" }, { status: 503 });
+    }
     const body = await req.json();
     const { productId, itemType = "course", action, adminOverridePrice } = body;
     // action: 'APPROVE' | 'REJECT' | 'SUSPEND' | 'PUBLISH' | 'ARCHIVE'

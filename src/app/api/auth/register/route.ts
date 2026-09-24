@@ -1,8 +1,22 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { emailService } from "@/lib/email/service";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
+  const rl = rateLimit(request, 10, 60, "register");
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Too many registration requests. Please try again in ${rl.resetSeconds} seconds.` },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rl.resetSeconds),
+        },
+      }
+    );
+  }
+
   try {
     const body = await request.json();
     const { email, password, fullName, role = "student" } = body;
@@ -11,7 +25,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields (email, password, fullName)" }, { status: 400 });
     }
 
-    console.log(`[Register API] Processing registration for email: ${email}, role: ${role}`);
+    const normalizedRequestedRole = String(role).toLowerCase().trim();
+    if (normalizedRequestedRole !== "student" && normalizedRequestedRole !== "tutor") {
+      return NextResponse.json(
+        { error: "Invalid registration role. Only 'student' and 'tutor' accounts are permitted." },
+        { status: 400 }
+      );
+    }
+    const sanitizedRole = normalizedRequestedRole as "student" | "tutor";
+
+    console.log(`[Register API] Processing registration for email: ${email}, role: ${sanitizedRole}`);
 
     const isDisableVerification =
       process.env.NEXT_PUBLIC_DISABLE_EMAIL_VERIFICATION === "true" ||
@@ -40,7 +63,7 @@ export async function POST(request: Request) {
         user_metadata: {
           fullName,
           full_name: fullName,
-          role,
+          role: sanitizedRole,
           complete: false,
           accepted_terms: true,
           accepted_privacy: true,
@@ -74,7 +97,7 @@ export async function POST(request: Request) {
     // Normal path: verification is enabled.
     // Generate signup link using admin client.
     console.log(`[Register API] Generating signup confirmation link.`);
-    const nextRoute = role === "tutor" ? "/tutor/onboarding" : "/complete-profile";
+    const nextRoute = sanitizedRole === "tutor" ? "/tutor/onboarding" : "/complete-profile";
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 
       (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : "http://localhost:3000");
     const redirectTo = `${appUrl}/auth/callback?next=${nextRoute}`;
@@ -88,7 +111,7 @@ export async function POST(request: Request) {
         data: {
           fullName,
           full_name: fullName,
-          role,
+          role: sanitizedRole,
           complete: false,
           accepted_terms: true,
           accepted_privacy: true,

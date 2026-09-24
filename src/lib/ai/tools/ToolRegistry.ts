@@ -183,10 +183,10 @@ ToolRegistry.register({
 
     // Parallel calls
     const [resResult, knResult, teResult, coResult] = await Promise.all([
-      provider.generateStructuredOutput<any>(resumePrompt, {}).catch(() => ({ resume_score: 80 })),
-      provider.generateStructuredOutput<any>(knowledgePrompt, {}).catch(() => ({ knowledge_score: 80 })),
-      provider.generateStructuredOutput<any>(teachingPrompt, {}).catch(() => ({ teaching_score: 85 })),
-      provider.generateStructuredOutput<any>(communicationPrompt, {}).catch(() => ({ communication_score: 90, doubt_handling_score: 92 }))
+      provider.generateStructuredOutput<any>(resumePrompt, {}).catch(() => ({ resume_score: 0 })),
+      provider.generateStructuredOutput<any>(knowledgePrompt, {}).catch(() => ({ knowledge_score: 0 })),
+      provider.generateStructuredOutput<any>(teachingPrompt, {}).catch(() => ({ teaching_score: 0 })),
+      provider.generateStructuredOutput<any>(communicationPrompt, {}).catch(() => ({ communication_score: 0, doubt_handling_score: 0 }))
     ]);
 
     // Collator Prompt
@@ -212,29 +212,29 @@ ToolRegistry.register({
     "summary": string`;
 
     const finalReport = await provider.generateStructuredOutput<any>(collatorPrompt, {}).catch(() => ({
-      overall_score: 85,
-      knowledge_score: 85,
-      communication_score: 88,
-      confidence_score: 90,
-      reasoning_score: 87,
-      teaching_style: "Interactive",
-      recommendation: "PASS",
-      summary: "Candidate demonstrated strong skills and credentials.",
-      strengths: ["Clear teaching methodology"],
-      weaknesses: ["Could include more examples"],
-      recommended_subjects: ["Coding"],
-      suggested_grade_levels: ["High School"],
-      improvement_plan: "Include more practical walkthroughs"
+      overall_score: 0,
+      knowledge_score: 0,
+      communication_score: 0,
+      confidence_score: 0,
+      reasoning_score: 0,
+      teaching_style: "Pending Review",
+      recommendation: "REVIEW",
+      summary: "Automated assessment failed or could not be completed; manual review required.",
+      strengths: [],
+      weaknesses: ["Automated evaluation could not complete"],
+      recommended_subjects: [],
+      suggested_grade_levels: [],
+      improvement_plan: "Manual verification by platform administrator required."
     }));
 
     return {
-      score: finalReport.overall_score || 85,
-      overall_score: finalReport.overall_score || 85,
-      knowledge_score: finalReport.knowledge_score || 85,
-      communication_score: finalReport.communication_score || 88,
-      confidence_score: finalReport.confidence_score || 90,
-      reasoning_score: finalReport.reasoning_score || 87,
-      teaching_style: finalReport.teaching_style || "Interactive",
+      score: finalReport.overall_score ?? 0,
+      overall_score: finalReport.overall_score ?? 0,
+      knowledge_score: finalReport.knowledge_score ?? 0,
+      communication_score: finalReport.communication_score ?? 0,
+      confidence_score: finalReport.confidence_score ?? 0,
+      reasoning_score: finalReport.reasoning_score ?? 0,
+      teaching_style: finalReport.teaching_style || "Pending Review",
       strengths: finalReport.strengths || [],
       weaknesses: finalReport.weaknesses || [],
       improvements: finalReport.weaknesses || [],
