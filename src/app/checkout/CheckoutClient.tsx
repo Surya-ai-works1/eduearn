@@ -254,6 +254,14 @@ export function CheckoutClient({
         {/* LEFT COLUMN: Payment Forms */}
         <div className="lg:col-span-8 space-y-6">
           <Card variant="glass" className="p-6 space-y-4 border border-primary/10">
+            {finalTotal > 0 && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
+                <span>
+                  <strong>Payment System Notice:</strong> Online payment processing is currently paused for paid courses pending Razorpay credentials setup. Free course enrollments are active and functional.
+                </span>
+              </div>
+            )}
             <div>
               <h2 className="text-lg font-heading font-extrabold text-foreground">
                 Secure Checkout Gateway
