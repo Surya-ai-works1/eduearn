@@ -63,12 +63,23 @@ export function ContinueLearning({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {enrolledCourses.slice(0, 3).map((course, idx) => {
-            const nextLessonNum = Math.min(course.lessonsCount, (course.completedLessons || 0) + 1);
+            const completedCount = course.completedLessons || 0;
+            const nextLessonNum = Math.min(course.lessonsCount, completedCount + 1);
+            const remainingLessons = Math.max(0, course.lessonsCount - completedCount);
+
             const buttonLabel = course.progress === 100
               ? "View Certificate"
-              : course.completedLessons > 0
+              : completedCount > 0 || course.progress > 0
               ? `Continue Lesson ${nextLessonNum}`
               : "Start Course";
+
+            const momentumText = course.progress === 100
+              ? "🎉 Course Complete! Certificate unlocked."
+              : remainingLessons === 1
+              ? "Almost there! 1 lesson remaining."
+              : remainingLessons > 0 && completedCount > 0
+              ? `You're ${remainingLessons} lessons away from completing this course.`
+              : "Start your first lesson to build momentum.";
 
             return (
               <DashboardCard
@@ -76,7 +87,7 @@ export function ContinueLearning({
                 variant="default"
                 hoverEffect="lift"
                 animateDelay={idx * 0.05}
-                className="p-4 flex flex-col justify-between min-h-[190px] border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900/60"
+                className="p-4 flex flex-col justify-between min-h-[210px] border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900/60"
               >
                 <div className="flex items-start gap-3.5">
                   {/* Course Thumbnail */}
@@ -111,28 +122,43 @@ export function ContinueLearning({
                 </div>
 
                 {/* Progress and status indicators */}
-                <div className="space-y-1.5 mt-5">
+                <div className="space-y-1.5 mt-3">
                   <div className="flex items-center justify-between text-[10px] font-bold text-slate-450 dark:text-slate-400">
                     <span>Progress: {course.progress}%</span>
-                    <span>{course.completedLessons}/{course.lessonsCount} lessons</span>
+                    <span>{completedCount}/{course.lessonsCount} lessons</span>
                   </div>
                   <div className="h-2 w-full bg-slate-100 dark:bg-slate-800/60 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-primary rounded-full transition-all duration-500"
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        course.progress === 100 ? "bg-emerald-500" : "bg-primary"
+                      }`}
                       style={{ width: `${course.progress}%` }}
                     />
                   </div>
+                  <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 pt-0.5">
+                    {momentumText}
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/40 pt-3 mt-4">
+                <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/40 pt-3 mt-3">
                   <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
                     <Clock className="w-3 h-3 text-slate-400" /> {course.estimatedCompletion}
                   </span>
 
                   <Button
-                    onClick={() => onResume(course.id)}
+                    onClick={() => {
+                      if (course.progress === 100) {
+                        window.location.href = `/student/certificate/${course.id}`;
+                      } else {
+                        onResume(course.id);
+                      }
+                    }}
                     size="sm"
-                    className="h-8 gap-1 font-bold text-xs shadow-soft"
+                    className={`h-8 gap-1 font-bold text-xs shadow-soft ${
+                      course.progress === 100
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                        : ""
+                    }`}
                   >
                     <PlayCircle size={13} />
                     {buttonLabel}

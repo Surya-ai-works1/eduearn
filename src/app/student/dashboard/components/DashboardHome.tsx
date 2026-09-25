@@ -33,6 +33,9 @@ interface DashboardHomeProps {
   enrollWishlist: (course: any) => void;
   onResume: (courseId: string) => void;
   welcomeGreeting: string;
+  assignments?: any[];
+  quizzes?: any[];
+  handleStartQuiz?: (quiz: any) => void;
 }
 
 export function DashboardHome({
@@ -56,7 +59,13 @@ export function DashboardHome({
   enrollWishlist,
   onResume,
   welcomeGreeting,
+  assignments = [],
+  quizzes = [],
+  handleStartQuiz,
 }: DashboardHomeProps) {
+  const pendingAssignments = assignments.filter((a) => a.status === "Pending");
+  const availableQuizzes = quizzes.filter((q) => !q.latestAttempt || q.latestAttempt.status !== "Submitted");
+
   return (
     <motion.div
       key="tab-dashboard"
@@ -87,12 +96,86 @@ export function DashboardHome({
       {/* 3. Six Stats Overview metrics */}
       <DashboardStats stats={stats} streak={streak} />
 
-      {/* 4. Continue Learning Course Cards */}
+      {/* 4. Continue Learning Course Cards (Priority 1 CTA) */}
       <ContinueLearning
         enrolledCourses={enrolledCourses}
         onResume={onResume}
         setActiveTab={setActiveTab}
       />
+
+      {/* 4b. Pending Tasks & Practice (Priority 2 & 3: Pending Assignments & Available Quizzes) */}
+      {(pendingAssignments.length > 0 || availableQuizzes.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {pendingAssignments.length > 0 && (
+            <div className="card-surface p-4 rounded-card border border-amber-500/20 bg-amber-500/5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold uppercase text-amber-600 dark:text-amber-400">
+                  📝 Pending Assignment ({pendingAssignments.length})
+                </span>
+                <button
+                  onClick={() => setActiveTab("assignments")}
+                  className="text-xs text-primary font-bold hover:underline"
+                >
+                  View all
+                </button>
+              </div>
+              <div className="space-y-2">
+                {pendingAssignments.slice(0, 2).map((assign) => (
+                  <div key={assign.id} className="p-3 bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-xs">
+                    <div>
+                      <h5 className="font-bold text-slate-800 dark:text-slate-100 truncate max-w-[200px]">{assign.title}</h5>
+                      <span className="text-[9px] text-slate-400">Due: {assign.dueDate} · {assign.courseTitle}</span>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab("assignments")}
+                      className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded-lg transition"
+                    >
+                      Submit
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {availableQuizzes.length > 0 && (
+            <div className="card-surface p-4 rounded-card border border-primary/20 bg-primary/5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold uppercase text-primary">
+                  🧠 Practice Quiz Challenge ({availableQuizzes.length})
+                </span>
+                <button
+                  onClick={() => setActiveTab("quizzes")}
+                  className="text-xs text-primary font-bold hover:underline"
+                >
+                  View all
+                </button>
+              </div>
+              <div className="space-y-2">
+                {availableQuizzes.slice(0, 2).map((quiz) => (
+                  <div key={quiz.id} className="p-3 bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-xs">
+                    <div>
+                      <h5 className="font-bold text-slate-800 dark:text-slate-100 truncate max-w-[200px]">{quiz.title}</h5>
+                      <span className="text-[9px] text-slate-400">{quiz.questionsCount || 3} Questions · 🪙 {quiz.rewardCoins || 50} Coins</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (handleStartQuiz) {
+                          handleStartQuiz(quiz);
+                        }
+                        setActiveTab("quizzes");
+                      }}
+                      className="px-3 py-1 bg-primary hover:bg-primary/90 text-white text-[10px] font-bold rounded-lg transition"
+                    >
+                      Start Quiz
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 5. AI Assistant Recommendations Widget */}
       <AiAssistantWidget

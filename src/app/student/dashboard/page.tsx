@@ -613,6 +613,9 @@ function StudentDashboardContent() {
                 enrollWishlist={enrollWishlist}
                 onResume={(courseId) => navigateToClassroom(router, courseId)}
                 welcomeGreeting={welcomeGreeting}
+                assignments={assignments}
+                quizzes={quizzes}
+                handleStartQuiz={handleStartQuiz}
               />
             )}
 

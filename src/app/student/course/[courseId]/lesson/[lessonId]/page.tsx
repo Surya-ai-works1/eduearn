@@ -309,7 +309,7 @@ export default function LessonPage() {
                       <div></div>
                     )}
 
-                    {nextLesson && (
+                    {nextLesson ? (
                       <Button
                         variant="primary"
                         size="sm"
@@ -318,6 +318,16 @@ export default function LessonPage() {
                       >
                         Next: {nextLesson.title}
                         <ExternalLink size={13} />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="success"
+                        size="sm"
+                        onClick={() => router.push(`/student/certificate/${courseId}`)}
+                        className="flex items-center gap-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-soft"
+                      >
+                        <CheckCircle size={14} />
+                        View Certificate
                       </Button>
                     )}
                   </div>
