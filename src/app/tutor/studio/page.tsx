@@ -34,8 +34,20 @@ export default function TutorStudioDashboard() {
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [submittingWithdrawal, setSubmittingWithdrawal] = useState(false);
 
-  // Active Tab
+  // Active Tab & Sub-filters
   const [activeTab, setActiveTab] = useState("courses"); // "courses" | "templates" | "earnings"
+  const [courseStatusFilter, setCourseStatusFilter] = useState<string>("all");
+
+  const filteredCourses = React.useMemo(() => {
+    return courses.filter((c) => {
+      if (courseStatusFilter === "all") return true;
+      if (courseStatusFilter === "draft") return c.status === "draft" && c.approval_status !== "pending" && c.approval_status !== "rejected";
+      if (courseStatusFilter === "pending") return c.approval_status === "pending";
+      if (courseStatusFilter === "published") return c.status === "published" || c.approval_status === "approved";
+      if (courseStatusFilter === "rejected") return c.approval_status === "rejected";
+      return true;
+    });
+  }, [courses, courseStatusFilter]);
 
   const fetchTutorData = useCallback(async () => {
     if (!user) return;
@@ -256,12 +268,35 @@ export default function TutorStudioDashboard() {
           {/* Tab 1: Courses */}
           {activeTab === "courses" && (
             <div className="space-y-4">
-              {courses.length === 0 ? (
+              {/* Status Sub-Filters */}
+              <div className="flex flex-wrap items-center gap-2 pb-2">
+                {[
+                  { id: "all", label: `All (${courses.length})` },
+                  { id: "draft", label: `Drafts (${courses.filter(c => c.status === "draft" && c.approval_status !== "pending" && c.approval_status !== "rejected").length})` },
+                  { id: "pending", label: `Under Review (${courses.filter(c => c.approval_status === "pending").length})` },
+                  { id: "published", label: `Published (${courses.filter(c => c.status === "published" || c.approval_status === "approved").length})` },
+                  { id: "rejected", label: `Needs Revision (${courses.filter(c => c.approval_status === "rejected").length})` }
+                ].map(sub => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setCourseStatusFilter(sub.id)}
+                    className={`px-3 py-1 text-[11px] font-semibold rounded-lg border transition ${
+                      courseStatusFilter === sub.id
+                        ? "bg-blue-600/10 text-blue-400 border-blue-500/30"
+                        : "bg-muted/30 text-muted-foreground border-border hover:text-foreground"
+                    }`}
+                  >
+                    {sub.label}
+                  </button>
+                ))}
+              </div>
+
+              {filteredCourses.length === 0 ? (
                 <div className="bg-card border border-border shadow-md rounded-2xl p-12 text-center space-y-4 max-w-md mx-auto">
                   <FaBookOpen className="text-5xl text-slate-700 mx-auto" />
-                  <h3 className="text-sm font-bold text-foreground">No Courses Uploaded</h3>
+                  <h3 className="text-sm font-bold text-foreground">No Courses Found</h3>
                   <p className="text-xs text-muted-foreground font-light leading-relaxed">
-                    You have not uploaded any courses yet. Start building your syllabus curriculum catalog now!
+                    No courses match the selected status filter ({courseStatusFilter}).
                   </p>
                   <Link
                     href="/tutor/studio/create"
@@ -272,39 +307,66 @@ export default function TutorStudioDashboard() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {courses.map((course) => (
-                    <div
-                      key={course.id}
-                      className="bg-card border border-border shadow-sm hover:shadow-md transition-shadow duration-200 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 group hover:border-border transition duration-300"
-                    >
-                      <div className="flex gap-4">
-                        <div className="w-20 aspect-video rounded-lg overflow-hidden bg-slate-950 flex items-center justify-center flex-shrink-0 border border-border">
-                          {course.thumbnail ? (
-                            /* eslint-disable-next-line @next/next/no-img-element -- Tutor course thumbnails are loaded dynamically from storage */
-                            <img src={course.thumbnail} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <FaGraduationCap className="text-slate-800 text-2xl" />
-                          )}
-                        </div>
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-bold text-foreground group-hover:text-blue-400 transition duration-300 truncate max-w-xs">{course.title}</h4>
-                          <p className="text-[10px] text-muted-foreground font-light">
-                            {course.category} • {course.level} • {course.lessons?.length || 0} Lessons
-                          </p>
-                          <span className="inline-block px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-400 text-[9px] font-bold uppercase rounded">
-                            ₹{course.price}
-                          </span>
-                        </div>
-                      </div>
+                  {filteredCourses.map((course) => {
+                    const isUnderReview = course.approval_status === "pending";
+                    const isRejected = course.approval_status === "rejected";
+                    const isPublished = course.status === "published" || course.approval_status === "approved";
 
-                      <button
-                        onClick={() => router.push(`/tutor/studio/manage/${course.id}`)}
-                        className="px-4 py-2 bg-card border border-border hover:bg-muted/60 hover:border-border text-foreground text-xs font-semibold rounded-lg transition flex items-center gap-1"
+                    return (
+                      <div
+                        key={course.id}
+                        className="bg-card border border-border shadow-sm hover:shadow-md transition-shadow duration-200 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 group hover:border-border transition duration-300"
                       >
-                        Manage <FaChevronRight className="text-[8px]" />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex gap-4">
+                          <div className="w-20 aspect-video rounded-lg overflow-hidden bg-slate-950 flex items-center justify-center flex-shrink-0 border border-border">
+                            {course.thumbnail ? (
+                              /* eslint-disable-next-line @next/next/no-img-element -- Tutor course thumbnails are loaded dynamically from storage */
+                              <img src={course.thumbnail} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <FaGraduationCap className="text-slate-800 text-2xl" />
+                            )}
+                          </div>
+                          <div className="space-y-1.5 text-left">
+                            <h4 className="text-sm font-bold text-foreground group-hover:text-blue-400 transition duration-300 truncate max-w-xs">{course.title}</h4>
+                            <p className="text-[10px] text-muted-foreground font-light">
+                              {course.category} • {course.level} • {course.lessons?.length || 0} Lessons
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <span className="inline-block px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-400 text-[9px] font-bold uppercase rounded font-mono">
+                                ₹{course.price}
+                              </span>
+
+                              {isUnderReview ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[9px] font-bold uppercase rounded">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                  Under Review
+                                </span>
+                              ) : isRejected ? (
+                                <span className="inline-block px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[9px] font-bold uppercase rounded">
+                                  Needs Revision
+                                </span>
+                              ) : isPublished ? (
+                                <span className="inline-block px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase rounded">
+                                  Published
+                                </span>
+                              ) : (
+                                <span className="inline-block px-2 py-0.5 bg-slate-500/10 border border-slate-500/20 text-slate-400 text-[9px] font-bold uppercase rounded">
+                                  Draft
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => router.push(`/tutor/studio/manage/${course.id}`)}
+                          className="px-4 py-2 bg-card border border-border hover:bg-muted/60 hover:border-border text-foreground text-xs font-semibold rounded-lg transition flex items-center gap-1"
+                        >
+                          Manage <FaChevronRight className="text-[8px]" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
