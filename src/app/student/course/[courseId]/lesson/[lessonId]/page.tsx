@@ -169,19 +169,31 @@ export default function LessonPage() {
   return (
     <RequireLearner>
       <PageWrapper>
-        {/* Workspace header */}
-        <section className="w-full border-b border-border/40 py-5 bg-muted/5 select-none">
-          <Container className="flex items-center justify-between">
-            <Link 
-              href={`/courses/${courseId}`} 
-              className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft size={13} />
-              Back to Course
-            </Link>
-            <Badge variant="primary" className="text-[10px] uppercase font-bold tracking-wider">
-              {course.title}
-            </Badge>
+        {/* Workspace header & course progress bar */}
+        <section className="w-full border-b border-border/40 py-4 bg-muted/5 select-none">
+          <Container className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/courses/${courseId}`}
+                className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft size={13} />
+                Back to Course
+              </Link>
+              <Badge variant="primary" className="text-[10px] uppercase font-bold tracking-wider">
+                {course.title}
+              </Badge>
+            </div>
+
+            <div className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
+              <span>Overall Progress: {enrollment?.progressPercent || enrollment?.progress || 0}%</span>
+              <div className="w-24 sm:w-36 h-2 bg-muted rounded-full overflow-hidden border border-border/40">
+                <div
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                  style={{ width: `${enrollment?.progressPercent || enrollment?.progress || 0}%` }}
+                ></div>
+              </div>
+            </div>
           </Container>
         </section>
 
@@ -275,6 +287,43 @@ export default function LessonPage() {
                 </div>
               )}
 
+              {/* Previous & Next Lesson Controls */}
+              {(() => {
+                const activeIndex = lessons.findIndex((l: any) => l.id === activeLesson.id);
+                const prevLesson = activeIndex > 0 ? lessons[activeIndex - 1] : null;
+                const nextLesson = activeIndex < lessons.length - 1 ? lessons[activeIndex + 1] : null;
+
+                return (
+                  <div className="flex items-center justify-between gap-4 pt-4 border-t border-border/40 mt-4">
+                    {prevLesson ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleLessonClick(prevLesson.id)}
+                        className="flex items-center gap-2 text-xs font-bold"
+                      >
+                        <ArrowLeft size={13} />
+                        Previous: {prevLesson.title}
+                      </Button>
+                    ) : (
+                      <div></div>
+                    )}
+
+                    {nextLesson && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handleLessonClick(nextLesson.id)}
+                        className="flex items-center gap-2 text-xs font-bold"
+                      >
+                        Next: {nextLesson.title}
+                        <ExternalLink size={13} />
+                      </Button>
+                    )}
+                  </div>
+                );
+              })()}
+
             </div>
 
             {/* Right Column: Syllabus Navigation */}
@@ -294,7 +343,7 @@ export default function LessonPage() {
                 {/* Lessons list */}
                 <div className="max-h-[60vh] overflow-y-auto divide-y divide-border/40">
                   {lessons.map((lesson: any, idx: number) => {
-                    const isActive = lesson.id === lessonId;
+                    const isActive = lesson.id === activeLesson.id;
                     const lessonCompleted = completedLessons.includes(lesson.id);
 
                     return (
@@ -310,6 +359,8 @@ export default function LessonPage() {
                         <span className="mt-0.5 shrink-0">
                           {lessonCompleted ? (
                             <CheckCircle size={15} className="text-emerald-500 fill-emerald-500/10" />
+                          ) : isActive ? (
+                            <Play size={15} className="text-primary fill-primary/20" />
                           ) : (
                             <Circle size={15} className="text-muted-foreground/60" />
                           )}

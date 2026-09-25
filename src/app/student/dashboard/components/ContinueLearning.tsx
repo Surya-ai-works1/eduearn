@@ -45,80 +45,102 @@ export function ContinueLearning({
       </div>
 
       {enrolledCourses.length === 0 ? (
-        <DashboardCard variant="glass" className="p-8 text-center text-slate-400">
-          You are not enrolled in any courses yet.
+        <DashboardCard variant="glass" className="p-8 text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mx-auto">
+            <BookOpen size={24} />
+          </div>
+          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Start your learning journey</h4>
+          <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm mx-auto leading-relaxed">
+            You are not enrolled in any active courses yet. Discover structured curriculum modules from verified educators.
+          </p>
+          <a
+            href="/courses"
+            className="inline-block px-4 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl transition shadow-soft mt-1"
+          >
+            Explore Courses
+          </a>
         </DashboardCard>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {enrolledCourses.slice(0, 3).map((course, idx) => (
-            <DashboardCard
-              key={course.id}
-              variant="default"
-              hoverEffect="lift"
-              animateDelay={idx * 0.05}
-              className="p-4 flex flex-col justify-between min-h-[190px] border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900/60"
-            >
-              <div className="flex items-start gap-3.5">
-                {/* Course Thumbnail */}
-                <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-primary shrink-0 relative overflow-hidden select-none">
-                  {course.thumbnail ? (
-                    <img
-                      src={course.thumbnail}
-                      alt={course.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = "/images/courses/python.webp";
-                      }}
+          {enrolledCourses.slice(0, 3).map((course, idx) => {
+            const nextLessonNum = Math.min(course.lessonsCount, (course.completedLessons || 0) + 1);
+            const buttonLabel = course.progress === 100
+              ? "View Certificate"
+              : course.completedLessons > 0
+              ? `Continue Lesson ${nextLessonNum}`
+              : "Start Course";
+
+            return (
+              <DashboardCard
+                key={course.id}
+                variant="default"
+                hoverEffect="lift"
+                animateDelay={idx * 0.05}
+                className="p-4 flex flex-col justify-between min-h-[190px] border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900/60"
+              >
+                <div className="flex items-start gap-3.5">
+                  {/* Course Thumbnail */}
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center font-bold text-primary shrink-0 relative overflow-hidden select-none">
+                    {course.thumbnail ? (
+                      /* eslint-disable-next-line @next/next/no-img-element -- Dynamic thumbnail upload preview */
+                      <img
+                        src={course.thumbnail}
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = "/images/courses/python.webp";
+                        }}
+                      />
+                    ) : (
+                      <BookOpen size={20} />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[9px] font-black uppercase bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-lg inline-block">
+                      {course.category}
+                    </span>
+                    <h4 className="text-xs font-bold truncate mt-1 text-slate-800 dark:text-slate-100" title={course.title}>
+                      {course.title}
+                    </h4>
+                    <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-0.5 truncate">
+                      Tutor: {course.tutorName} · Last studied: {course.lastStudied}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Progress and status indicators */}
+                <div className="space-y-1.5 mt-5">
+                  <div className="flex items-center justify-between text-[10px] font-bold text-slate-450 dark:text-slate-400">
+                    <span>Progress: {course.progress}%</span>
+                    <span>{course.completedLessons}/{course.lessonsCount} lessons</span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-100 dark:bg-slate-800/60 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-500"
+                      style={{ width: `${course.progress}%` }}
                     />
-                  ) : (
-                    <BookOpen size={20} />
-                  )}
+                  </div>
                 </div>
-                
-                <div className="min-w-0 flex-1">
-                  <span className="text-[9px] font-black uppercase bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-lg inline-block">
-                    {course.category}
+
+                <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/40 pt-3 mt-4">
+                  <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-slate-400" /> {course.estimatedCompletion}
                   </span>
-                  <h4 className="text-xs font-bold truncate mt-1 text-slate-800 dark:text-slate-100" title={course.title}>
-                    {course.title}
-                  </h4>
-                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-medium mt-0.5 truncate">
-                    Tutor: {course.tutorName} · Last studied: {course.lastStudied}
-                  </p>
-                </div>
-              </div>
 
-              {/* Progress and status indicators */}
-              <div className="space-y-1.5 mt-5">
-                <div className="flex items-center justify-between text-[10px] font-bold text-slate-450 dark:text-slate-400">
-                  <span>Progress: {course.progress}%</span>
-                  <span>{course.completedLessons}/{course.lessonsCount} lessons</span>
+                  <Button
+                    onClick={() => onResume(course.id)}
+                    size="sm"
+                    className="h-8 gap-1 font-bold text-xs shadow-soft"
+                  >
+                    <PlayCircle size={13} />
+                    {buttonLabel}
+                  </Button>
                 </div>
-                <div className="h-2 w-full bg-slate-100 dark:bg-slate-800/60 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all duration-500"
-                    style={{ width: `${course.progress}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/40 pt-3 mt-4">
-                <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-slate-400" /> {course.estimatedCompletion}
-                </span>
-                
-                <Button
-                  onClick={() => onResume(course.id)}
-                  size="sm"
-                  className="h-8 gap-1 font-bold text-xs shadow-soft"
-                >
-                  <PlayCircle size={13} />
-                  Resume
-                </Button>
-              </div>
-            </DashboardCard>
-          ))}
+              </DashboardCard>
+            );
+          })}
         </div>
       )}
     </div>

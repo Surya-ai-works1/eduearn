@@ -90,8 +90,14 @@ export class SupabaseCourseDetailsRepository implements ICourseDetailsRepository
       .single();
     if (fetchErr) throw fetchErr;
 
-    // Increment progress by a simple heuristic (1 lesson = 10%).
-    const newProgress = Math.min(((enrollment?.progress ?? 0) + 10), 100);
+    // Derive lesson progress dynamically based on total course lessons count, ensuring 100% on final lesson.
+    const dbCourse = await lmsDb.getCourseById(courseId);
+    const totalLessons = Math.max(1, dbCourse?.lessons?.length || 10);
+    const step = 100 / totalLessons;
+    const currentProgress = enrollment?.progress ?? 0;
+    const rawProgress = currentProgress + step;
+    const newProgress = rawProgress >= 100 - (step / 2) ? 100 : Math.min(100, Math.round(rawProgress));
+
     const { error: updateErr } = await supabase
       .from('enrollments')
       .update({ progress: newProgress })
