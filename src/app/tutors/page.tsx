@@ -728,7 +728,7 @@ function TutorsContent() {
                   onChange={() => setFilters((prev) => ({ ...prev, isAiVerified: !prev.isAiVerified }))}
                   className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
                 />
-                <span>AI Verified Tutors only</span>
+                <span>Verified Student Tutors only</span>
               </label>
 
               {tuitionParam ? (
@@ -982,7 +982,7 @@ function TutorsContent() {
                     onChange={() => setFilters((prev) => ({ ...prev, isAiVerified: !prev.isAiVerified }))}
                     className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
                   />
-                  <span>AI Verified Tutors only</span>
+                  <span>Verified Student Tutors only</span>
                 </label>
 
                 {tuitionParam ? (

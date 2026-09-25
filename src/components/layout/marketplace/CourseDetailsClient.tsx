@@ -56,9 +56,51 @@ export function CourseDetailsClient({
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [enrolledState, setEnrolledState] = useState(isEnrolled);
 
+  const [userRating, setUserRating] = useState(5);
+  const [userComment, setUserComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
   useEffect(() => {
     setEnrolledState(isEnrolled);
   }, [isEnrolled]);
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast.error("Please log in as a student to submit a review.");
+      return;
+    }
+    if (!enrolledState) {
+      toast.error("Only enrolled students can submit a course review.");
+      return;
+    }
+    if (!userComment.trim()) {
+      toast.error("Please write a short comment for your review.");
+      return;
+    }
+    setIsSubmittingReview(true);
+    try {
+      const res = await fetch("/api/student/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseId: course.id,
+          rating: userRating,
+          comment: userComment,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to submit review");
+      }
+      toast.success("Thank you! Your course review has been published.");
+      setUserComment("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit review.");
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   const handleEnroll = async () => {
     try {
@@ -173,11 +215,16 @@ export function CourseDetailsClient({
                 <Badge variant={course.level === "beginner" ? "success" : course.level === "intermediate" ? "primary" : "danger"}>
                   {course.level.replace("_", " ")}
                 </Badge>
-                {tutor.verificationStatus === "ai_verified" && (
-                  <Badge variant="ai" className="text-white flex items-center gap-0.5 animate-pulse">
+                {(tutor.verificationStatus === "verified" || tutor.verificationStatus === "approved" || tutor.verificationStatus === "ai_verified") && (
+                  <Badge variant="success" className="text-white flex items-center gap-1 shadow-soft">
                     <ShieldCheck size={11} className="fill-white text-emerald-500" />
-                    AI Verified Tutor
+                    Verified Student Tutor
                   </Badge>
+                )}
+                {typeof course.id === 'string' && (course.id.startsWith("course-") || course.id.startsWith("00000000")) && (
+                  <span className="text-[9px] font-extrabold uppercase bg-muted text-muted-foreground px-2 py-0.5 rounded border border-border/40">
+                    Sample Catalog Course
+                  </span>
                 )}
               </div>
 
@@ -337,6 +384,20 @@ export function CourseDetailsClient({
                   <li>Basic computer navigation skills and internet connectivity.</li>
                   <li>No prior knowledge or background in {course.category} is required. We start from absolute scratch!</li>
                   <li>A desktop or laptop is recommended for coding and practice exercises.</li>
+                </ul>
+              </Card>
+            </div>
+
+            {/* Who This Course Is For */}
+            <div className="flex flex-col gap-4">
+              <h3 className="text-base font-heading font-extrabold text-foreground">
+                Who This Course Is For
+              </h3>
+              <Card variant="glass" className="p-5 border-border/60 bg-card text-xs text-slate-600 dark:text-slate-400 font-semibold leading-relaxed">
+                <ul className="list-disc pl-4 space-y-1.5 text-left">
+                  <li>Students looking to master {course.category} from peer mentors who recently excelled in the subject.</li>
+                  <li>Learners preparing for college coursework, semester exams, or practical lab projects.</li>
+                  <li>Anyone seeking structured step-by-step guidance without overly academic or dry textbook theory.</li>
                 </ul>
               </Card>
             </div>
@@ -553,6 +614,56 @@ export function CourseDetailsClient({
                   ))}
                 </div>
               </div>
+
+              {/* Student Review Form (Enrolled Students Only) */}
+              {enrolledState ? (
+                <Card variant="glass" className="p-5 border-primary/20 bg-primary/5 text-left space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground">Write a Verified Course Review</span>
+                    <span className="text-[9px] uppercase font-extrabold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">
+                      Verified Enrolled Learner
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleReviewSubmit} className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground font-semibold">Your Rating:</span>
+                      <div className="flex items-center gap-1 cursor-pointer">
+                        {[1, 2, 3, 4, 5].map((starVal) => (
+                          <button
+                            key={starVal}
+                            type="button"
+                            onClick={() => setUserRating(starVal)}
+                            className="p-1 text-amber-500 hover:scale-110 transition-transform focus:outline-none"
+                            title={`${starVal} Star${starVal > 1 ? "s" : ""}`}
+                          >
+                            <Star
+                              size={18}
+                              className={starVal <= userRating ? "fill-amber-500 text-amber-500" : "text-slate-400"}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <textarea
+                      rows={2}
+                      value={userComment}
+                      onChange={(e) => setUserComment(e.target.value)}
+                      placeholder="Share your learning experience, course quality, and feedback for fellow students..."
+                      className="w-full bg-card border border-border rounded-xl p-3 text-xs font-medium text-foreground focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/70"
+                    />
+
+                    <Button type="submit" size="sm" disabled={isSubmittingReview} className="text-xs">
+                      {isSubmittingReview ? "Submitting Review..." : "Publish Review"}
+                    </Button>
+                  </form>
+                </Card>
+              ) : (
+                <div className="p-3 bg-muted/20 border border-border/40 rounded-xl text-center text-[10px] text-muted-foreground font-semibold">
+                  ℹ️ Only verified enrolled learners can submit course reviews.
+                </div>
+              )}
 
               {/* Reviews grid list */}
               <div className="flex flex-col gap-4 mt-2">

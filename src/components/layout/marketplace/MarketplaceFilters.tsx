@@ -298,7 +298,7 @@ export function MarketplaceFilters({
             onChange={toggleAiVerified}
             className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
           />
-          <span>AI Verified Tutors</span>
+          <span>Verified Student Tutors</span>
         </label>
         <label className="flex items-center gap-2.5 text-xs font-bold text-foreground cursor-pointer select-none">
           <input

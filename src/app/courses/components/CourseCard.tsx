@@ -176,7 +176,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                   {tutorName}
                 </span>
                 {isAiVerified && (
-                  <span className="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full" title="AI-Verified Tutor" />
+                  <span className="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full" title="Verified Student Tutor" />
                 )}
               </>
             )}

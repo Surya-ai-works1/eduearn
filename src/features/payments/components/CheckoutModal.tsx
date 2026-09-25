@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Sparkles, Receipt, Wallet, Tag, Loader2 } from "lucide-react";
+import { X, Sparkles, Receipt, Wallet, Tag, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../../components/ui/button";
 import { Card } from "../../../components/ui/card";
@@ -144,6 +144,17 @@ export function CheckoutModal({
                   <span className="text-[9px] font-black uppercase text-primary tracking-wide">Item Selection</span>
                   <h4 className="font-heading font-extrabold text-sm text-foreground line-clamp-1">{courseTitle}</h4>
                 </Card>
+
+                {/* Paused Payment Banner */}
+                <div className="p-3.5 bg-amber-500/10 border border-amber-500/25 rounded-xl flex items-start gap-2.5 text-amber-600 dark:text-amber-400">
+                  <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-xs">Payment Gateway Notice</p>
+                    <p className="text-[10.5px] leading-relaxed text-muted-foreground">
+                      Online paid checkout is currently paused pending test credentials. Free course enrollments remain 100% available without payment.
+                    </p>
+                  </div>
+                </div>
 
                 {/* Coupons Section */}
                 <div className="space-y-2">

@@ -301,11 +301,25 @@ export function TutorProfileClient({
                     <h1 className="text-2xl font-heading font-extrabold text-foreground">
                       {tutor.fullName}
                     </h1>
-                    {tutor.verificationStatus === "ai_verified" && (
-                      <Badge variant="ai" className="text-white flex items-center gap-0.5 shadow-soft animate-pulse">
-                        <ShieldCheck size={11} className="fill-white text-emerald-500" />
-                        AI Verified
+                    {tutor.verificationStatus === "verified" || tutor.verificationStatus === "approved" || tutor.verificationStatus === "ai_verified" ? (
+                      <Badge variant="success" className="text-white flex items-center gap-1 shadow-soft">
+                        <ShieldCheck size={12} className="fill-white text-emerald-500" />
+                        Verified Student Tutor
                       </Badge>
+                    ) : tutor.verificationStatus === "pending" ? (
+                      <Badge variant="warning" className="text-amber-700 bg-amber-500/10 border border-amber-500/30 flex items-center gap-1">
+                        <Clock size={11} />
+                        Verification Pending
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">
+                        Profile Unverified
+                      </Badge>
+                    )}
+                    {tutor.id.startsWith("tutor-") && (
+                      <span className="text-[9px] font-extrabold uppercase bg-muted text-muted-foreground px-2 py-0.5 rounded border border-border/40">
+                        Sample Catalog Profile
+                      </span>
                     )}
                   </div>
                   <span className="text-[10px] uppercase font-bold text-muted-foreground/80 bg-muted px-2.5 py-0.5 rounded inline-block mt-1">

@@ -192,7 +192,10 @@ export function useMarketplace(categoryParam?: string, subjectParam?: string) {
         (c) =>
           c.title.toLowerCase().includes(query) ||
           c.category.toLowerCase().includes(query) ||
-          c.tutorName.toLowerCase().includes(query)
+          c.tutorName.toLowerCase().includes(query) ||
+          (c.description && c.description.toLowerCase().includes(query)) ||
+          (c.subjectId && c.subjectId.toLowerCase().includes(query)) ||
+          (c.level && c.level.toLowerCase().includes(query))
       )
       .slice(0, 5);
   }, [filters.searchQuery, coursesList]);
@@ -226,7 +229,22 @@ export function useMarketplace(categoryParam?: string, subjectParam?: string) {
         const matchesTitle = course.title.toLowerCase().includes(query);
         const matchesCategory = course.category.toLowerCase().includes(query);
         const matchesTutor = course.tutorName.toLowerCase().includes(query);
-        if (!matchesTitle && !matchesCategory && !matchesTutor) return false;
+        const matchesDescription = Boolean(course.description && course.description.toLowerCase().includes(query));
+        const matchesSubject = Boolean(
+          (course.subjectId && course.subjectId.toLowerCase().includes(query)) ||
+          (course.subjectName && course.subjectName.toLowerCase().includes(query))
+        );
+        const matchesLevel = Boolean(course.level && course.level.toLowerCase().includes(query));
+        if (
+          !matchesTitle &&
+          !matchesCategory &&
+          !matchesTutor &&
+          !matchesDescription &&
+          !matchesSubject &&
+          !matchesLevel
+        ) {
+          return false;
+        }
       }
 
       // Price type
