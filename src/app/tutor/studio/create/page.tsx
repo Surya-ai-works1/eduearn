@@ -181,22 +181,31 @@ export default function CreateCoursePage() {
         thumbnailUrl = await uploadFileToSupabase(thumbnailFile);
       }
 
-      await lmsDb.createCourse(activeSession.user.id, {
-        title,
-        subtitle: subTitle,
-        description,
-        category,
-        level,
-        thumbnail: thumbnailUrl || undefined,
-        price: parseFloat(price) || 0,
-        status: "draft",
+      const res = await fetch("/api/tutor/courses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          subtitle: subTitle,
+          description,
+          category,
+          level,
+          thumbnail: thumbnailUrl || undefined,
+          price: parseFloat(price) || 0,
+          status: "draft",
+        }),
       });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to create course");
+      }
 
       toast.success("Course created successfully as draft!");
       router.push("/tutor/studio");
     } catch (err: any) {
       console.error(err);
-      toast.error("Failed to create course");
+      toast.error(err.message || "Failed to create course");
     } finally {
       setSubmitting(false);
     }

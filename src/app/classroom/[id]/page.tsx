@@ -39,8 +39,9 @@ export default function ClassroomPage({ params }: PageProps) {
       try {
         const supabase = createClient();
         if (!supabase) {
-          // Dev / fallback mode
-          setIsAuthorized(true);
+          toast.error("Database connection unavailable. Classroom access denied.");
+          setIsAuthorized(false);
+          router.push(`/courses/${id}`);
           return;
         }
 
@@ -67,8 +68,10 @@ export default function ClassroomPage({ params }: PageProps) {
 
         setIsAuthorized(true);
       } catch (err) {
-        console.warn("Classroom authorization check fallback:", err);
-        setIsAuthorized(true); // Graceful fallback if unconfigured
+        console.error("Classroom authorization check failed:", err);
+        toast.error("Authorization check failed. Access denied.");
+        setIsAuthorized(false);
+        router.push(`/courses/${id}`);
       }
     };
 

@@ -864,7 +864,7 @@ export const StudentManager = React.memo(function StudentManager({
                         <span className="text-[10px] font-bold text-foreground shrink-0">{student.progress}%</span>
                       </div>
                     </td>
-                    <td className="p-3 text-center text-foreground font-bold">{student.attendance}%</td>
+                    <td className="p-3 text-center text-muted-foreground italic font-normal text-xs">N/A</td>
                     <td className="p-3 text-center text-muted-foreground font-semibold">{student.watchTime || "12h 45m"}</td>
                     <td className="p-3 text-center text-foreground">{student.assignmentsSubmitted}</td>
                     <td className="p-3 text-center text-foreground">{student.doubtSessionsCount || "2/4"}</td>
@@ -988,7 +988,7 @@ export const StudentManager = React.memo(function StudentManager({
                   </div>
                   <div>
                     <span className="text-[8px] font-black text-muted-foreground/60 uppercase block">Live Attendance</span>
-                    <span className="text-foreground">{student.attendance}% rate</span>
+                    <span className="text-muted-foreground italic">Not yet available</span>
                   </div>
                   <div>
                     <span className="text-[8px] font-black text-muted-foreground/60 uppercase block">Watch Time</span>

@@ -3,12 +3,10 @@
 import { ICourseDetailsRepository } from './ICourseDetailsRepository';
 import { Course } from '@/lib/types/course';
 import { lmsDb } from '@/lib/lmsDb';
-import { createClient } from '@/lib/supabase';
 
 /**
  * Supabase implementation for Course Details.
- * Retrieves course data and lessons from the database using the lmsDb abstraction.
- * Marking a lesson complete updates the enrollment progress for the current learner.
+ * Retrieves course data and lessons from database and manages authoritative DB lesson completion.
  */
 export class SupabaseCourseDetailsRepository implements ICourseDetailsRepository {
   private async getSupabase() {
@@ -55,6 +53,18 @@ export class SupabaseCourseDetailsRepository implements ICourseDetailsRepository
       resources: [],
     }));
 
+    const liveClasses: any[] = (dbCourse.live_classes || []).map((lc: any) => ({
+      id: lc.id,
+      title: lc.title,
+      description: lc.description || "",
+      scheduledAt: lc.scheduled_at,
+      duration: lc.duration || 60,
+      meetingLink: lc.meeting_link || "",
+      provider: lc.provider || "google_meet",
+      status: lc.status || "scheduled",
+      createdAt: lc.created_at,
+    }));
+
     return {
       id: dbCourse.id,
       title: dbCourse.title,
@@ -70,38 +80,88 @@ export class SupabaseCourseDetailsRepository implements ICourseDetailsRepository
       enrolledCount: 150,
       lastUpdated: dbCourse.created_at,
       lessons,
+      liveClasses,
     };
   }
 
-  // Mark a lesson as completed for the logged-in learner.
+  // Authoritative Lesson Completion: Records completed lesson ID in learning_progress and calculates exact progress
   async markLessonComplete(courseId: string, lessonId: string): Promise<void> {
     const supabase = await this.getSupabase();
-    if (!supabase) return; // Supabase not configured — skip silently.
+    if (!supabase) {
+      throw new Error("Supabase unconfigured");
+    }
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return; // No authenticated user — silently ignore.
+    if (!user) {
+      throw new Error("Unauthenticated user cannot complete lessons.");
+    }
 
-    // Fetch the current enrollment record for this learner and course.
+    // 1. Verify active enrollment
     const { data: enrollment, error: fetchErr } = await supabase
       .from('enrollments')
       .select('id, progress')
       .eq('learner_id', user.id)
       .eq('course_id', courseId)
-      .single();
-    if (fetchErr) throw fetchErr;
+      .maybeSingle();
 
-    // Derive lesson progress dynamically based on total course lessons count, ensuring 100% on final lesson.
-    const dbCourse = await lmsDb.getCourseById(courseId);
-    const totalLessons = Math.max(1, dbCourse?.lessons?.length || 10);
-    const step = 100 / totalLessons;
-    const currentProgress = enrollment?.progress ?? 0;
-    const rawProgress = currentProgress + step;
-    const newProgress = rawProgress >= 100 - (step / 2) ? 100 : Math.min(100, Math.round(rawProgress));
+    if (fetchErr || !enrollment) {
+      throw new Error("Active enrollment required to complete lessons.");
+    }
 
+    // 2. Verify lesson belongs to specified course
+    const { data: lesson, error: lessonErr } = await supabase
+      .from('lessons')
+      .select('id, course_id')
+      .eq('id', lessonId)
+      .maybeSingle();
+
+    if (lessonErr || !lesson || lesson.course_id !== courseId) {
+      throw new Error("Lesson does not belong to the specified course.");
+    }
+
+    // 3. Record lesson completion in database learning_progress (UNIQUE constraint on user_id, lesson_id prevents duplicate inflation)
+    await supabase
+      .from('learning_progress')
+      .upsert({
+        user_id: user.id,
+        course_id: courseId,
+        lesson_id: lessonId,
+        completed: true,
+        completed_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,lesson_id' });
+
+    // 4. Count total lessons for course
+    const { data: courseLessons } = await supabase
+      .from('lessons')
+      .select('id')
+      .eq('course_id', courseId);
+
+    const totalLessons = courseLessons?.length || 1;
+
+    // 5. Count distinct completed lessons for user in this course
+    const { data: completedProgress } = await supabase
+      .from('learning_progress')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('course_id', courseId)
+      .eq('completed', true);
+
+    const distinctCompleted = completedProgress?.length || 0;
+
+    // 6. Calculate exact progress percentage
+    const newProgress = distinctCompleted >= totalLessons
+      ? 100
+      : Math.min(100, Math.round((distinctCompleted / totalLessons) * 100));
+
+    // 7. Update enrollments record with authoritative percentage
     const { error: updateErr } = await supabase
       .from('enrollments')
-      .update({ progress: newProgress })
+      .update({
+        progress: newProgress,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', enrollment.id);
+
     if (updateErr) throw updateErr;
   }
 }

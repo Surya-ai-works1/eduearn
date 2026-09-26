@@ -79,28 +79,47 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Default Individual Course Submission
-    const { data, error } = await supabase.from("courses").insert({
-      tutor_id,
-      title,
-      subtitle,
-      description,
-      category,
-      subcategory,
-      product_type,
-      delivery_type,
-      base_price,
-      selling_price,
-      price: selling_price || base_price,
-      level: "Intermediate",
-      duration,
-      total_sessions,
-      sessions_per_month,
+    // Course Submission: Must update existing course record
+    const targetCourseId = body.id || body.course_id || body.courseId;
+    if (!targetCourseId) {
+      return NextResponse.json(
+        { error: "Missing required parameter (id, course_id, or courseId) of the existing course draft to submit." },
+        { status: 400 }
+      );
+    }
+
+    const { data: existingCourse, error: fetchErr } = await supabase
+      .from("courses")
+      .select("id, tutor_id, title")
+      .eq("id", targetCourseId)
+      .maybeSingle();
+
+    if (fetchErr || !existingCourse) {
+      return NextResponse.json({ error: "Course draft not found." }, { status: 404 });
+    }
+
+    if (existingCourse.tutor_id !== tutor_id) {
+      return NextResponse.json({ error: "Forbidden: You are not authorized to submit this course." }, { status: 403 });
+    }
+
+    const { data, error } = await supabase.from("courses").update({
+      title: title || existingCourse.title,
+      subtitle: subtitle || undefined,
+      description: description || undefined,
+      category: category || undefined,
+      subcategory: subcategory || undefined,
+      product_type: product_type || undefined,
+      delivery_type: delivery_type || undefined,
+      base_price: base_price || undefined,
+      selling_price: selling_price || undefined,
+      price: selling_price || base_price || undefined,
+      duration: duration || undefined,
+      total_sessions: total_sessions || undefined,
+      sessions_per_month: sessions_per_month || undefined,
       status: "draft",
       approval_status: "submitted",
-      created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    }).select().single();
+    }).eq("id", targetCourseId).select().single();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

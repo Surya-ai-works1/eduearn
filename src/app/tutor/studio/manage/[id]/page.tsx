@@ -207,11 +207,15 @@ export default function ManageCoursePage({ params }: PageProps) {
 
       if (error) throw error;
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: signedData, error: signedErr } = await supabase.storage
         .from("course-videos")
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 3600);
 
-      return publicUrl;
+      if (signedErr || !signedData?.signedUrl) {
+        return filePath;
+      }
+
+      return signedData.signedUrl;
     } catch (e: any) {
       console.warn("Storage upload failed, falling back to local file preview:", e);
       return URL.createObjectURL(file); // fallback to object URL

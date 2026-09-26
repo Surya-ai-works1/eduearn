@@ -29,6 +29,23 @@ export function UpcomingClasses({
 }: UpcomingClassesProps) {
   const router = useRouter();
 
+  const [nextClass, setNextClass] = React.useState<any | null>(null);
+
+  React.useEffect(() => {
+    async function loadNextClass() {
+      try {
+        const res = await fetch('/api/student/live-classes');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.liveClasses && data.liveClasses.length > 0) {
+            setNextClass(data.liveClasses[0]);
+          }
+        }
+      } catch (err) {}
+    }
+    loadNextClass();
+  }, []);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/60 pb-2">
@@ -47,39 +64,56 @@ export function UpcomingClasses({
         {/* Left block: Live classes countdown & interactive calendar */}
         <div className="space-y-6">
           {/* Live Countdown & Join card */}
-          <DashboardCard
-            variant="glass"
-            className="p-5 border-rose-500/20 bg-gradient-to-r from-rose-500/5 to-orange-500/5 dark:bg-slate-900/65 flex flex-col md:flex-row items-center justify-between gap-5 shadow-soft"
-          >
-            <div className="space-y-1.5 text-left w-full">
-              <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest bg-rose-500/10 px-2.5 py-1 rounded-full inline-block">
-                Starts In
-              </span>
-              <h4 className="text-2xl font-heading font-black text-slate-800 dark:text-slate-100 mt-1.5">
-                {formattedCountdown}
-              </h4>
-              <p className="text-xs text-slate-700 dark:text-slate-350 font-bold">
-                🎹 Keyboard Practice Session with Aarav Sharma
-              </p>
-              <div className="flex items-center gap-4 text-[10px] text-slate-500 dark:text-slate-400 mt-2 font-medium">
-                <span>Teacher: Aarav Sharma</span>
-                <span>·</span>
-                <span>Duration: 60 mins</span>
+          {nextClass ? (
+            <DashboardCard
+              variant="glass"
+              className="p-5 border-rose-500/20 bg-gradient-to-r from-rose-500/5 to-orange-500/5 dark:bg-slate-900/65 flex flex-col md:flex-row items-center justify-between gap-5 shadow-soft"
+            >
+              <div className="space-y-1.5 text-left w-full">
+                <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest bg-rose-500/10 px-2.5 py-1 rounded-full inline-block">
+                  Upcoming Live Session
+                </span>
+                <h4 className="text-lg font-heading font-bold text-slate-800 dark:text-slate-100 mt-1.5">
+                  {nextClass.title}
+                </h4>
+                <p className="text-xs text-slate-700 dark:text-slate-350 font-medium">
+                  Course: {nextClass.courseTitle}
+                </p>
+                <div className="flex items-center gap-4 text-[10px] text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                  <span>Scheduled: {new Date(nextClass.scheduledAt).toLocaleString("en-IN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                  <span>·</span>
+                  <span>Duration: {nextClass.duration} mins</span>
+                </div>
               </div>
-            </div>
 
-            <div className="shrink-0 flex flex-col gap-2 w-full md:w-auto">
-              <Button
-                onClick={() => navigateToClassroom(router, "live-keyboard")}
-                className="bg-rose-500 hover:bg-rose-600 border-rose-500 text-white gap-2 text-xs h-10 w-full md:w-auto font-bold rounded-xl"
-              >
-                <Calendar size={14} /> Join Live Class
-              </Button>
-              <span className="text-[9px] text-slate-400 dark:text-slate-500 text-center flex items-center justify-center gap-1 font-semibold">
-                <Activity size={10} className="text-emerald-500" /> Hosted on Google Meet classroom
-              </span>
-            </div>
-          </DashboardCard>
+              <div className="shrink-0 flex flex-col gap-2 w-full md:w-auto">
+                <Button
+                  onClick={() => {
+                    if (nextClass.meetingLink) {
+                      window.open(nextClass.meetingLink, "_blank", "noopener,noreferrer");
+                    } else {
+                      router.push(`/student/course/${nextClass.courseId}`);
+                    }
+                  }}
+                  className="bg-rose-500 hover:bg-rose-600 border-rose-500 text-white gap-2 text-xs h-10 w-full md:w-auto font-bold rounded-xl"
+                >
+                  <Calendar size={14} /> Join Live Class
+                </Button>
+                <span className="text-[9px] text-slate-400 dark:text-slate-500 text-center flex items-center justify-center gap-1 font-semibold">
+                  <Activity size={10} className="text-emerald-500" /> Provider: {nextClass.provider === "zoom" ? "Zoom" : "Google Meet"}
+                </span>
+              </div>
+            </DashboardCard>
+          ) : (
+            <DashboardCard
+              variant="default"
+              className="p-5 border-slate-200/60 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-900/40 text-center py-6"
+            >
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                No live classes currently scheduled for your enrolled courses.
+              </p>
+            </DashboardCard>
+          )}
 
           {/* Interactive Calendar view details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

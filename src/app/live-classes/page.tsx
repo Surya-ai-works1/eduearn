@@ -99,47 +99,49 @@ export default function LiveClassesPage() {
   const [filter, setFilter] = useState<"all" | "live" | "scheduled">("all");
   const [sessions, setSessions] = useState<LiveClass[]>([]);
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const loadSessions = () => {
-      const savedStr = localStorage.getItem("eduearn_live_classes");
-      const defaults = MOCK_LIVE_SESSIONS;
-      if (savedStr) {
-        try {
-          const parsed = JSON.parse(savedStr) as any[];
-          const dynamicList = parsed.map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            tutorName: "Sneha Iyer (Verified Tutor)",
-            category: item.platform === "Zoom" ? "Creative Media" : "Technology",
-            time: item.time,
-            duration: "60 mins",
-            status: item.status === "Cancelled" ? "scheduled" as const : "live" as const,
-            participantsCount: 12,
-            platform: item.platform,
-            meetingLink: item.meetingLink,
-            password: item.password,
-            recordingUrl: item.recordingUrl,
-            attachments: item.attachments,
-            notes: item.notes,
-            cancelled: item.status === "Cancelled"
-          }));
-          
-          // Filter out cancelled classes
-          const activeDynamics = dynamicList.filter((d: any) => !d.cancelled);
-          setSessions([...activeDynamics, ...defaults]);
-        } catch {
-          setSessions(defaults);
+    async function fetchLiveClasses() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/student/live-classes');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.liveClasses && Array.isArray(data.liveClasses)) {
+            const mapped: LiveClass[] = data.liveClasses.map((item: any) => ({
+              id: item.id,
+              title: item.title,
+              tutorName: item.courseTitle || "Verified Educator",
+              category: item.provider === "zoom" ? "Zoom Class" : "Google Meet Class",
+              time: item.scheduledAt ? new Date(item.scheduledAt).toLocaleString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              }) : "Scheduled",
+              duration: `${item.duration || 60} mins`,
+              status: item.status === "live" ? "live" : "scheduled",
+              participantsCount: 0,
+              platform: item.provider === "zoom" ? "Zoom" : "Google Meet",
+              meetingLink: item.meetingLink || "",
+              notes: item.description || "",
+            }));
+            setSessions(mapped);
+            return;
+          }
         }
-      } else {
-        setSessions(defaults);
+        setSessions([]);
+      } catch (err) {
+        console.warn("Failed to fetch live classes from API:", err);
+        setSessions([]);
+      } finally {
+        setLoading(false);
       }
-    };
+    }
 
-    loadSessions();
-    window.addEventListener("storage", loadSessions);
-    return () => window.removeEventListener("storage", loadSessions);
+    fetchLiveClasses();
   }, []);
 
   const filteredSessions = sessions.filter((s) => {

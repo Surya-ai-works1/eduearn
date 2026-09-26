@@ -211,7 +211,7 @@ export const lmsDb = {
       .insert({
         tutor_id: tutorId,
         ...courseData,
-        approval_status: "approved", // auto-approve in dev/test environment
+        approval_status: "pending",
       })
       .select()
       .single();

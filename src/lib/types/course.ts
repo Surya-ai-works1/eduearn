@@ -32,4 +32,5 @@ export interface Course {
   enrolledCount: number;
   lastUpdated: string; // ISO date string
   lessons: Lesson[];
+  liveClasses?: any[];
 }

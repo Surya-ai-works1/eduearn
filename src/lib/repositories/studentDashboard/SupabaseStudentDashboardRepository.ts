@@ -89,23 +89,25 @@ export class SupabaseStudentDashboardRepository {
       blockchainHash: `0x${e.id.replace(/-/g, "").substring(0, 16)}`,
     }));
 
-    // 5️⃣ Assignments.
-    const { data: assignmentsRaw } = await supabase
-      .from('assignments')
-      .select('*')
-      .eq('learner_id', userId);
-    const assignments = (assignmentsRaw ?? []).map((a: any) => ({
-      id: a.id,
-      courseTitle: a.course_title,
-      title: a.title,
-      dueDate: a.due_date,
-      status: a.status,
-      grade: a.grade,
-      feedback: a.feedback,
-      prompt: a.prompt,
+    // 5️⃣ Assignments – Authoritative student submissions query via student_id (protects IDOR boundary)
+    const { data: submissionsRaw } = await supabase
+      .from('assignment_submissions')
+      .select('*, assignments(*, courses(title))')
+      .eq('student_id', userId);
+
+    const assignments = (submissionsRaw ?? []).map((s: any) => ({
+      id: s.id,
+      assignmentId: s.assignment_id,
+      courseTitle: s.assignments?.courses?.title || s.assignments?.course_title || "Enrolled Course",
+      title: s.assignments?.title || "Course Assignment",
+      dueDate: s.assignments?.due_date || "N/A",
+      status: s.status || "Submitted",
+      grade: s.grade,
+      feedback: s.feedback,
+      prompt: s.assignments?.description || "",
     }));
 
-    // 6️⃣ Weekly quizzes – static data (mirrors the mock version).
+    // 6️⃣ Weekly quizzes – Platform Practice Challenge Quizzes
     const weeklyQuizzes = [
       {
         id: "wq-math",
@@ -115,6 +117,7 @@ export class SupabaseStudentDashboardRepository {
         questionsCount: 3,
         timeLimit: "3 mins",
         rewardCoins: 50,
+        isPlatformChallenge: true,
         questions: [],
       },
       {
@@ -125,6 +128,7 @@ export class SupabaseStudentDashboardRepository {
         questionsCount: 3,
         timeLimit: "2 mins",
         rewardCoins: 40,
+        isPlatformChallenge: true,
         questions: [],
       },
       {
@@ -135,6 +139,7 @@ export class SupabaseStudentDashboardRepository {
         questionsCount: 3,
         timeLimit: "3 mins",
         rewardCoins: 60,
+        isPlatformChallenge: true,
         questions: [],
       },
       {
@@ -145,6 +150,7 @@ export class SupabaseStudentDashboardRepository {
         questionsCount: 3,
         timeLimit: "3 mins",
         rewardCoins: 50,
+        isPlatformChallenge: true,
         questions: [],
       },
     ];

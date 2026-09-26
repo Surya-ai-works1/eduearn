@@ -148,7 +148,7 @@ export function MyCoursesTab({
                     </Button>
                   )}
                   <Button
-                    onClick={() => router.push(`/student/courses/${course.id}/learn`)}
+                    onClick={() => router.push(`/student/course/${course.id}/lesson/default`)}
                     size="sm"
                     className="h-8 gap-1 text-[10px] font-bold rounded-xl"
                   >

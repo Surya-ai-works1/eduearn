@@ -114,7 +114,7 @@ export class SupabaseCourseManagementRepository implements ICourseManagementRepo
         thumbnail: courseData.thumbnail,
         price: courseData.price,
         status: courseData.status,
-        approval_status: courseData.status === "published" ? "approved" : "pending",
+        approval_status: "pending",
       })
       .select()
       .single();
