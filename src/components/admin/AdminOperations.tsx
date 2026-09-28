@@ -139,13 +139,24 @@ export function AdminUsersOperations() {
   );
 }
 
+type TeacherAssignmentRecord = {
+  id: string;
+  teacherId: string;
+  teacherName: string;
+  academy: string;
+  academicYear: string;
+  board: string;
+  class: string;
+  section: string;
+  subject: string;
+};
+
 function TeacherAssignmentsManager({ users }: { users: AdminUser[] }) {
   const tutors = useMemo(() => users.filter((u) => u.role === "tutor"), [users]);
 
-  const [assignments, setAssignments] = useState([
-    { id: "ta-1", teacherId: "user-tutor-1", teacherName: "Rahul Sharma", academy: "School Tuition", academicYear: "2026-27", board: "CBSE", class: "Class 10", section: "Section A", subject: "Mathematics" },
-    { id: "ta-2", teacherId: "user-tutor-2", teacherName: "Neha Gupta", academy: "School Tuition", academicYear: "2026-27", board: "CBSE", class: "Class 9", section: "Section B", subject: "Science" }
-  ]);
+  const [assignments, setAssignments] = useState<TeacherAssignmentRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   // Form State
   const [selectedTutorId, setSelectedTutorId] = useState("");
@@ -158,7 +169,48 @@ function TeacherAssignmentsManager({ users }: { users: AdminUser[] }) {
 
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleAddAssignment = (e: React.FormEvent) => {
+  // Fetch persisted assignments from Supabase system_settings table
+  const fetchAssignments = useCallback(async () => {
+    setLoading(true);
+    try {
+      const supabase = createClient();
+      if (!supabase) return;
+      const { data, error } = await supabase
+        .from("system_settings")
+        .select("system_version")
+        .eq("id", "teacher_assignments")
+        .maybeSingle();
+
+      if (error && error.code !== "PGRST116") {
+        console.warn("Could not fetch teacher assignments from DB:", error.message);
+        return;
+      }
+      if (data?.system_version) {
+        try {
+          const parsed = JSON.parse(data.system_version);
+          if (Array.isArray(parsed)) {
+            setAssignments(parsed);
+          }
+        } catch {
+          setAssignments([]);
+        }
+      } else {
+        setAssignments([]);
+      }
+    } catch (err) {
+      console.warn("Error loading teacher assignments:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchAssignments();
+    }
+  }, [isOpen, fetchAssignments]);
+
+  const handleAddAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTutorId) {
       toast.error("Please select a teacher/tutor.");
@@ -167,7 +219,7 @@ function TeacherAssignmentsManager({ users }: { users: AdminUser[] }) {
     const tutorObj = tutors.find((t) => t.id === selectedTutorId);
     if (!tutorObj) return;
 
-    const newAssignment = {
+    const newAssignment: TeacherAssignmentRecord = {
       id: `ta-${Date.now()}`,
       teacherId: selectedTutorId,
       teacherName: tutorObj.name,
@@ -179,14 +231,50 @@ function TeacherAssignmentsManager({ users }: { users: AdminUser[] }) {
       subject: selectedSubject
     };
 
-    setAssignments((prev) => [newAssignment, ...prev]);
-    toast.success("Teacher subject assignment added successfully!");
-    setSelectedTutorId("");
+    const updated = [newAssignment, ...assignments];
+    setBusy(true);
+
+    try {
+      const supabase = createClient();
+      if (supabase) {
+        const { error } = await supabase.from("system_settings").upsert({
+          id: "teacher_assignments",
+          system_version: JSON.stringify(updated),
+          updated_at: new Date().toISOString()
+        });
+        if (error) throw new Error(error.message);
+      }
+      setAssignments(updated);
+      toast.success("Teacher subject assignment added & saved to database!");
+      setSelectedTutorId("");
+    } catch (err: any) {
+      toast.error(`Failed to persist assignment: ${err?.message || "DB error"}`);
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const handleDeleteAssignment = (id: string) => {
-    setAssignments((prev) => prev.filter((a) => a.id !== id));
-    toast.success("Assignment deleted.");
+  const handleDeleteAssignment = async (id: string) => {
+    const updated = assignments.filter((a) => a.id !== id);
+    setBusy(true);
+
+    try {
+      const supabase = createClient();
+      if (supabase) {
+        const { error } = await supabase.from("system_settings").upsert({
+          id: "teacher_assignments",
+          system_version: JSON.stringify(updated),
+          updated_at: new Date().toISOString()
+        });
+        if (error) throw new Error(error.message);
+      }
+      setAssignments(updated);
+      toast.success("Assignment deleted from database.");
+    } catch (err: any) {
+      toast.error(`Failed to delete assignment: ${err?.message || "DB error"}`);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (

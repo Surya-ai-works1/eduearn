@@ -12,10 +12,11 @@ import { Button } from "../../../../../components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "../../../../../hooks/useAuth";
 
+import { createClient } from "@/lib/supabase";
+
 // Academic Store Imports
 import { 
   Course, Student, TutorMetrics, GradeRecord, AttendanceRecord, Exam, Question, ResourceItem, StudentRiskSummary,
-  seedCourses, seedStudents, seedTutorMetrics, seedGrades, seedAttendance, seedExams, seedQuestions, seedResources, seedRiskSummaries,
   recalculateRisk
 } from "./AcademicOperationsStore";
 
@@ -93,29 +94,117 @@ export default function CoursesTab({
   const [drawerStudent, setDrawerStudent] = useState<Student | null>(null);
   const [drawerCourse, setDrawerCourse] = useState<Course | null>(null);
 
-  // Load datasets from localStorage on mount
+  // Load datasets directly from Supabase DB on mount
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    let isMounted = true;
 
-    const getOrSeed = (key: string, seedFn: () => any) => {
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        try { return JSON.parse(stored); } catch {}
+    async function loadAcademicData() {
+      try {
+        const supabase = createClient();
+        if (!supabase) return;
+
+        // 1. Courses from DB
+        const { data: dbCourses } = await supabase.from("courses").select("*, profiles:tutor_id(full_name)");
+        if (dbCourses && isMounted) {
+          const mappedCourses: Course[] = dbCourses.map((c: any) => ({
+            id: c.id,
+            code: c.slug || `CRS-${c.id.slice(0, 6).toUpperCase()}`,
+            title: c.title,
+            category: c.category || "General",
+            tutorId: c.tutor_id || "",
+            tutorName: (c.profiles as any)?.full_name || "Tutor",
+            price: c.price || 0,
+            status: c.status === "published" || c.status === "Approved" ? "Published" : c.status === "draft" ? "Draft" : c.status === "archived" ? "Archived" : "Under Review",
+            healthScore: 90,
+            version: "v1.0.0",
+            dependencies: [],
+            completionRate: 0,
+            revenue: 0,
+            revisionTimeline: [
+              { date: c.created_at ? new Date(c.created_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0], actor: "System", change: "DB Loaded" }
+            ]
+          }));
+          setCourses(mappedCourses);
+        }
+
+        // 2. Enrollments / Students from DB
+        const { data: dbEnrollments } = await supabase.from("enrollments").select("*, profiles:learner_id(full_name, email)");
+        if (dbEnrollments && isMounted) {
+          const mappedStudents: Student[] = dbEnrollments.map((e: any) => ({
+            id: e.learner_id,
+            name: (e.profiles as any)?.full_name || "Student Learner",
+            email: (e.profiles as any)?.email || "",
+            courseId: e.course_id,
+            batch: "Batch A",
+            mentorName: "Tutor",
+            progress: e.progress || 0,
+            certificateIssued: Boolean(e.certificate_url)
+          }));
+          setStudents(mappedStudents);
+        }
+
+        // 3. Tutors from DB
+        const { data: dbTutors } = await supabase.from("profiles").select("*").eq("role", "tutor");
+        if (dbTutors && isMounted) {
+          const mappedTutors: TutorMetrics[] = dbTutors.map((t: any) => ({
+            tutorId: t.id,
+            tutorName: t.full_name || t.display_name || "Tutor",
+            teachingHours: 0,
+            courseCount: 0,
+            avgRating: 5.0,
+            attendanceRate: 100,
+            avgReviewTime: 12,
+            responseTime: 4,
+            revenue: 0,
+            liveClassesCount: 0,
+            satisfactionRate: 100,
+            lateReviewsCount: 0,
+            needsImprovement: false,
+            topPerformer: true
+          }));
+          setTutors(mappedTutors);
+        }
+
+        // 4. Attendance from DB
+        const { data: dbAttendance } = await supabase.from("attendance").select("*");
+        if (dbAttendance && isMounted) {
+          const mappedAttendance: AttendanceRecord[] = dbAttendance.map((a: any) => ({
+            studentId: a.student_id,
+            courseId: a.course_id,
+            date: a.date,
+            status: a.status as any,
+            type: "Daily"
+          }));
+          setAttendance(mappedAttendance);
+        }
+
+        // 5. Quizzes / Exams from DB
+        const { data: dbQuizzes } = await supabase.from("quizzes").select("*");
+        if (dbQuizzes && isMounted) {
+          const mappedExams: Exam[] = dbQuizzes.map((q: any) => ({
+            id: q.id,
+            courseId: q.course_id,
+            title: q.title,
+            category: "Quiz",
+            topic: q.title,
+            difficulty: "Medium",
+            maxMarks: 100,
+            negativeMarking: false,
+            durationMinutes: 45,
+            attemptLimit: 1,
+            examWindowStart: q.created_at ? new Date(q.created_at).toISOString().split("T")[0] : "",
+            examWindowEnd: "",
+            published: true
+          }));
+          setExams(mappedExams);
+        }
+      } catch (err) {
+        console.warn("Failed to load academic data from Supabase DB:", err);
       }
-      const data = seedFn();
-      localStorage.setItem(key, JSON.stringify(data));
-      return data;
-    };
+    }
 
-    setCourses(getOrSeed("eduearn_academic_courses", seedCourses));
-    setStudents(getOrSeed("eduearn_academic_students", seedStudents));
-    setTutors(getOrSeed("eduearn_academic_tutors", seedTutorMetrics));
-    setGrades(getOrSeed("eduearn_academic_grades", seedGrades));
-    setAttendance(getOrSeed("eduearn_academic_attendance", seedAttendance));
-    setExams(getOrSeed("eduearn_academic_exams", seedExams));
-    setQuestions(getOrSeed("eduearn_academic_questions", seedQuestions));
-    setResources(getOrSeed("eduearn_academic_resources", seedResources));
-    setRisks(getOrSeed("eduearn_academic_risks", seedRiskSummaries));
+    loadAcademicData();
+    return () => { isMounted = false; };
   }, []);
 
   // Save changes to localStorage + propagate course updates to legacy parent states

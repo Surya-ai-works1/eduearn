@@ -2,7 +2,7 @@ import React, { Suspense } from "react";
 import { CheckoutClient } from "./CheckoutClient";
 import { PageWrapper } from "../../components/layout/PageWrapper";
 import { Loader2 } from "lucide-react";
-import { parseValidAmount, resolveCheckoutAmount } from "../../utils/checkoutAmountResolver";
+import { getAuthoritativeCoursePrice } from "../../utils/checkoutAmountResolver";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +37,10 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
     ? resolvedSearchParams.batchId[0] || "Morning Batch"
     : "Morning Batch";
 
-  const rawAmount = resolvedSearchParams.amount;
-  const parsedAmount = parseValidAmount(rawAmount);
-  const finalAmount = resolveCheckoutAmount(parsedAmount, courseId);
+  // Authoritatively resolve base course price from Supabase database.
+  // Client URL query parameter ?amount= is explicitly ignored to enforce server price authority.
+  const dbPrice = await getAuthoritativeCoursePrice(courseId);
+  const finalAmount = dbPrice !== null ? dbPrice : 0;
 
   const platform = typeof resolvedSearchParams.platform === "string"
     ? resolvedSearchParams.platform

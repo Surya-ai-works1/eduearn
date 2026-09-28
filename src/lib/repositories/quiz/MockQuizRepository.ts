@@ -1,7 +1,7 @@
 // src/lib/repositories/quiz/MockQuizRepository.ts
 
 import { IQuizRepository } from "./IQuizRepository";
-import { Quiz, QuizAttempt } from "../../types/quiz";
+import { Quiz, QuizAttempt, Question } from "../../types/quiz";
 
 const MOCK_QUIZZES: Quiz[] = [
   {
@@ -110,6 +110,14 @@ const MOCK_QUIZZES: Quiz[] = [
   }
 ];
 
+function sanitizeQuiz(quiz: Quiz, includeAnswers: boolean): Quiz {
+  if (includeAnswers) return quiz;
+  return {
+    ...quiz,
+    questions: quiz.questions.map(({ correctAnswer, ...rest }) => rest as Question)
+  };
+}
+
 export class MockQuizRepository implements IQuizRepository {
   private getLocalEnrollmentCourseIds(): string[] {
     if (typeof window === "undefined") return [];
@@ -120,7 +128,6 @@ export class MockQuizRepository implements IQuizRepository {
         return list.map((e: any) => e.courseId);
       }
     } catch {}
-    // Fallback to python, keyboard, and prompt courses
     return ["course-python", "course-keyboard", "course-prompt"];
   }
 
@@ -140,12 +147,14 @@ export class MockQuizRepository implements IQuizRepository {
 
   async getQuizzesByStudent(_studentId: string): Promise<Quiz[]> {
     const enrolledIds = this.getLocalEnrollmentCourseIds();
-    return MOCK_QUIZZES.filter((q) => enrolledIds.includes(q.courseId));
+    const filtered = MOCK_QUIZZES.filter((q) => enrolledIds.includes(q.courseId));
+    return filtered.map((q) => sanitizeQuiz(q, false));
   }
 
-  async getQuizById(id: string): Promise<Quiz | null> {
+  async getQuizById(id: string, includeAnswers = false): Promise<Quiz | null> {
     const found = MOCK_QUIZZES.find((q) => q.id === id);
-    return found || null;
+    if (!found) return null;
+    return sanitizeQuiz(found, includeAnswers);
   }
 
   async getAttemptsByStudent(studentId: string): Promise<QuizAttempt[]> {
@@ -155,7 +164,6 @@ export class MockQuizRepository implements IQuizRepository {
 
   async getAttempt(studentId: string, quizId: string): Promise<QuizAttempt | null> {
     const list = this.getLocalAttempts();
-    // Return latest attempt
     const found = list
       .filter((a) => a.studentId === studentId && a.quizId === quizId)
       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());

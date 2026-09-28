@@ -11,8 +11,24 @@ async function getSupabaseClient() {
   return createBrowserClient();
 }
 
-
 export class SupabaseEnrollmentRepository implements IEnrollmentRepository {
+  private async getCompletedLessonsFromDb(supabase: any, studentId: string, courseId: string): Promise<string[]> {
+    try {
+      const { data, error } = await supabase
+        .from('learning_progress')
+        .select('lesson_id')
+        .eq('user_id', studentId)
+        .eq('course_id', courseId)
+        .eq('completed', true);
+
+      if (error || !data) return [];
+      return data.map((r: any) => r.lesson_id);
+    } catch (err) {
+      console.warn("Failed to fetch learning_progress from database:", err);
+      return [];
+    }
+  }
+
   private async attachCourseDetails(supabase: any, enrollment: Enrollment): Promise<Enrollment> {
     try {
       const { data: dbCourse } = await supabase
@@ -80,6 +96,7 @@ export class SupabaseEnrollmentRepository implements IEnrollmentRepository {
 
     if (findErr) throw findErr;
     if (existing) {
+      const completedLessons = await this.getCompletedLessonsFromDb(supabase, studentId, courseId);
       const enrollment = {
         id: existing.id,
         studentId: existing.learner_id,
@@ -87,7 +104,7 @@ export class SupabaseEnrollmentRepository implements IEnrollmentRepository {
         enrolledAt: existing.created_at,
         status: ((existing.progress ?? 0) >= 100 ? 'completed' : 'active') as 'completed' | 'active',
         progressPercent: Number(existing.progress ?? 0),
-        completedLessons: [],
+        completedLessons,
       };
       return await this.attachCourseDetails(supabase, enrollment);
     }
@@ -153,14 +170,8 @@ export class SupabaseEnrollmentRepository implements IEnrollmentRepository {
     if (error) throw error;
     if (!data) return null;
 
-    let completedLessons: string[] = [];
-    if (typeof window !== 'undefined') {
-      const key = `eduearn_progress_${courseId}`;
-      try {
-        const local = localStorage.getItem(key);
-        if (local) completedLessons = JSON.parse(local);
-      } catch {}
-    }
+    // Authoritative lesson completion from learning_progress database table
+    const completedLessons = await this.getCompletedLessonsFromDb(supabase, studentId, courseId);
 
     const enrollment = {
       id: data.id,
@@ -182,18 +193,23 @@ export class SupabaseEnrollmentRepository implements IEnrollmentRepository {
       .eq('learner_id', studentId);
 
     if (error) throw error;
-    if (!data) return [];
+    if (!data || data.length === 0) return [];
+
+    // Batch fetch all learning_progress records for studentId
+    const { data: allProgress } = await supabase
+      .from('learning_progress')
+      .select('course_id, lesson_id')
+      .eq('user_id', studentId)
+      .eq('completed', true);
+
+    const progressByCourse: Record<string, string[]> = {};
+    (allProgress || []).forEach((r: any) => {
+      if (!progressByCourse[r.course_id]) progressByCourse[r.course_id] = [];
+      progressByCourse[r.course_id].push(r.lesson_id);
+    });
 
     const mapped = data.map((item: any) => {
-      let completedLessons: string[] = [];
-      if (typeof window !== 'undefined') {
-        const key = `eduearn_progress_${item.course_id}`;
-        try {
-          const local = localStorage.getItem(key);
-          if (local) completedLessons = JSON.parse(local);
-        } catch {}
-      }
-
+      const completedLessons = progressByCourse[item.course_id] || [];
       return {
         id: item.id,
         studentId: item.learner_id,
@@ -212,10 +228,12 @@ export class SupabaseEnrollmentRepository implements IEnrollmentRepository {
     studentId: string,
     courseId: string,
     lastLessonId: string,
-    completedLessons: string[],
-    progressPercent: number
+    _completedLessonsInput?: string[],
+    _progressPercentInput?: number
   ): Promise<Enrollment> {
     const supabase = await getSupabaseClient();
+    
+    // 1. Verify active enrollment
     const { data: enrollment, error: fetchErr } = await supabase
       .from('enrollments')
       .select('id')
@@ -223,22 +241,58 @@ export class SupabaseEnrollmentRepository implements IEnrollmentRepository {
       .eq('course_id', courseId)
       .single();
 
-    if (fetchErr) throw fetchErr;
+    if (fetchErr || !enrollment) throw new Error("Active enrollment required to update progress.");
 
+    // 2. Authoritative lesson completion upsert in learning_progress
+    if (lastLessonId) {
+      const { data: lesson } = await supabase
+        .from('lessons')
+        .select('id, course_id')
+        .eq('id', lastLessonId)
+        .maybeSingle();
+
+      if (lesson && lesson.course_id === courseId) {
+        await supabase
+          .from('learning_progress')
+          .upsert({
+            user_id: studentId,
+            course_id: courseId,
+            lesson_id: lastLessonId,
+            completed: true,
+            completed_at: new Date().toISOString(),
+          }, { onConflict: 'user_id,lesson_id' });
+      }
+    }
+
+    // 3. Count total course lessons from database
+    const { data: courseLessons } = await supabase
+      .from('lessons')
+      .select('id')
+      .eq('course_id', courseId);
+
+    const totalLessons = courseLessons?.length || 1;
+
+    // 4. Fetch authoritative completed lessons from DB
+    const completedLessons = await this.getCompletedLessonsFromDb(supabase, studentId, courseId);
+    const distinctCompleted = completedLessons.length;
+
+    // 5. Calculate exact authoritative percentage
+    const newProgress = distinctCompleted >= totalLessons
+      ? 100
+      : Math.min(100, Math.round((distinctCompleted / totalLessons) * 100));
+
+    // 6. Update enrollments record with authoritative percentage
     const { data: updated, error: updateErr } = await supabase
       .from('enrollments')
-      .update({ progress: progressPercent })
+      .update({
+        progress: newProgress,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', enrollment.id)
       .select()
       .single();
 
     if (updateErr) throw updateErr;
-
-    // Update local storage too if on client side
-    if (typeof window !== 'undefined') {
-      const key = `eduearn_progress_${courseId}`;
-      localStorage.setItem(key, JSON.stringify(completedLessons));
-    }
 
     const res = {
       id: updated.id,

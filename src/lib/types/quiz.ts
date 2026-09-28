@@ -6,7 +6,7 @@ export interface Question {
   type: "single" | "multiple";
   question: string;
   options: string[];
-  correctAnswer: number | number[]; // index or indices (e.g. 0, or [0, 2])
+  correctAnswer?: number | number[]; // index or indices (e.g. 0, or [0, 2]) - ONLY present during server-side grading / tutor management
   marks: number;
 }
 

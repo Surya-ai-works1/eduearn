@@ -23,7 +23,7 @@ export class QuizService {
   }
 
   async getQuizDetails(id: string): Promise<Quiz | null> {
-    return QuizRepository.getQuizById(id);
+    return QuizRepository.getQuizById(id, false);
   }
 
   async submitQuiz(
@@ -31,7 +31,8 @@ export class QuizService {
     quizId: string,
     answers: Record<string, number | number[]>
   ): Promise<{ attempt: QuizAttempt; correctAnswers: Record<string, number | number[]> }> {
-    const quiz = await QuizRepository.getQuizById(quizId);
+    // SECURITY: Pass includeAnswers = true for server-side grading ONLY
+    const quiz = await QuizRepository.getQuizById(quizId, true);
     if (!quiz) throw new Error("Quiz not found");
 
     let totalMarks = 0;
@@ -39,12 +40,14 @@ export class QuizService {
     const correctAnswers: Record<string, number | number[]> = {};
 
     quiz.questions.forEach((q) => {
-      correctAnswers[q.id] = q.correctAnswer;
+      if (q.correctAnswer !== undefined) {
+        correctAnswers[q.id] = q.correctAnswer;
+      }
       const questionWeight = q.marks || 10;
       totalMarks += questionWeight;
 
       const studentAns = answers[q.id];
-      if (studentAns !== undefined) {
+      if (studentAns !== undefined && q.correctAnswer !== undefined) {
         if (q.type === "multiple") {
           // Compare arrays of options selected
           const keyArray = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer as number];

@@ -45,7 +45,7 @@ export class SupabaseQuizRepository implements IQuizRepository {
         type: q.type || "single",
         question: q.question || "Practice question",
         options: Array.isArray(q.options) ? q.options : [],
-        correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : (q.correctAnswerIdx !== undefined ? q.correctAnswerIdx : 0),
+        // SECURITY: correctAnswer excluded from student GET payload
         marks: q.marks || 10,
       }));
 
@@ -63,7 +63,7 @@ export class SupabaseQuizRepository implements IQuizRepository {
     });
   }
 
-  async getQuizById(id: string): Promise<Quiz | null> {
+  async getQuizById(id: string, includeAnswers = false): Promise<Quiz | null> {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     if (!isUuid) return null;
 
@@ -78,15 +78,21 @@ export class SupabaseQuizRepository implements IQuizRepository {
     if (!item) return null;
 
     const rawQuestions: any[] = Array.isArray(item.questions) ? item.questions : [];
-    const questions: Question[] = rawQuestions.map((q: any, index: number) => ({
-      id: q.id || `q-${item.id}-${index}`,
-      quizId: item.id,
-      type: q.type || "single",
-      question: q.question || "Practice question",
-      options: Array.isArray(q.options) ? q.options : [],
-      correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : (q.correctAnswerIdx !== undefined ? q.correctAnswerIdx : 0),
-      marks: q.marks || 10,
-    }));
+    const questions: Question[] = rawQuestions.map((q: any, index: number) => {
+      const qObj: Question = {
+        id: q.id || `q-${item.id}-${index}`,
+        quizId: item.id,
+        type: q.type || "single",
+        question: q.question || "Practice question",
+        options: Array.isArray(q.options) ? q.options : [],
+        marks: q.marks || 10,
+      };
+      // SECURITY: includeAnswers = true strictly for server-side grading / tutor management
+      if (includeAnswers) {
+        qObj.correctAnswer = q.correctAnswer !== undefined ? q.correctAnswer : (q.correctAnswerIdx !== undefined ? q.correctAnswerIdx : 0);
+      }
+      return qObj;
+    });
 
     return {
       id: item.id,

@@ -1,4 +1,4 @@
-import { MOCK_COURSES } from "../constants/mockData";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Parses and validates raw input into a positive, finite integer amount.
@@ -34,31 +34,41 @@ export function parseValidAmount(input: unknown): number | null {
 }
 
 /**
- * Deterministically resolves the checkout base price between server and client.
- * Priority order:
- * 1. Valid numeric amount passed via URL query parameter
- * 2. Valid course price from MOCK_COURSES for the given courseId
- * 3. Legitimate default fallback amount (900)
+ * Server-Authoritative Database Course Price Resolver.
+ * Resolves official selling_price / price directly from Supabase courses table.
+ * Never accepts client-provided URL params or MOCK_COURSES fallbacks for price authority.
+ */
+export async function getAuthoritativeCoursePrice(
+  courseId: string | null | undefined
+): Promise<number | null> {
+  if (!courseId) return null;
+  try {
+    const admin = createAdminClient();
+    const { data: dbCourse } = await admin
+      .from("courses")
+      .select("price, selling_price")
+      .eq("id", courseId)
+      .maybeSingle();
+
+    if (!dbCourse) return null;
+
+    const priceNum = Number(dbCourse.selling_price ?? dbCourse.price ?? 0);
+    return parseValidAmount(priceNum);
+  } catch (err) {
+    console.error("Failed to resolve authoritative course price from database:", err);
+    return null;
+  }
+}
+
+/**
+ * Safe fallback price resolver for UI display.
+ * Ignores untrusted client URL query parameters and MOCK_COURSES.
+ * Final price enforcement is strictly performed server-side in create-order and verify-payment APIs.
  */
 export function resolveCheckoutAmount(
-  amountProp: number | null | undefined,
-  courseId: string | null | undefined,
-  fallbackDefault = 900
+  _ignoredAmountProp: unknown,
+  _courseId: string | null | undefined,
+  fallbackDefault = 0
 ): number {
-  const validAmount = parseValidAmount(amountProp);
-  if (validAmount !== null) {
-    return validAmount;
-  }
-
-  if (courseId) {
-    const matchedCourse = MOCK_COURSES.find((c) => c.id === courseId);
-    if (matchedCourse) {
-      const validCoursePrice = parseValidAmount(matchedCourse.price);
-      if (validCoursePrice !== null) {
-        return validCoursePrice;
-      }
-    }
-  }
-
   return fallbackDefault;
 }
