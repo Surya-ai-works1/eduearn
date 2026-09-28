@@ -1,4 +1,4 @@
-import { MOCK_TUTORS } from '@/constants/mockData';
+import { createClient } from '@/lib/supabase/client';
 
 export interface Tutor {
   id: string;
@@ -7,21 +7,34 @@ export interface Tutor {
 }
 
 /**
- * Returns a tutor object by id from MOCK_TUTORS.
- * If no id is provided or the tutor is not found, returns a placeholder
- * indicating that a professional tutor will be assigned after enrollment.
+ * Returns an authoritative tutor profile object by id from Supabase database.
+ * If no id is provided or the tutor profile is not found in database, returns null.
+ * Never silently substitutes fake mock tutor records.
  */
-export function getTutorById(tutorId?: string): Tutor {
-  if (tutorId) {
-    const found = MOCK_TUTORS.find((t) => t.id === tutorId);
-    if (found) {
-      return { id: found.id, fullName: found.fullName, avatar: found.avatar };
+export async function getTutorById(tutorId?: string): Promise<Tutor | null> {
+  if (!tutorId) return null;
+
+  try {
+    const supabase = createClient();
+    if (!supabase) return null;
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, display_name, avatar_url, role')
+      .eq('id', tutorId)
+      .maybeSingle();
+
+    if (error || !profile || profile.role !== 'tutor') {
+      return null;
     }
+
+    return {
+      id: profile.id,
+      fullName: profile.full_name || profile.display_name || 'Tutor Instructor',
+      avatar: profile.avatar_url || '/images/tutors/default.jpg',
+    };
+  } catch (err) {
+    console.warn("Failed to fetch authoritative tutor profile from database:", err);
+    return null;
   }
-  // Placeholder future‑ready tutor
-  return {
-    id: 'placeholder',
-    fullName: 'Professional Tutor will be assigned after enrollment.',
-    avatar: '/images/tutors/default.jpg',
-  };
 }
