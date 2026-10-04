@@ -2,6 +2,7 @@
 
 import React from "react";
 import { BookOpen, PlayCircle, Clock } from "lucide-react";
+import Link from "next/link";
 import { Button } from "../../../../components/ui/button";
 import { DashboardCard } from "./DashboardCard";
 
@@ -53,12 +54,12 @@ export function ContinueLearning({
           <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm mx-auto leading-relaxed">
             You are not enrolled in any active courses yet. Discover structured curriculum modules from verified educators.
           </p>
-          <a
+          <Link
             href="/courses"
             className="inline-block px-4 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl transition shadow-soft mt-1"
           >
             Explore Courses
-          </a>
+          </Link>
         </DashboardCard>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
