@@ -557,7 +557,7 @@ function StudentDashboardContent() {
       </AnimatePresence>
 
       {/* 2. MAIN LAYOUT CONTAINER */}
-      <div className={`flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300 pt-20 ${
+      <div className={`flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300 pt-16 ${
         isSidebarCollapsed ? "md:pl-20" : "md:pl-64"
       }`}>
         {/* Top dashboard header bar */}

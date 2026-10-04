@@ -818,15 +818,16 @@ export const LiveClasses = React.memo(function LiveClasses({
                         <Button
                           onClick={() => navigateToClassroom(router, session.id)}
                           size="sm"
-                          className="h-8 text-[10px] font-bold flex-1 bg-primary text-white border-none"
+                          className="h-9 text-xs font-extrabold flex-1 bg-primary hover:bg-primary/95 text-white border-none flex items-center justify-center gap-1.5 shadow-sm"
                         >
-                          Start Class
+                          <Video size={14} className="fill-current" />
+                          Start Live Class
                         </Button>
                         <Button
                           onClick={() => setSelectedStudentViewClass(session)}
                           size="sm"
                           variant="outline"
-                          className="h-8 text-[10px] px-2.5 font-bold border-border/60 hover:bg-muted"
+                          className="h-9 text-xs px-3 font-bold border-border/60 hover:bg-muted"
                         >
                           Details
                         </Button>
@@ -835,31 +836,35 @@ export const LiveClasses = React.memo(function LiveClasses({
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 px-2 font-bold border-border/60"
+                            className="h-9 px-2.5 font-bold border-border/60"
                           >
-                            <MoreVertical size={12} />
+                            <MoreVertical size={13} />
                           </Button>
-                          <div className="absolute right-0 bottom-full mb-1 hidden group-hover/upcoming-actions:flex flex-col bg-card border border-border rounded-lg shadow-floating py-1 w-24 z-30 font-semibold">
+                          <div className="absolute right-0 bottom-full mb-1 hidden group-hover/upcoming-actions:flex flex-col bg-card border border-border rounded-xl shadow-floating py-1.5 w-28 z-30 font-semibold text-xs">
                             <button
                               onClick={() => {
                                 setRescheduleDate(session.time.split(",")[0] || "");
                                 setShowRescheduleModalForSession(session);
                               }}
-                              className="px-3 py-1.5 text-[9.5px] text-left text-muted-foreground hover:text-foreground hover:bg-muted/50 transition cursor-pointer bg-transparent border-none"
+                              className="px-3 py-1.5 text-xs text-left text-muted-foreground hover:text-foreground hover:bg-muted/50 transition cursor-pointer bg-transparent border-none"
                             >
                               Reschedule
                             </button>
                             <button
                               onClick={() => handleCancelSession(session.id)}
-                              className="px-3 py-1.5 text-[9.5px] text-left text-amber-500 hover:text-amber-600 hover:bg-muted/50 transition cursor-pointer bg-transparent border-none"
+                              className="px-3 py-1.5 text-xs text-left text-amber-500 hover:text-amber-600 hover:bg-muted/50 transition cursor-pointer bg-transparent border-none"
                             >
                               Cancel
                             </button>
                             <button
-                              onClick={() => handleDeleteSession(session.id)}
-                              className="px-3 py-1.5 text-[9.5px] text-left text-rose-500 hover:text-rose-600 hover:bg-muted/50 transition cursor-pointer bg-transparent border-none"
+                              onClick={() => {
+                                if (window.confirm(`Are you sure you want to delete session "${session.title}"? This cannot be undone.`)) {
+                                  handleDeleteSession(session.id);
+                                }
+                              }}
+                              className="px-3 py-1.5 text-xs text-left text-rose-500 hover:text-rose-600 hover:bg-muted/50 transition cursor-pointer bg-transparent border-none font-bold"
                             >
-                              Delete
+                              Delete Class
                             </button>
                           </div>
                         </div>

@@ -87,57 +87,41 @@ export default function DocumentUploadStep() {
     try {
       const supabase = createClient();
       if (!supabase) {
-        if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
-          toast.success("Document mocked successfully in local preview!");
-          const mockUrl = `/mock-files/${docType}.${fileExt}`;
-          setUrls(prev => {
-            const next = { ...prev, [docType]: mockUrl };
-            setState((prevOnb) => {
-              const currentDocs = [...(prevOnb.verification?.documents || [])];
-              const docIndices: Record<string, number> = {
-                gov_id_url: 0,
-                degree_url: 1,
-                certificates_url: 2,
-                resume_url: 3,
-                video_demo_url: 4
-              };
-              const idx = docIndices[docType];
-              if (idx !== undefined) {
-                currentDocs[idx] = mockUrl;
-              }
-              return {
-                ...prevOnb,
-                verification: {
-                  ...prevOnb.verification,
-                  documents: currentDocs
-                }
-              };
-            });
-            return next;
-          });
-          setIsUploading(prev => ({ ...prev, [docType]: false }));
-          return;
-        }
         throw new Error("Supabase is not configured. Cannot upload documents.");
       }
-      const filePath = generateUniqueFilePath(userId, docType, fileExt);
+
+      // Sanitize extension and construct unique filepath
+      const cleanExt = fileExt.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+      const targetBucket = bucket || 'tutor-documents';
+      const filePath = generateUniqueFilePath(userId, docType, cleanExt);
 
       const { data, error } = await supabase.storage
-        .from(bucket)
+        .from(targetBucket)
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
         });
 
-      if (error) throw error;
+      if (error) {
+        // Fallback to 'documents' bucket if targetBucket fails
+        const fallbackRes = await supabase.storage
+          .from('documents')
+          .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+        if (fallbackRes.error) {
+          throw new Error(error.message || fallbackRes.error.message || "Storage upload failed");
+        }
+      }
 
       const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
+        .from(targetBucket)
         .getPublicUrl(filePath);
 
+      const finalUrl = publicUrl || `/storage/${targetBucket}/${filePath}`;
+
       setUrls(prev => {
-        const next = { ...prev, [docType]: publicUrl };
-        // Sync back to onboarding state context
+        const next = { ...prev, [docType]: finalUrl };
+        // Sync back to onboarding state context only on successful upload
         setState((s: any) => ({
           ...s,
           verification: {

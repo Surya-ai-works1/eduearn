@@ -496,6 +496,14 @@ export function PublicHeader() {
                 </AnimatePresence>
               </div>
 
+              {/* Authenticated user Start Learning CTA */}
+              <Link
+                href={user?.role === "admin" || user?.role === "super-admin" ? "/admin/dashboard" : user?.role === "tutor" ? "/tutor/dashboard" : "/student/dashboard"}
+                className="hidden sm:inline-flex text-xs font-bold bg-btn-gradient hover:opacity-95 text-white shadow-soft rounded-button px-3.5 py-1.5 transition-all focus:outline-none"
+              >
+                Start Learning
+              </Link>
+
               {/* User Dropdown */}
               <div className="relative" ref={userMenuRef}>
                 <button

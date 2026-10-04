@@ -185,21 +185,16 @@ export const useAuth = create<AuthStore>((set, get) => ({
       set({ isLoading: true });
 
       // ── Register listener FIRST so no events are missed during getSession() ─
-      supabase.auth.onAuthStateChange((event: any, newSession: any) => {
+      supabase.auth.onAuthStateChange(async (event: any, newSession: any) => {
         if (newSession?.user) {
-          const sessionUser = toUserSession(newSession.user);
+          const profile = await syncProfile(supabase, newSession.user);
+          const activeRole = profile?.role || newSession.user.user_metadata?.role || "student";
+          const sessionUser = toUserSession(newSession.user, activeRole);
           set({
             user: sessionUser,
             isAuthenticated: true,
             isLoading: false,
           });
-          syncProfile(supabase, newSession.user).then((profile) => {
-            if (profile?.role) {
-              set((s) => ({
-                user: s.user ? { ...s.user, role: toUserSession(newSession.user, profile.role).role } : s.user,
-              }));
-            }
-          }).catch(() => { /* sync failure is non-fatal */ });
         } else if (event === "SIGNED_OUT") {
           set({ user: null, isAuthenticated: false, isLoading: false });
         }
@@ -211,19 +206,14 @@ export const useAuth = create<AuthStore>((set, get) => ({
       } = await supabase.auth.getSession();
 
       if (session?.user) {
-        const sessionUser = toUserSession(session.user);
+        const profile = await syncProfile(supabase, session.user);
+        const activeRole = profile?.role || session.user.user_metadata?.role || "student";
+        const sessionUser = toUserSession(session.user, activeRole);
         set({
           user: sessionUser,
           isAuthenticated: true,
           isLoading: false,
         });
-        syncProfile(supabase, session.user).then((profile) => {
-          if (profile?.role) {
-            set((s) => ({
-              user: s.user ? { ...s.user, role: toUserSession(session.user, profile.role).role } : s.user,
-            }));
-          }
-        }).catch(() => { /* sync failure is non-fatal */ });
       } else {
         set({ user: null, isAuthenticated: false, isLoading: false });
       }
@@ -607,12 +597,14 @@ export const useAuth = create<AuthStore>((set, get) => ({
       });
 
       if (error) {
-        return { ok: false, message: normalizeError(error) };
+        console.warn("sendResetLink notice:", error.message);
       }
 
-      return { ok: true, message: "Password reset link sent." };
+      // Always return a uniform safe response to prevent email discovery attacks
+      return { ok: true, message: "If an account exists for this email address, a password reset link has been sent." };
     } catch (err) {
-      return { ok: false, message: normalizeError(err) };
+      console.warn("sendResetLink exception:", err);
+      return { ok: true, message: "If an account exists for this email address, a password reset link has been sent." };
     }
   },
 

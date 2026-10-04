@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Container } from "../../components/layout/Container";
 import { PageWrapper } from "../../components/layout/PageWrapper";
@@ -9,7 +9,9 @@ import { Button } from "../../components/ui/button";
 import { useAuth } from "../../hooks/useAuth";
 import { createClient } from "../../lib/supabase";
 import { toast } from "sonner";
-import { ShieldCheck, RotateCcw, Loader2 } from "lucide-react";
+import { ShieldCheck, RotateCcw, Loader2, Clock } from "lucide-react";
+
+const TIMER_INITIAL_SECONDS = 60;
 
 function VerifyOtpContent() {
   const { initialize } = useAuth();
@@ -20,10 +22,43 @@ function VerifyOtpContent() {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(TIMER_INITIAL_SECONDS);
 
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 1. Initialize and clear countdown timer safely
+  const startTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    setTimerSeconds(TIMER_INITIAL_SECONDS);
+    
+    timerRef.current = setInterval(() => {
+      setTimerSeconds((prev) => {
+        if (prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => {
+    startTimer();
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
+  // 2. Submit and verify OTP token
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (code.length !== 6) {
+    if (isLoading || isResending) return;
+
+    if (!code || code.length !== 6) {
       toast.error("Please enter a valid 6-digit numeric verification code.");
       return;
     }
@@ -31,32 +66,59 @@ function VerifyOtpContent() {
     setIsLoading(true);
     const supabase = createClient();
     try {
-      const { error } = await supabase.auth.verifyOtp({
+      if (!supabase) {
+        throw new Error("Authentication service is unavailable.");
+      }
+
+      // First attempt with signup type
+      let { error } = await supabase.auth.verifyOtp({
         email,
         token: code,
         type: "signup"
       });
 
+      // Fallback attempt with email type if signup type failed
+      if (error) {
+        const fallback = await supabase.auth.verifyOtp({
+          email,
+          token: code,
+          type: "email"
+        });
+        if (!fallback.error) {
+          error = null;
+        }
+      }
+
       setIsLoading(false);
 
       if (error) {
-        toast.error(error.message);
+        if (error.status === 429) {
+          toast.error("Too many verification attempts. Please wait a moment before trying again.");
+        } else if (error.message?.toLowerCase().includes("expired")) {
+          toast.error("Verification OTP has expired. Please click 'Resend OTP Code'.");
+        } else {
+          toast.error(error.message || "Invalid OTP verification code.");
+        }
         return;
       }
 
-      toast.success("OTP verified successfully!");
+      toast.success("OTP verified successfully ✓");
       
-      // Authoritatively initialize session store state
+      // Synchronize auth state session
       await initialize();
       
       const sessionUser = useAuth.getState().user;
       if (!sessionUser?.role) {
         router.push("/choose-role");
       } else if (sessionUser.complete === false) {
-        router.push("/complete-profile");
+        if (sessionUser.role === "tutor") {
+          router.push("/tutor/onboarding");
+        } else {
+          router.push("/complete-profile");
+        }
       } else {
         if (sessionUser.role === "admin" || sessionUser.role === "super-admin") {
-          router.push("/");
+          router.push("/admin/dashboard");
         } else if (sessionUser.role === "tutor") {
           router.push("/tutor/dashboard");
         } else {
@@ -69,27 +131,51 @@ function VerifyOtpContent() {
     }
   };
 
+  // 3. Resend OTP handler
   const handleResend = async () => {
+    if (timerSeconds > 0 || isResending || isLoading) return;
+
     if (!email) {
-      toast.error("No email address found to resend verification code.");
+      toast.error("No target email address found for resending code.");
       return;
     }
+
     setIsResending(true);
     const supabase = createClient();
     try {
-      const { error } = await supabase.auth.resend({
+      if (!supabase) {
+        throw new Error("Authentication service is unavailable.");
+      }
+
+      let { error } = await supabase.auth.resend({
         type: "signup",
         email,
       });
+
+      if (error) {
+        const fallbackRes = await supabase.auth.resend({
+          type: "email_change",
+          email,
+        });
+        if (!fallbackRes.error) {
+          error = null;
+        }
+      }
+
       setIsResending(false);
       if (error) {
-        toast.error(error.message);
+        if (error.status === 429 || error.message?.toLowerCase().includes("rate limit")) {
+          toast.error("Rate limit reached. Please wait 60 seconds before requesting another code.");
+        } else {
+          toast.error(error.message || "Failed to resend verification code.");
+        }
       } else {
-        toast.success("Verification code resent to your inbox!");
+        toast.success("New verification code sent to your inbox!");
+        startTimer(); // Restart 60s countdown timer
       }
     } catch (err: any) {
       setIsResending(false);
-      toast.error(err?.message || "Failed to resend code.");
+      toast.error(err?.message || "Failed to resend verification code.");
     }
   };
 
@@ -110,7 +196,7 @@ function VerifyOtpContent() {
               <p className="text-[10px] text-muted-foreground mt-1 max-w-xs mx-auto leading-relaxed">
                 {"Enter the 6-digit verification code sent to "}
                 <span className="font-extrabold text-foreground">{email || "your inbox"}</span>
-                {". Please check your email to verify your account."}
+                {". Check your email inbox or spam folder."}
               </p>
             </div>
 
@@ -123,23 +209,47 @@ function VerifyOtpContent() {
                   placeholder="0 0 0 0 0 0"
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                  className="w-full bg-card border border-border shadow-sm hover:shadow-md transition-shadow duration-200 rounded-input h-12 text-center text-lg font-mono font-extrabold tracking-[8px] text-foreground focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/80"
+                  disabled={isLoading}
+                  className="w-full bg-card border border-border shadow-sm hover:shadow-md transition-shadow duration-200 rounded-input h-12 text-center text-lg font-mono font-extrabold tracking-[8px] text-foreground focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/80 disabled:opacity-50"
                 />
               </div>
 
-              <Button type="submit" size="md" className="w-full mt-2" disabled={isLoading}>
-                {isLoading ? "Verifying..." : "Verify OTP Code"}
+              <Button type="submit" size="md" className="w-full mt-2" disabled={isLoading || code.length !== 6}>
+                {isLoading ? (
+                  <span className="flex items-center gap-2 justify-center">
+                    <Loader2 className="animate-spin" size={14} /> Verifying OTP...
+                  </span>
+                ) : (
+                  "Verify OTP Code"
+                )}
               </Button>
             </form>
 
-            <button
-              onClick={handleResend}
-              disabled={isResending}
-              className="text-[9px] text-muted-foreground/80 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1 hover:text-foreground cursor-pointer focus:outline-none bg-transparent disabled:opacity-50"
-            >
-              <RotateCcw size={10} className={isResending ? "animate-spin" : ""} />
-              {isResending ? "Resending..." : "Resend OTP Code"}
-            </button>
+            <div className="pt-2 border-t border-border/40 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={timerSeconds > 0 || isResending || isLoading}
+                className="text-[10px] text-muted-foreground/90 font-extrabold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:text-foreground cursor-pointer focus:outline-none bg-transparent disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                {isResending ? (
+                  <>
+                    <RotateCcw size={12} className="animate-spin" />
+                    <span>Resending Code...</span>
+                  </>
+                ) : timerSeconds > 0 ? (
+                  <>
+                    <Clock size={12} className="text-amber-500" />
+                    <span>Resend OTP available in {timerSeconds}s</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw size={12} />
+                    <span>Resend OTP Code</span>
+                  </>
+                )}
+              </button>
+            </div>
 
           </Card>
         </Container>

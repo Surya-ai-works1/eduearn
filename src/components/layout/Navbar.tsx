@@ -22,6 +22,11 @@ export function Navbar() {
     return null;
   }
 
+  // Exclude student dashboard as it renders its own layout header (TopNavigation)
+  if (pathname?.startsWith("/student/dashboard")) {
+    return null;
+  }
+
   if (isAuthenticated && user) {
     if (user.role === "admin" || user.role === "super-admin") {
       return <AdminOSNavbar />;

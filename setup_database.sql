@@ -1031,14 +1031,16 @@ INSERT INTO storage.buckets (id, name, public) VALUES
   ('course-resources', 'course-resources', true),
   ('assignments', 'assignments', true),
   ('certificates', 'certificates', true),
-  ('community', 'community', true)
+  ('community', 'community', true),
+  ('tutor-documents', 'tutor-documents', false),
+  ('documents', 'documents', false)
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. Create Storage policies for SELECT, INSERT, UPDATE, DELETE on each bucket
 DO $$
 DECLARE
     bucket_name TEXT;
-    buckets TEXT[] := ARRAY['avatars', 'course-thumbnails', 'course-resources', 'assignments', 'certificates', 'community'];
+    buckets TEXT[] := ARRAY['avatars', 'course-thumbnails', 'course-resources', 'assignments', 'certificates', 'community', 'tutor-documents', 'documents'];
 BEGIN
     FOREACH bucket_name IN ARRAY buckets LOOP
         -- Select Policy

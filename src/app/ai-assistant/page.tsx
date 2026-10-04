@@ -382,9 +382,9 @@ export default function AiAssistantPage() {
 
   useEffect(() => {
     if (activeSession && activeSession.messages.length > 1) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
-  }, [activeSession, isStreaming]);
+  }, [activeSession?.messages?.length]);
 
   // Create new chat session
   const handleCreateNewChat = () => {
@@ -1258,9 +1258,9 @@ export default function AiAssistantPage() {
                           type="button"
                           onClick={() => handleSendMessage(promptText)}
                           disabled={isStreaming}
-                          className="text-left p-2.5 bg-muted/40 hover:bg-primary/5 hover:text-primary rounded-button text-[10px] font-bold text-white/90 border border-border/20 transition-all cursor-pointer focus:outline-none"
+                          className="text-left p-2.5 bg-card/90 hover:bg-primary/10 text-foreground hover:text-primary rounded-xl text-xs font-semibold border border-border/60 hover:border-primary/40 transition-all cursor-pointer focus:outline-none shadow-xs"
                         >
-                          {promptText}
+                          ⚡ {promptText}
                         </button>
                       ))}
                     </div>
@@ -1281,7 +1281,7 @@ export default function AiAssistantPage() {
                           key={idx}
                           onClick={() => handleSendMessage(fav)}
                           disabled={isStreaming}
-                          className="text-left p-2 bg-muted/30 hover:bg-primary/5 hover:text-primary rounded text-[10px] font-bold text-white/90 border border-border/10 transition-colors"
+                          className="text-left p-2 bg-card/80 hover:bg-primary/10 text-foreground hover:text-primary rounded-lg text-xs font-semibold border border-border/50 hover:border-primary/40 transition-colors shadow-xs"
                         >
                           ⭐ {fav}
                         </button>

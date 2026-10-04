@@ -48,42 +48,6 @@ function OnboardingContent() {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
         if (!session) {
-          // If in DEV MODE, auto-login to dev-tutor@eduearn.com
-          if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
-            const email = "dev-tutor@eduearn.com";
-            const password = "Password123!";
-            const fullName = "Tutor Demo";
-            
-            let signInRes = await supabase.auth.signInWithPassword({ email, password });
-            if (signInRes.error) {
-              // Sign up first
-              const res = await fetch("/api/auth/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password, fullName, role: "tutor" }),
-              });
-              const regData = await res.json();
-              if (regData.success) {
-                signInRes = await supabase.auth.signInWithPassword({ email, password });
-              }
-            }
-            if (signInRes.data?.session) {
-              // Ensure metadata is complete = false and role = tutor
-              await supabase.auth.updateUser({ data: { complete: false, role: "tutor" } });
-              await supabase.from("profiles").upsert({
-                id: signInRes.data.session.user.id,
-                email,
-                full_name: fullName,
-                role: "tutor",
-                updated_at: new Date().toISOString()
-              });
-              await supabase.auth.refreshSession();
-              // Reload page to let useAuth.initialize read the new session
-              window.location.reload();
-              return;
-            }
-          }
-
           router.replace('/tutor/login?redirect=' + encodeURIComponent('/tutor/onboarding'));
           return;
         } else {
@@ -158,39 +122,6 @@ function OnboardingContent() {
         {/* Progress Stepper — visible for steps 1–9 */}
         {state.currentStep <= TOTAL_STEPS && (
           <ProgressStepper currentStep={state.currentStep} goToStep={goToStep} />
-        )}
-
-        {process.env.NEXT_PUBLIC_DEV_MODE === "true" && state.currentStep <= TOTAL_STEPS && (
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 bg-amber-500/10 dark:bg-amber-950/20 border border-amber-500/20 p-4 rounded-3xl max-w-lg mx-auto shadow-sm select-none">
-            <div className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
-              Dev Onboarding Bypass
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => goToStep(Math.max(1, state.currentStep - 1))}
-                disabled={state.currentStep === 1}
-                className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-805 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                onClick={() => goToStep(Math.min(TOTAL_STEPS + 1, state.currentStep + 1))}
-                className="px-4 py-1.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-500/20 hover:scale-[1.02] transition-all duration-200"
-              >
-                Skip Step
-              </button>
-              <button
-                type="button"
-                onClick={() => goToStep(Math.min(TOTAL_STEPS + 1, state.currentStep + 1))}
-                disabled={state.currentStep === TOTAL_STEPS}
-                className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-805 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                Next
-              </button>
-            </div>
-          </div>
         )}
 
         <div className="mt-8">

@@ -94,6 +94,7 @@ export type Submission = Record<string, any>;
 export interface Verification {
   profileVerified: boolean;
   documents: string[]; // placeholder for uploaded document IDs
+  idNumber?: string;
 }
 
 export interface OnboardingState {

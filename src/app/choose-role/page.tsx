@@ -31,9 +31,30 @@ export default function ChooseRolePage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (user?.role === "tutor") {
-      router.replace("/tutor/onboarding");
-      return;
+    if (user) {
+      if (user.complete !== false) {
+        if (user.role === "admin" || user.role === "super-admin") {
+          router.replace("/admin/dashboard");
+          return;
+        }
+        if (user.role === "tutor") {
+          router.replace("/tutor/dashboard");
+          return;
+        }
+        if (user.role === "student") {
+          router.replace("/student/dashboard");
+          return;
+        }
+      } else {
+        if (user.role === "tutor") {
+          router.replace("/tutor/onboarding");
+          return;
+        }
+        if (user.role === "student") {
+          router.replace("/complete-profile");
+          return;
+        }
+      }
     }
     if (typeof window !== "undefined") {
       const pendingRole = localStorage.getItem("onboarding_role");
