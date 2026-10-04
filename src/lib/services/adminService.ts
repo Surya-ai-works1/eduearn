@@ -67,8 +67,8 @@ export class AdminService {
     return AdminRepository.getCourses(search, category, status);
   }
 
-  async updateCourseStatus(adminName: string, courseId: string, status: AdminCourse["status"]): Promise<AdminCourse> {
-    const course = await AdminRepository.updateCourseStatus(courseId, status);
+  async updateCourseStatus(adminName: string, courseId: string, status: AdminCourse["status"], price?: number): Promise<AdminCourse> {
+    const course = await AdminRepository.updateCourseStatus(courseId, status, price);
     
     // Audit Logging
     await AdminRepository.logAuditAction(

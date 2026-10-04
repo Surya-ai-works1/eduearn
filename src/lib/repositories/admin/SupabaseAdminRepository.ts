@@ -429,18 +429,26 @@ export class SupabaseAdminRepository implements IAdminRepository {
     return list;
   }
 
-  async updateCourseStatus(courseId: string, status: AdminCourse["status"]): Promise<AdminCourse> {
+  async updateCourseStatus(courseId: string, status: AdminCourse["status"], price?: number): Promise<AdminCourse> {
     const supabase = await this.getSupabase();
-    const approval_status = status === "Approved" ? "approved" : status === "Rejected" ? "rejected" : "pending";
-    const dbStatus = status === "Approved" ? "published" : status === "Archived" ? "archived" : "draft";
+    const statusStr = String(status);
+    const approval_status = statusStr === "Approved" || statusStr === "Published" ? "approved" : statusStr === "Rejected" ? "rejected" : "pending";
+    const dbStatus = statusStr === "Approved" || statusStr === "Published" ? "published" : statusStr === "Archived" ? "archived" : "draft";
+
+    const updatePayload: any = {
+      approval_status,
+      status: dbStatus,
+      updated_at: new Date().toISOString()
+    };
+
+    if (price !== undefined && price >= 0) {
+      updatePayload.price = price;
+      updatePayload.selling_price = price;
+    }
 
     const { data, error } = await supabase
       .from("courses")
-      .update({
-        approval_status,
-        status: dbStatus,
-        updated_at: new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq("id", courseId)
       .select()
       .single();

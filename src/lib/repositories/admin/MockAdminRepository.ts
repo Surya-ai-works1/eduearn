@@ -219,12 +219,20 @@ export class MockAdminRepository implements IAdminRepository {
     return list;
   }
 
-  async updateCourseStatus(courseId: string, status: AdminCourse["status"]): Promise<AdminCourse> {
+  async updateCourseStatus(courseId: string, status: AdminCourse["status"], price?: number): Promise<AdminCourse> {
     const list = await this.getCourses();
     let updated: AdminCourse | null = null;
     const newList = list.map((c) => {
       if (c.id === courseId) {
-        updated = { ...c, status, hidden: status === "Draft" || status === "Archived" };
+        const nextPrice = price !== undefined && price >= 0 ? price : c.price;
+        updated = {
+          ...c,
+          status,
+          price: nextPrice,
+          tutorEarnings: Math.round(nextPrice * 0.8),
+          platformEarnings: nextPrice - Math.round(nextPrice * 0.8),
+          hidden: status === "Draft" || status === "Archived"
+        };
         return updated;
       }
       return c;

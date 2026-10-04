@@ -444,7 +444,7 @@ export default function CoursesTab({
     toast.success(`Exported history successfully as ${type.toUpperCase()}`);
   };
 
-  const handleSaveCourse = (e: React.FormEvent) => {
+  const handleSaveCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTitle.trim()) {
       toast.error("Course Title is required.");
@@ -579,6 +579,28 @@ export default function CoursesTab({
       setCourses(nextCoursesList);
 
       try {
+        const supabase = createClient();
+        if (supabase) {
+          const dbStatus = formStatus === "Published" ? "published" : formStatus === "Archived" ? "archived" : "draft";
+          const approval_status = formStatus === "Published" ? "approved" : formStatus === "Draft" ? "draft" : "pending";
+          const priceVal = Number(formPrice) || 0;
+
+          await supabase
+            .from("courses")
+            .update({
+              title: formTitle.trim(),
+              category: formCategory.trim(),
+              price: priceVal,
+              selling_price: priceVal,
+              status: dbStatus,
+              approval_status: approval_status,
+              description: formDescription.trim(),
+              level: formLevel.toLowerCase(),
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", editingCourse.id);
+        }
+
         if (typeof window !== "undefined") {
           localStorage.setItem("eduearn_academic_courses", JSON.stringify(nextCoursesList));
           

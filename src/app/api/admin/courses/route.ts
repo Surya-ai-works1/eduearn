@@ -34,18 +34,18 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
-    const { courseId, status, featured } = body;
+    const { courseId, status, price, featured } = body;
     if (!courseId) {
       return NextResponse.json({ error: "Missing required field: courseId" }, { status: 400 });
     }
 
     let result;
-    if (status) {
-      result = await adminService.updateCourseStatus(adminName, courseId, status);
+    if (status || price !== undefined) {
+      result = await adminService.updateCourseStatus(adminName, courseId, status, price !== undefined ? Number(price) : undefined);
     } else if (featured !== undefined) {
       result = await adminService.updateCourseFeature(adminName, courseId, featured);
     } else {
-      return NextResponse.json({ error: "Missing updates (status or featured parameter)" }, { status: 400 });
+      return NextResponse.json({ error: "Missing updates (status, price, or featured parameter)" }, { status: 400 });
     }
 
     return NextResponse.json(result);

@@ -28,7 +28,7 @@ export interface IAdminRepository {
   
   // Courses
   getCourses(search?: string, category?: string, status?: string): Promise<AdminCourse[]>;
-  updateCourseStatus(courseId: string, status: AdminCourse["status"]): Promise<AdminCourse>;
+  updateCourseStatus(courseId: string, status: AdminCourse["status"], price?: number): Promise<AdminCourse>;
   updateCourseFeature(courseId: string, featured: boolean): Promise<AdminCourse>;
   assignCourseCategory(courseId: string, category: string): Promise<AdminCourse>;
   

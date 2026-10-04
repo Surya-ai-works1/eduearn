@@ -123,6 +123,35 @@ export class SupabaseCourseManagementRepository implements ICourseManagementRepo
       throw error || new Error("Failed to create course in database");
     }
 
+    // Persist imported/created curriculum modules into Supabase lessons table
+    const curriculumModules = (courseData as any).curriculumModules;
+    if (Array.isArray(curriculumModules) && curriculumModules.length > 0) {
+      try {
+        let pos = 1;
+        const lessonsToInsert: any[] = [];
+        for (const mod of curriculumModules) {
+          if (Array.isArray(mod.lessons)) {
+            for (const les of mod.lessons) {
+              lessonsToInsert.push({
+                course_id: data.id,
+                title: les.title || "Lesson",
+                description: les.type ? `Type: ${les.type}` : null,
+                duration: typeof les.duration === "number" ? les.duration : parseInt(les.duration) || 10,
+                lesson_order: pos,
+                position: pos,
+              });
+              pos++;
+            }
+          }
+        }
+        if (lessonsToInsert.length > 0) {
+          await supabase.from("lessons").insert(lessonsToInsert);
+        }
+      } catch (lessonErr) {
+        console.warn("Failed to persist curriculum lessons to database:", lessonErr);
+      }
+    }
+
     return {
       id: data.id,
       tutorId: data.tutor_id,
